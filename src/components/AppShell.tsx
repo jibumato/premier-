@@ -2,6 +2,8 @@
 
 import { AppRouterProvider, useRouter } from "./AppRouter";
 import { PhoneFrame } from "./PhoneFrame";
+import { AuthGate } from "./AuthGate";
+import { useAuth } from "@/lib/auth/useAuth";
 import { HomeScreen } from "./screens/HomeScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { DetailScreen } from "./screens/DetailScreen";
@@ -61,13 +63,26 @@ function CurrentScreen() {
   return <Screen />;
 }
 
+function FramedApp() {
+  // Only used to decide whether the login gate (chromeless) is showing;
+  // AuthGate itself owns the actual gating logic.
+  const { user, loading, configured } = useAuth();
+  const showingLogin = configured && !loading && !user;
+
+  return (
+    <PhoneFrame forceChromeless={showingLogin}>
+      <AuthGate>
+        <CurrentScreen />
+      </AuthGate>
+    </PhoneFrame>
+  );
+}
+
 /** Root of the prototype: provides routing state and renders the phone frame. */
 export function AppShell() {
   return (
     <AppRouterProvider>
-      <PhoneFrame>
-        <CurrentScreen />
-      </PhoneFrame>
+      <FramedApp />
     </AppRouterProvider>
   );
 }

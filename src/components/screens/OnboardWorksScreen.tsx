@@ -1,20 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { colors } from "@/lib/tokens";
-import { onboardWorks } from "@/lib/data";
+import { onboardWorks as mockWorks } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { PrimaryButton } from "../ui";
 import { OnboardProgress } from "./onboardProgress";
 import { ImageSlot } from "../ImageSlot";
 import { SearchIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useFollowedWorks, useFollowWorks, useWorks } from "@/lib/queries/works";
 
 export function OnboardWorksScreen() {
   const { nav } = useRouter();
-  const [selected, setSelected] = useState<string[]>(["ow1", "ow3", "ow5"]);
+  const { user, configured } = useAuth();
+
+  const worksQuery = useWorks();
+  const followedQuery = useFollowedWorks(user?.id);
+  const followWorks = useFollowWorks();
+
+  // Real works (id/name from Supabase) once connected; the handoff's mock
+  // list (key/name) otherwise — same shape, so rendering doesn't branch.
+  const works = configured
+    ? (worksQuery.data ?? []).map((w) => ({ key: w.id, name: w.name }))
+    : mockWorks;
+
+  const [selected, setSelected] = useState<string[]>(configured ? [] : ["ow1", "ow3", "ow5"]);
+
+  // Seed the selection from the server once the user's existing follows load.
+  useEffect(() => {
+    if (configured && followedQuery.data) setSelected(followedQuery.data);
+  }, [configured, followedQuery.data]);
 
   const toggle = (key: string) =>
     setSelected((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
+
+  const handleNext = () => {
+    if (configured && user) {
+      followWorks.mutate({ userId: user.id, workIds: selected });
+    }
+    nav("onboardVerify");
+  };
 
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
@@ -49,7 +75,7 @@ export function OnboardWorksScreen() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
-          {onboardWorks.map((w) => {
+          {works.map((w) => {
             const on = selected.includes(w.key);
             return (
               <button
@@ -118,7 +144,7 @@ export function OnboardWorksScreen() {
 
       <div style={{ padding: "24px 22px 30px", marginTop: "auto" }}>
         <PrimaryButton
-          onClick={() => nav("onboardVerify")}
+          onClick={handleNext}
           style={selected.length === 0 ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
         >
           {selected.length > 0 ? `${selected.length}つ選択中 · 次へ` : "1つ以上えらんでください"}

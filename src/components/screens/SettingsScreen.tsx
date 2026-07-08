@@ -6,6 +6,8 @@ import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { AppBar, Toggle } from "../ui";
 import { ChevronRightIcon } from "../icons";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -85,6 +87,15 @@ export function SettingsScreen() {
   const [privateAccount, setPrivateAccount] = useState(false);
   const [showSupport, setShowSupport] = useState(true);
 
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) {
+      // AuthGate reacts to onAuthStateChange and swaps in LoginScreen itself.
+      await getSupabaseBrowserClient().auth.signOut();
+      return;
+    }
+    nav("onboardRole"); // prototype mode: walk through the onboarding flow instead
+  };
+
   return (
     <div style={{ paddingBottom: 30 }}>
       <AppBar title="設定" onBack={back} />
@@ -122,7 +133,7 @@ export function SettingsScreen() {
       </Group>
 
       <Group title="アカウント">
-        <LinkRow title="ログアウト" onClick={() => nav("onboardRole")} danger last />
+        <LinkRow title="ログアウト" onClick={handleLogout} danger last />
       </Group>
 
       <div style={{ textAlign: "center", fontSize: 10.5, color: colors.textMutedSoft, marginTop: 22 }}>

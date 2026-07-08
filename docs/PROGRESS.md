@@ -78,6 +78,8 @@
 - [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **OpenNext Cloudflare (opennextjs-cloudflare) ビルド検証 ✅**
 - [x] **P1-03 先行実装（接続不要な範囲）**: middleware / useAuth / profile・works フック / オンボ① role 保存の結線（ガード付き・検証は接続後）
 - [x] **アカウント作成・接続完了**（Supabase プロジェクト＋マイグレーション適用済み、Cloudflare Workers+R2 連携済み、本番URL `premier.sunny-rainy1115.workers.dev` で実機動作確認済み）
-- [ ] **P1-03 残り（接続後）**: ログイン UI（サインアップ/ログイン画面）/ オンボ②作品保存（works の実データ投入）/ 各画面の実データ化 ← 現在ここ
+- [x] **ログイン/サインアップ画面**（`LoginScreen`）＋ **AuthGate**（未ログイン時に自動表示、ログイン成功で自動的に消える）。設定「ログアウト」も実際に `signOut()` するよう修正
+- [x] **works シード**（`0002_seed_works.sql`）＋ **オンボ②を実データ接続**（`useWorks`/`useFollowedWorks`/`useFollowWorks`、未接続時は従来のモック動作を維持）
+- [ ] **P1-03 残り**: 募集・応募の実データ化（home/search/detail/create/applied） ← 現在ここ
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）
