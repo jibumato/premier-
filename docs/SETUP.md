@@ -55,9 +55,9 @@ npm run deploy     # Cloudflare へデプロイ（wrangler ログイン後）
 
 ## ⚠️ 補足・推奨
 
-- **Next.js のセキュリティ更新**: 現行 `next@15.1.6` に既知の脆弱性 advisory あり
-  （dev サーバー / 画像最適化）。Phase 1 実装前に `15.x` 最新パッチへの更新を推奨
-  （別チケットで対応、要リグレッション確認）。
+- **Next.js のセキュリティ更新**: `next@15.5.20` に更新済み（旧 15.1.6 のクリティカル
+  advisory を解消）。残る `npm audit` の指摘は dev/ビルドツール（vercel CLI・eslint・
+  esbuild 等）由来で本番配信物には含まれず、強制修正はツールチェーンを壊すため見送り。
 - **CI**: `.github/workflows/ci.yml` で lint / typecheck / build を実行。
   `.npmrc` の `legacy-peer-deps=true` は Cloudflare ツールチェーンの optional peer 競合
   （workers-types v4/v5）回避のため。
