@@ -1,0 +1,161 @@
+"use client";
+
+import { useState } from "react";
+import { colors } from "@/lib/tokens";
+import { useRouter } from "../AppRouter";
+import { ImageSlot } from "../ImageSlot";
+import { AppBar, PrimaryButton } from "../ui";
+
+interface Answer {
+  key: string;
+  name: string;
+  text: string;
+  best: boolean;
+  likes: number;
+}
+
+const initialAnswers: Answer[] = [
+  {
+    key: "an1",
+    name: "澪 / mio",
+    text: "モバイルバッテリー、両面テープ、安全ピン、着替え用の圧縮袋は必須です！あとメイク直しセットも忘れずに◎",
+    best: true,
+    likes: 42,
+  },
+  {
+    key: "an2",
+    name: "photographer_r",
+    text: "カメラマン目線だと、レフ板代わりの白いハンカチや、汗ふきシートがあると助かります。撮影がスムーズになりますよ。",
+    best: false,
+    likes: 18,
+  },
+  {
+    key: "an3",
+    name: "すず",
+    text: "私はいつも絆創膏とヘアピンを多めに持っていきます。ウィッグ用ネットの予備もあると安心です！",
+    best: false,
+    likes: 9,
+  },
+];
+
+export function QaDetailScreen() {
+  const { back } = useRouter();
+  const [answers, setAnswers] = useState(initialAnswers);
+  const [draft, setDraft] = useState("");
+
+  const like = (key: string) =>
+    setAnswers((a) => a.map((x) => (x.key === key ? { ...x, likes: x.likes + 1 } : x)));
+
+  const post = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setAnswers((a) => [...a, { key: `me-${a.length}`, name: "あなた", text, best: false, likes: 0 }]);
+    setDraft("");
+  };
+
+  return (
+    <div>
+      <AppBar title="質問の詳細" onBack={back} />
+
+      {/* question */}
+      <div style={{ padding: "10px 22px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: colors.positive, background: "#E7F4EC", padding: "3px 8px", borderRadius: 999 }}>
+            解決済
+          </span>
+          <span style={{ fontSize: 10.5, color: colors.primary, background: colors.primaryBg1, padding: "3px 9px", borderRadius: 999 }}>
+            初心者
+          </span>
+        </div>
+        <h2 style={{ margin: "10px 0 0", fontSize: 18, lineHeight: 1.5, fontWeight: 700, color: colors.textPrimary }}>
+          併せ初心者です。当日の持ち物で必須なものは？
+        </h2>
+        <p style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.9, color: colors.textSecondary }}>
+          来月はじめて併せに参加します。衣装以外で持っていくと良いものを教えてください。会場は屋内スタジオです。
+        </p>
+        <div style={{ fontSize: 11, color: colors.textMutedSoft, marginTop: 12 }}>かな · 2日前</div>
+      </div>
+
+      <div style={{ height: 8, background: colors.primaryBg4, margin: "18px 0 0" }} />
+
+      {/* answers */}
+      <div style={{ padding: "16px 22px 0" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>回答 {answers.length}件</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+          {answers.map((a) => (
+            <div
+              key={a.key}
+              style={{
+                border: `1px solid ${a.best ? "#C9DECF" : colors.borderSoft}`,
+                borderRadius: 16,
+                padding: 14,
+                background: a.best ? "#F3FAF5" : colors.white,
+              }}
+            >
+              {a.best && (
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: colors.positive, marginBottom: 8 }}>
+                  ★ ベストアンサー
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", flex: "0 0 auto" }}>
+                  <ImageSlot circle />
+                </div>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>{a.name}</span>
+              </div>
+              <p style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.8, color: colors.textSecondary }}>{a.text}</p>
+              <button
+                onClick={() => like(a.key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  marginTop: 10,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.white,
+                  borderRadius: 999,
+                  padding: "5px 12px",
+                  fontSize: 11,
+                  color: colors.textSecondaryAlt,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                役に立った {a.likes}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* post answer */}
+      <div style={{ padding: "20px 22px 30px" }}>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="あなたの回答を書く"
+          rows={3}
+          style={{
+            width: "100%",
+            border: `1px solid ${colors.border}`,
+            borderRadius: 13,
+            padding: "12px 14px",
+            fontSize: 13,
+            fontFamily: "inherit",
+            lineHeight: 1.7,
+            color: colors.textPrimary,
+            resize: "none",
+            outline: "none",
+            background: colors.primaryBg5,
+          }}
+        />
+        <PrimaryButton
+          onClick={post}
+          style={{ marginTop: 10, ...(draft.trim() ? {} : { opacity: 0.45, cursor: "not-allowed" }) }}
+        >
+          回答を投稿する
+        </PrimaryButton>
+      </div>
+    </div>
+  );
+}
