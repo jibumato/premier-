@@ -1,0 +1,5 @@
+# wrangler のローカル秘密変数（`wrangler pages dev` 等で読み込まれる）。
+# 実ファイル `.dev.vars` は .gitignore 済み。ここはテンプレート。
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key

@@ -46,7 +46,7 @@
 | Phase 0 | 全24画面・CI・設計書 | ✅ 完了 | — | 済 |
 | Phase 1 | **詳細タスク分解・スキーマ確定**（[PHASE1_PLAN.md](PHASE1_PLAN.md) / [migration](../supabase/migrations/0001_phase1_core.sql)） | ✅ 完了 | — | 済 |
 | Phase 1 | ~~バックエンド基盤の選定~~ → **Cloudflare＋Supabase で確定** | ✅ 完了 | — | 済 |
-| Phase 1 | 基盤初期化（Supabase 接続 / Cloudflare Pages+R2 / next-on-pages 検証 / P1-01） | ⬜ 未着手 | — | 2日 |
+| Phase 1 | 基盤初期化（P1-01）: コード側の土台＋**next-on-pages ビルド検証 ✅** | 🟡 進行中 | アカウント作成 | 2日 |
 | Phase 1 | 認証・プロフィール（role/profiles/フォロー / P1-03〜05） | ⬜ 未着手 | 基盤選定 | 1週 |
 | Phase 1 | 募集・応募のデータ化（awase/roles/applications） | ⬜ 未着手 | 認証 | 1–1.5週 |
 | Phase 1 | データ取得層の導入（TanStack Query 化・楽観更新） | ⬜ 未着手 | 認証 | 0.5週 |
@@ -73,6 +73,8 @@
 
 - [x] **Phase 1 の詳細分解・見積確定**（→ [PHASE1_PLAN.md](PHASE1_PLAN.md) / スキーマ確定）
 - [x] **バックエンド基盤を決定** → Cloudflare（配信/R2）＋ Supabase（Auth/DB）
-- [ ] **P1-01 基盤初期化に着手**（Supabase 作成・接続、Cloudflare Pages+R2、next-on-pages 検証）
+- [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **next-on-pages ビルド検証 ✅**
+- [ ] **アカウント作成・接続**（[SETUP.md](SETUP.md) のチェックリスト: Supabase プロジェクト / Cloudflare Pages+R2）← 現在ここ
+- [ ] P1-03 認証・プロフィール実装（アカウント接続後）
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）

@@ -23,5 +23,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
+
+      - name: Cloudflare Pages build (next-on-pages)
+        run: npm run pages:build
+        env:
+          VERCEL_TELEMETRY_DISABLED: "1"
