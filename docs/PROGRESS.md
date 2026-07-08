@@ -2,7 +2,8 @@
 
 > コスプレイヤー交流マッチングアプリの開発ロードマップ。デザイン・プロトタイプは
 > 完了、ここからプロダクション実装フェーズへ。フェーズ定義の詳細は
-> [ARCHITECTURE.md](ARCHITECTURE.md) を参照。
+> [ARCHITECTURE.md](ARCHITECTURE.md)、Phase 1 の実装計画は
+> [PHASE1_PLAN.md](PHASE1_PLAN.md) を参照。
 
 - **更新日**: 2026-07-08 ・ 版: v1.0
 - **リポジトリ**: jibumato/premier-
@@ -42,8 +43,9 @@
 | フェーズ | タスク | 状態 | 依存 | 想定 |
 | --- | --- | --- | --- | --- |
 | Phase 0 | 全24画面・CI・設計書 | ✅ 完了 | — | 済 |
-| Phase 1 | バックエンド基盤の選定・初期化（Supabase 推奨） | ⚠️ 要判断 | — | 3日 |
-| Phase 1 | 認証・プロフィール（role/profiles/フォロー） | ⬜ 未着手 | 基盤選定 | 1週 |
+| Phase 1 | **詳細タスク分解・スキーマ確定**（[PHASE1_PLAN.md](PHASE1_PLAN.md) / [migration](../supabase/migrations/0001_phase1_core.sql)） | ✅ 完了 | — | 済 |
+| Phase 1 | バックエンド基盤の選定・初期化（Supabase 推奨 / P1-01） | ⚠️ 要判断 | — | 2日 |
+| Phase 1 | 認証・プロフィール（role/profiles/フォロー / P1-03〜05） | ⬜ 未着手 | 基盤選定 | 1週 |
 | Phase 1 | 募集・応募のデータ化（awase/roles/applications） | ⬜ 未着手 | 認証 | 1–1.5週 |
 | Phase 1 | データ取得層の導入（TanStack Query 化・楽観更新） | ⬜ 未着手 | 認証 | 0.5週 |
 | Phase 2 | 画像アップロード基盤（署名URL/CDN/変換/NSFW自動判定） | ⬜ 未着手 | Phase 1 | 1週 |
@@ -66,7 +68,7 @@
 
 ## 次アクション
 
-- [ ] **バックエンド基盤を決定**（推奨: Supabase ／ 意思決定者の合意）
-- [ ] **Phase 1 の詳細分解・見積確定**（スキーマ確定 → スプリント計画）
+- [x] **Phase 1 の詳細分解・見積確定**（→ [PHASE1_PLAN.md](PHASE1_PLAN.md) / スキーマ確定）
+- [ ] **バックエンド基盤を決定**（推奨: Supabase ／ 意思決定者の合意）→ P1-01 着手可
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）
