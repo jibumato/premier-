@@ -256,3 +256,30 @@ export const reportReasons = [
   "詐欺・金銭トラブル",
   "その他",
 ];
+
+// --- onboarding ---
+
+export const onboardWorks = [
+  { key: "ow1", name: "葬送のフリーレン" },
+  { key: "ow2", name: "鬼滅の刃" },
+  { key: "ow3", name: "SPY×FAMILY" },
+  { key: "ow4", name: "呪術廻戦" },
+  { key: "ow5", name: "原神" },
+  { key: "ow6", name: "ブルーアーカイブ" },
+];
+
+// --- photographer profile ---
+
+export const photoWorlds = ["サイバー", "夜景", "透明感", "和風", "ファンタジー"];
+
+export const portfolioKeys = ["pf1", "pf2", "pf3", "pf4"];
+
+export const photoRates = [
+  { key: "pr1", title: "併せ参加（カメコ）", note: "スタジオ代の割り勘のみ", price: "応相談", accent: true },
+  { key: "pr2", title: "個人撮影（データ納品）", note: "2時間・レタッチ込み", price: "¥10,000〜", accent: false },
+];
+
+export const photoReviews = [
+  { key: "rv1", from: "澪 / mio", stars: "★★★★★", text: "世界観の作り込みがすごい！仕上がりの写真に感動しました。併せでもまたお願いしたいです。" },
+  { key: "rv2", from: "かな", stars: "★★★★★", text: "当日はとても丁寧にリードしてくださって、初めてでも安心でした。レタッチも早かったです◎" },
+];

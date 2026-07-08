@@ -113,7 +113,7 @@ export function SettingsScreen() {
 
       <Group title="安全とサポート">
         <LinkRow title="ブロックしたユーザー" onClick={() => nav("report")} />
-        <LinkRow title="本人確認" onClick={() => nav("settings")} />
+        <LinkRow title="本人確認" onClick={() => nav("onboardVerify")} />
         <LinkRow title="ヘルプ・お問い合わせ" onClick={() => nav("qa")} last />
       </Group>
 
@@ -122,7 +122,7 @@ export function SettingsScreen() {
       </Group>
 
       <Group title="アカウント">
-        <LinkRow title="ログアウト" onClick={() => nav("home", "home")} danger last />
+        <LinkRow title="ログアウト" onClick={() => nav("onboardRole")} danger last />
       </Group>
 
       <div style={{ textAlign: "center", fontSize: 10.5, color: colors.textMutedSoft, marginTop: 22 }}>

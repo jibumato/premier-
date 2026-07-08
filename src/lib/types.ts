@@ -25,7 +25,12 @@ export type Screen =
   | "qaDetail"
   | "report"
   | "settings"
-  | "corporate";
+  | "corporate"
+  // designed in the canvas set (screens_all_options), newly implemented
+  | "onboardRole"
+  | "onboardWorks"
+  | "onboardVerify"
+  | "photographerProfile";
 
 /** Bottom-nav tabs — mirror `state.tab`. */
 export type Tab = "home" | "search" | "notify" | "mypage";

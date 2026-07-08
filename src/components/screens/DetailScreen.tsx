@@ -177,9 +177,11 @@ export function DetailScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
           {detailRoles.map((ro) => {
             const confirmed = ro.status === "確定";
+            const isPhotographer = ro.char.includes("カメラマン");
             return (
-              <div
+              <button
                 key={ro.key}
+                onClick={isPhotographer ? () => nav("photographerProfile") : undefined}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -188,6 +190,10 @@ export function DetailScreen() {
                   borderRadius: 14,
                   padding: "11px 13px",
                   background: confirmed ? colors.primaryBg5 : colors.white,
+                  cursor: isPhotographer ? "pointer" : "default",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                  width: "100%",
                 }}
               >
                 <div
@@ -206,6 +212,9 @@ export function DetailScreen() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>{ro.char}</div>
                   <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>{ro.who}</div>
                 </div>
+                {isPhotographer && (
+                  <span style={{ fontSize: 11, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap" }}>プロフ →</span>
+                )}
                 <span
                   style={{
                     fontSize: 11,
@@ -219,7 +228,7 @@ export function DetailScreen() {
                 >
                   {ro.status}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>

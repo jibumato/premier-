@@ -30,6 +30,15 @@ export function BellIcon({ size = 23, color = "#2A2634", style }: IconProps) {
   );
 }
 
+export function CameraIcon({ size = 24, color = "#8B84A0", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)} strokeWidth={1.7}>
+      <path d="M4 8a2 2 0 012-2h2l1.5-2h5L16 6h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2z" />
+      <circle cx="12" cy="12.5" r="3.2" />
+    </svg>
+  );
+}
+
 export function SearchIcon({ size = 18, color = "#6D5DAB", style }: IconProps) {
   return (
     <svg {...base(size, color, style)}>

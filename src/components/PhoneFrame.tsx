@@ -6,13 +6,18 @@ import { StatusBar } from "./StatusBar";
 import { BottomNav } from "./BottomNav";
 import { useRouter } from "./AppRouter";
 
+/** Pre-login / full-bleed screens that hide the bottom tab bar. */
+const CHROMELESS = new Set(["onboardRole", "onboardWorks", "onboardVerify"]);
+
 /**
  * 390px mobile frame (the only breakpoint the design covers). The status bar
- * and bottom nav are fixed; `children` scroll inside the middle region.
- * Matching the prototype, the bottom nav persists on every screen.
+ * and bottom nav are fixed; `children` scroll inside the middle region. The
+ * bottom nav persists on every logged-in screen, but is hidden for the
+ * pre-login onboarding flow (chromeless).
  */
 export function PhoneFrame({ children }: { children: ReactNode }) {
-  const { scrollRef } = useRouter();
+  const { scrollRef, screen } = useRouter();
+  const chromeless = CHROMELESS.has(screen);
 
   return (
     <div
@@ -34,7 +39,7 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
         style={{
           position: "absolute",
           top: 44,
-          bottom: 72,
+          bottom: chromeless ? 0 : 72,
           left: 0,
           right: 0,
           overflowY: "auto",
@@ -42,7 +47,7 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
-      <BottomNav />
+      {!chromeless && <BottomNav />}
     </div>
   );
 }
