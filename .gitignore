@@ -21,6 +21,12 @@ yarn-error.log*
 
 # env files
 .env*.local
+.env
+.dev.vars
+
+# cloudflare build output (OpenNext adapter)
+/.open-next/
+/.wrangler/
 
 # typescript
 *.tsbuildinfo

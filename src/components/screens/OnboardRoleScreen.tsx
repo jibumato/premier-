@@ -7,8 +7,11 @@ import { useRouter } from "../AppRouter";
 import { PrimaryButton } from "../ui";
 import { OnboardProgress } from "./onboardProgress";
 import { CameraIcon, PlusIcon, UserIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useUpdateProfileRole } from "@/lib/queries/profile";
+import type { UserRole } from "@/lib/database.types";
 
-type Role = "layer" | "photographer" | "both";
+type Role = UserRole;
 
 const roles: { key: Role; title: string; desc: string; icon: ReactNode }[] = [
   { key: "layer", title: "コスプレイヤー", desc: "被写体として活動する", icon: <UserIcon size={24} color={colors.primary} /> },
@@ -18,7 +21,18 @@ const roles: { key: Role; title: string; desc: string; icon: ReactNode }[] = [
 
 export function OnboardRoleScreen() {
   const { nav } = useRouter();
+  const { user } = useAuth();
+  const updateRole = useUpdateProfileRole();
   const [selected, setSelected] = useState<Role>("layer");
+
+  // Persist the selection when a backend + session exist; otherwise this is a
+  // pure prototype step. Navigation happens regardless (fire-and-forget save).
+  const handleNext = () => {
+    if (user) {
+      updateRole.mutate({ userId: user.id, role: selected });
+    }
+    nav("onboardWorks");
+  };
 
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
@@ -90,7 +104,7 @@ export function OnboardRoleScreen() {
       </div>
 
       <div style={{ padding: "26px 22px 30px", marginTop: "auto" }}>
-        <PrimaryButton onClick={() => nav("onboardWorks")}>次へ</PrimaryButton>
+        <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
       </div>
     </div>
   );

@@ -1,0 +1,177 @@
+/**
+ * Supabase database types for the Phase 1 schema.
+ *
+ * Hand-authored to mirror `supabase/migrations/0001_phase1_core.sql`. Once a
+ * Supabase project exists, regenerate the canonical version with:
+ *
+ *   supabase gen types typescript --project-id <id> > src/lib/database.types.ts
+ *
+ * (or `--local` against a local stack). Keep this file in sync with migrations.
+ */
+
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+export type UserRole = "layer" | "photographer" | "both";
+export type AwaseStatus = "open" | "closed";
+export type AwaseRoleStatus = "confirmed" | "open";
+export type ApplicationStatus = "applied" | "accepted" | "rejected" | "done";
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          handle: string;
+          display_name: string;
+          role: UserRole;
+          bio: string | null;
+          avatar_url: string | null;
+          cover_url: string | null;
+          meister_title: string | null;
+          is_verified: boolean;
+          is_age_verified: boolean;
+          is_private: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          handle: string;
+          display_name: string;
+          role?: UserRole;
+          bio?: string | null;
+          avatar_url?: string | null;
+          cover_url?: string | null;
+          meister_title?: string | null;
+          is_verified?: boolean;
+          is_age_verified?: boolean;
+          is_private?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      works: {
+        Row: { id: string; name: string; created_at: string };
+        Insert: { id?: string; name: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["works"]["Insert"]>;
+        Relationships: [];
+      };
+      work_follows: {
+        Row: { user_id: string; work_id: string };
+        Insert: { user_id: string; work_id: string };
+        Update: Partial<{ user_id: string; work_id: string }>;
+        Relationships: [];
+      };
+      follows: {
+        Row: { follower_id: string; followee_id: string; created_at: string };
+        Insert: { follower_id: string; followee_id: string; created_at?: string };
+        Update: Partial<{ follower_id: string; followee_id: string; created_at: string }>;
+        Relationships: [];
+      };
+      awase: {
+        Row: {
+          id: string;
+          host_id: string;
+          title: string;
+          work_id: string | null;
+          world_tags: string[];
+          event_date: string;
+          place: string | null;
+          region: string;
+          fee_text: string | null;
+          body: string | null;
+          women_only: boolean;
+          beginner_ok: boolean;
+          capacity: number | null;
+          status: AwaseStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          host_id: string;
+          title: string;
+          work_id?: string | null;
+          world_tags?: string[];
+          event_date: string;
+          place?: string | null;
+          region: string;
+          fee_text?: string | null;
+          body?: string | null;
+          women_only?: boolean;
+          beginner_ok?: boolean;
+          capacity?: number | null;
+          status?: AwaseStatus;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["awase"]["Insert"]>;
+        Relationships: [];
+      };
+      awase_images: {
+        Row: { id: string; awase_id: string; storage_path: string; sort: number };
+        Insert: { id?: string; awase_id: string; storage_path: string; sort?: number };
+        Update: Partial<Database["public"]["Tables"]["awase_images"]["Insert"]>;
+        Relationships: [];
+      };
+      awase_roles: {
+        Row: {
+          id: string;
+          awase_id: string;
+          char_name: string;
+          assignee_id: string | null;
+          status: AwaseRoleStatus;
+          sort: number;
+        };
+        Insert: {
+          id?: string;
+          awase_id: string;
+          char_name: string;
+          assignee_id?: string | null;
+          status?: AwaseRoleStatus;
+          sort?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["awase_roles"]["Insert"]>;
+        Relationships: [];
+      };
+      awase_applications: {
+        Row: {
+          id: string;
+          awase_id: string;
+          applicant_id: string;
+          role_id: string | null;
+          message: string | null;
+          status: ApplicationStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          awase_id: string;
+          applicant_id: string;
+          role_id?: string | null;
+          message?: string | null;
+          status?: ApplicationStatus;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["awase_applications"]["Insert"]>;
+        Relationships: [];
+      };
+    };
+    Views: Record<never, never>;
+    Functions: Record<never, never>;
+    Enums: {
+      user_role: UserRole;
+      awase_status: AwaseStatus;
+      awase_role_status: AwaseRoleStatus;
+      application_status: ApplicationStatus;
+    };
+    CompositeTypes: Record<never, never>;
+  };
+}
+
+/** Convenience helpers: `Tables<"awase">`, `InsertOf<"awase">`. */
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
+export type InsertOf<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
+export type UpdateOf<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"];

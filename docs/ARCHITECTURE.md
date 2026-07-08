@@ -20,21 +20,37 @@
 サーバー・DB・認証・ストレージ・キューを組むのではなく、**マネージド BaaS を
 1 つ選び、その上に薄い Edge Function を足す**構成を推奨します。
 
-### 推奨スタック（第一候補）
+### 採用スタック（確定 · 2026-07-08）
+
+**Cloudflare（配信・画像）＋ Supabase（ログイン・DB）のハイブリッド構成**に決定。
+ログインと DB は RLS 連携のため一体（Supabase）に置き、画面配信と画像は Cloudflare
+に寄せる。
 
 | レイヤ | 採用 | 理由 |
 | --- | --- | --- |
 | DB | **Supabase Postgres** | RLS（行レベルセキュリティ）で認可をDBに寄せられる＝アプリ側の穴が減る |
-| 認証 | Supabase Auth | メール/OAuth、JWT が RLS と直結 |
-| ストレージ | Supabase Storage（S3 互換）+ 画像変換 | 署名付きアップロード・CDN 配信・オンザフライ変換 |
-| リアルタイム | Supabase Realtime | メッセージ・通知の購読 |
-| サーバーロジック | Edge Functions / Next.js Route Handlers | eKYC Webhook、通報自動処理、集計バッチ |
-| ホスティング | Vercel（Next.js） | 現行フロントとそのまま接続 |
+| 認証 | **Supabase Auth** | メール/OAuth、JWT が RLS と直結（DBと一体運用） |
+| ストレージ | **Cloudflare R2** + CDN | S3 互換・転送量無料。Worker 経由の署名付きアップロード → CDN 配信 |
+| リアルタイム | Supabase Realtime | メッセージ・通知の購読（DBと同一基盤） |
+| サーバーロジック | **Cloudflare Workers / Pages Functions** | R2 署名付与、eKYC Webhook、集計。必要に応じ Supabase Edge Functions も併用可 |
+| ホスティング | **Cloudflare Workers**（静的アセット同梱） | Next.js は `@opennextjs/cloudflare`（OpenNext）でビルドし `wrangler deploy` |
 
-> **代替**: Firebase（Firestore + Auth + Storage + Cloud Functions）も
-> ワンオペ適性は高い。Postgres のリレーショナル整合性・RLS を重視するなら
-> Supabase、フルマネージドの手離れ・プッシュ通知の一体感なら Firebase。
-> どちらでも本設計のデータモデル・処理フローはそのまま移植できます。
+> **決定の背景**: 「Cloudflare をベースに、ログインは Supabase」という方針。
+> ログイン(Auth)と DB は RLS で密結合のため切り離さず Supabase にまとめ、確定済みの
+> Postgres スキーマ・RLS（`supabase/migrations/0001_phase1_core.sql`）をそのまま活用する。
+> Cloudflare は画面配信（Workers）・画像（R2）・エッジ処理（Workers）を担当。
+>
+> **アダプタ（更新 2026-07-08）**: 当初 `@cloudflare/next-on-pages`（Pages 向け）を検証したが、
+> Cloudflare ダッシュボードの Git 連携が **Workers プロジェクト**（デプロイコマンド
+> `wrangler deploy`）を前提にしていたため、Workers ネイティブの **`@opennextjs/cloudflare`
+> （OpenNext）** に切替え。ビルドコマンド `npx opennextjs-cloudflare build` / デプロイ
+> `npx wrangler deploy` がダッシュボードの既定値とそのまま一致する。`wrangler.toml` は
+> `main = ".open-next/worker.js"` ＋ `[assets]` 構成、Edge Runtime 制約（一部 Node API）は
+> Phase 1 P1-01 でビルド検証済み（`npm run cf:build`）。
+>
+> **不採用**: Cloudflare 単独（D1）は、消費者向けログインが無く別途認証を足す必要があり
+> “一元”にならないこと、RLS が使えず認可をコード側で全実装する必要があること、D1 が
+> SQLite で確定スキーマの書き直しが要ることから、ワンオペ運営に不利と判断し見送り。
 
 ### なぜ「BaaS + RLS」がワンオペに効くか
 
@@ -158,15 +174,16 @@ ad_placements(id, advertiser_id, kind, target_scope, -- studio/event/maker
 
 ## 3. 画像アップロード・保存・配信
 
-現行の `ImageSlot`（空プレースホルダ）を実画像に置き換えます。
+現行の `ImageSlot`（空プレースホルダ）を実画像に置き換えます。画像は **Cloudflare R2**
+に保存し、CDN で配信します（DB は Supabase、画像は R2 という役割分担）。
 
-1. **アップロード**: クライアントは Edge Function から**署名付き URL**を取得し、
-   Storage へ直接 PUT（サーバーを経由しない＝帯域・コスト削減）。
-2. **保存**: `*_images` テーブルに `image_id`（Storage キー）を記録。原本は非公開バケット。
-3. **配信**: CDN 経由の公開 URL ＋**オンザフライ変換**（`?width=&quality=`）で、
+1. **アップロード**: クライアントは **Cloudflare Worker** から R2 の**署名付き URL**を
+   取得し、R2 へ直接 PUT（アプリサーバーを経由しない＝帯域・コスト削減）。
+2. **保存**: `*_images` テーブル（Supabase）に **R2 オブジェクトキー**を記録。原本は非公開バケット。
+3. **配信**: CDN 経由の公開 URL ＋ **Cloudflare Images / 変換**（`?width=&quality=`）で、
    一覧はサムネ・詳細は大サイズと出し分け（`home` の 3 列グリッド、`detail` のヒーロー等）。
-4. **投稿画像の安全性**: アップロード時に自動 NSFW スコアリング（外部 API）を通し、
-   閾値超過は自動で `content_hidden` に入れる（人手モデレーション前提にしない）。
+4. **投稿画像の安全性**: アップロード時に自動 NSFW スコアリング（外部 API を Worker から呼ぶ）を
+   通し、閾値超過は自動で `content_hidden`（Supabase）に入れる（人手モデレーション前提にしない）。
 
 `ImageSlot` の差し替え箇所は 1 コンポーネントに集約済みなので、`next/image` +
 公開 URL へ置換するだけで全画面に反映されます。

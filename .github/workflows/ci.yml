@@ -23,5 +23,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
+
+      - name: Cloudflare Workers build (OpenNext)
+        run: npm run cf:build

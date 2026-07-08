@@ -1,0 +1,17 @@
+# Cloudflare Workers 設定（Next.js は @opennextjs/cloudflare でビルドし、
+# `wrangler deploy` で Worker としてデプロイ）。手順は docs/SETUP.md を参照。
+name = "premier"
+main = ".open-next/worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# OpenNext が生成する静的アセット（ビルド後に .open-next/assets が作られる）
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# 画像用 R2 バケット（Worker から binding `IMAGES` で参照）。
+# バケットは事前に作成: `wrangler r2 bucket create premier-images`
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "premier-images"
