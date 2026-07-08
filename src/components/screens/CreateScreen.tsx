@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { onboardWorks as mockWorks, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -10,6 +10,7 @@ import { ImageSlot } from "../ImageSlot";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useCreateAwase } from "@/lib/queries/awase";
 import { useWorks } from "@/lib/queries/works";
+import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const inputBox: React.CSSProperties = {
@@ -41,6 +42,8 @@ export function CreateScreen() {
 
   const worksQuery = useWorks();
   const createAwase = useCreateAwase();
+  const uploadImage = useUploadImage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Real works (id/name) once connected; the handoff's mock list otherwise.
   const works = configured
     ? (worksQuery.data ?? []).map((w) => ({ id: w.id, name: w.name }))
@@ -54,6 +57,26 @@ export function CreateScreen() {
   const [beginnerOk, setBeginnerOk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handlePickImage = () => {
+    if (!configured) return; // uploads need R2 + a signed-in host; no-op in pure prototype mode
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    setUploadError(null);
+    try {
+      const result = await uploadImage.mutateAsync({ file, kind: "awase" });
+      setImages((cur) => [...cur, result]);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "アップロードに失敗しました");
+    }
+  };
 
   const handlePublish = async () => {
     setError(null);
@@ -72,6 +95,7 @@ export function CreateScreen() {
           region,
           womenOnly,
           beginnerOk,
+          imageKeys: images.map((img) => img.key),
         });
         nav("created");
       } catch (e) {
@@ -128,13 +152,15 @@ export function CreateScreen() {
       <div style={{ padding: "22px 22px 0" }}>
         <label style={label}>参考画像・イメージ</label>
         <div style={{ display: "flex", gap: 9, marginTop: 10 }}>
-          <div style={{ flex: 1, height: 92 }}>
-            <ImageSlot radius={14} label="参考" />
-          </div>
-          <div style={{ flex: 1, height: 92 }}>
-            <ImageSlot radius={14} />
-          </div>
-          <div
+          {[0, 1].map((i) => (
+            <div key={i} style={{ flex: 1, height: 92 }}>
+              <ImageSlot radius={14} label={i === 0 && !images[0] ? "参考" : undefined} src={images[i]?.url} />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handlePickImage}
+            disabled={!configured || images.length >= 2 || uploadImage.isPending}
             style={{
               flex: 1,
               height: 92,
@@ -146,12 +172,29 @@ export function CreateScreen() {
               justifyContent: "center",
               gap: 5,
               background: colors.primaryBg5,
+              cursor: !configured || images.length >= 2 ? "not-allowed" : "pointer",
+              opacity: images.length >= 2 ? 0.5 : 1,
+              fontFamily: "inherit",
             }}
           >
             <PlusIcon size={22} color="#A79FC0" />
-            <span style={{ fontSize: 10, color: "#A79FC0" }}>追加</span>
-          </div>
+            <span style={{ fontSize: 10, color: "#A79FC0" }}>
+              {uploadImage.isPending ? "アップロード中…" : "追加"}
+            </span>
+          </button>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelected}
+          style={{ display: "none" }}
+        />
+        {uploadError && (
+          <div style={{ marginTop: 9, fontSize: 11.5, color: "#C0453F", background: "#FBEBEA", borderRadius: 10, padding: "8px 11px" }}>
+            {uploadError}
+          </div>
+        )}
       </div>
 
       {/* fields */}

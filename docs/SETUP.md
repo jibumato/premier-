@@ -1,6 +1,6 @@
-# セットアップ手順（Phase 1 基盤 / P1-01）
+# セットアップ手順（Phase 1〜2 基盤）
 
-採用スタック: **Cloudflare（Pages 配信 / R2 画像 / Workers）＋ Supabase（Auth / Postgres＋RLS / Realtime）**。
+採用スタック: **Cloudflare（Workers 配信 / R2 画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）**。
 コード側の土台は実装済み。以下の **アカウント側の作業**を行うと接続できます。
 
 ---
@@ -21,10 +21,14 @@
 
 ### 1. Supabase（ログイン＋DB）
 - [ ] [supabase.com](https://supabase.com) でプロジェクト作成
-- [ ] SQL Editor で `supabase/migrations/0001_phase1_core.sql` を実行（またはローカル CLI: `supabase db push`）
+- [ ] SQL Editor で以下を**順番に**実行（またはローカル CLI: `supabase db push`）
+  - [ ] `supabase/migrations/0001_phase1_core.sql`（コア基盤: profiles/works/awase 等）
+  - [ ] `supabase/migrations/0002_seed_works.sql`（作品カタログのシード）
+  - [ ] `supabase/migrations/0003_phase2_messaging.sql`（メッセージ・通知・Realtime 発行設定）
 - [ ] Project Settings → API から **URL** と **anon key** を取得
 - [ ] 認証プロバイダを有効化（メール / Google など）
 - [ ] （任意）型を再生成: `supabase gen types typescript --project-id <id> > src/lib/database.types.ts`
+      ※ 再生成後は `src/lib/queries/*.ts` の手書き cast 部分を見直すこと
 
 ### 2. Cloudflare（配信＋画像）— Workers プロジェクトとして連携
 - [ ] [dash.cloudflare.com](https://dash.cloudflare.com) でアカウント作成
@@ -36,6 +40,9 @@
   - **デプロイコマンド**: `npx wrangler deploy`（ダッシュボードの初期値のまま）
   - 「非本番ブランチのビルド」: チェックのままでOK
 - [ ] プロジェクトの環境変数（Settings → Variables）に下記を設定（暗号化）
+- [ ] （画像を実際に配信したい場合）R2 バケットの Public access を有効化 or カスタムドメインを
+      接続し、その URL を `NEXT_PUBLIC_R2_PUBLIC_URL` に設定。未設定でもアップロード自体（R2書き込み）
+      は成功する（画像URLだけ返らない）
 
 ### 3. 環境変数
 `.env.example` をコピーして `.env`（ローカル）を作成し、値を入れる:
@@ -71,17 +78,30 @@ npm run deploy     # Cloudflare へデプロイ（wrangler ログイン後、ダ
   `nodejs_compat` により `process` を提供するため実行にも影響なし（middleware でのセッション
   更新は正常）。
 
-## P1-03 の先行実装（接続不要な範囲）
+## Phase 1 (P0) — 完了
 
-バックエンド未接続でも動くよう **`isSupabaseConfigured()` でガード**した状態で、以下を実装済み:
+登録・募集・応募のコアループを実データ化済み（ログイン/サインアップ、home/search/detail/
+create/apply、オンボ①②）。すべて **`isSupabaseConfigured()` でガード**されており、
+未接続時は元のプロトタイプ動作を維持する。
 
-- `src/middleware.ts` — セッション更新（未設定時はパススルー）
-- `src/lib/auth/useAuth.ts` — 認証状態フック
-- `src/lib/queries/profile.ts` / `works.ts` — profile / works の取得・更新フック
-- オンボ①（`OnboardRoleScreen`）— セッションがあれば role を profiles に保存（無ければ従来どおり）
+## Phase 2 (P1) — 実装済み（このセットアップ完了後に有効化）
 
-いずれも **実装済み・最終動作確認は Supabase 接続後**。接続後の残作業: ログイン UI、
-オンボ②の作品フォロー保存（works の実 UUID が必要）、各画面の実データ化。
+- **メッセージ**: `conversations` / `conversation_members` / `messages`。
+  `src/lib/queries/messages.ts` — 一覧・スレッド・送信・既読、Realtime (`postgres_changes`) で
+  新着メッセージを自動反映。応募完了画面「主催者にメッセージを送る」が実会話を作成/再利用
+  （`find_direct_conversation` RPC で重複スレッドを防止）。
+- **通知**: `notifications`。応募が入ると DB トリガー（`notify_on_application`、
+  SECURITY DEFINER）が自動生成 — Constraints の「自動処理・人手の承認フローを作らない」に
+  準拠。`src/lib/queries/notifications.ts` が Realtime で反映、おしらせ画面を開くと既読化。
+- **画像アップロード**: `src/app/api/upload/route.ts`（R2 バインディング `MEDIA` 経由、
+  署名付きURLではなく Worker 経由の直接 PUT）＋ `useUploadImage()`。募集作成フォームの
+  参考画像スロットに接続済み（最大2枚）。R2 未接続時は 501 を返し、UI はボタンを無効化。
+
+### 動作に必要なもの
+- 上記チェックリストの migration `0003` 実行（Realtime 発行設定を含む）
+- R2 バケットの作成・バインディング（`wrangler.toml` の `MEDIA`）
+- （任意）`NEXT_PUBLIC_R2_PUBLIC_URL` — 未設定でも upload 自体は失敗しない
 
 ## 次のチケット
-基盤接続が済んだら **P1-03（認証・プロフィール）**へ。詳細は [PHASE1_PLAN.md](PHASE1_PLAN.md)。
+Phase 2 の残り: プロフィール系画像（アバター/カバー/ギャラリー）への `useUploadImage` 適用、
+NSFW 自動判定の組み込み。詳細は [PROGRESS.md](PROGRESS.md) / [ARCHITECTURE.md](ARCHITECTURE.md)。

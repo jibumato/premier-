@@ -6,20 +6,41 @@ import { chatThread } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, SendIcon, StarIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useMessages, useSendMessage } from "@/lib/queries/messages";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { formatRelativeTime } from "@/lib/format";
 import type { ChatMessage } from "@/lib/types";
 
 export function ChatScreen() {
-  const { back, nav } = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>(chatThread);
+  const { back, nav, selectedConversationId } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const realMessages = useMessages(selectedConversationId);
+  const sendMessage = useSendMessage();
+
+  const [mockMessages, setMockMessages] = useState<ChatMessage[]>(chatThread);
   const [draft, setDraft] = useState("");
+
+  const real = configured && selectedConversationId ? realMessages.data : undefined;
+  const messages: ChatMessage[] = real
+    ? real.map((m) => ({
+        key: m.id,
+        from: m.sender_id === user?.id ? "me" : "them",
+        text: m.body,
+        time: formatRelativeTime(m.created_at),
+      }))
+    : mockMessages;
 
   const send = () => {
     const text = draft.trim();
     if (!text) return;
-    setMessages((m) => [
-      ...m,
-      { key: `me-${m.length}`, from: "me", text, time: "今" },
-    ]);
+    if (real && user && selectedConversationId) {
+      sendMessage.mutate({ conversationId: selectedConversationId, senderId: user.id, body: text });
+    } else {
+      setMockMessages((m) => [...m, { key: `me-${m.length}`, from: "me", text, time: "今" }]);
+    }
     setDraft("");
   };
 

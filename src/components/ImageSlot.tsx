@@ -8,14 +8,35 @@ interface ImageSlotProps {
   /** optional caption shown inside the empty slot (e.g. "参考") */
   label?: string;
   style?: CSSProperties;
+  /** when set, renders the real image (e.g. an R2 upload result) instead of the placeholder */
+  src?: string | null;
 }
 
 /**
  * Placeholder for a user image. In the design bundle every photo is an empty
  * `image-slot`; in production this becomes an <Image> backed by object storage
- * + CDN. Here it renders a neutral image well so layouts read faithfully.
+ * + CDN. Here it renders a neutral image well so layouts read faithfully. Once
+ * `src` is provided (Phase 2 R2 uploads), it renders the real image instead.
  */
-export function ImageSlot({ radius = 12, circle = false, label, style }: ImageSlotProps) {
+export function ImageSlot({ radius = 12, circle = false, label, style, src }: ImageSlotProps) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- remote R2 URL, no next/image domain config yet
+      <img
+        src={src}
+        alt=""
+        style={{
+          width: "100%",
+          height: "100%",
+          borderRadius: circle ? "50%" : radius,
+          objectFit: "cover",
+          display: "block",
+          ...style,
+        }}
+      />
+    );
+  }
+
   return (
     <div
       style={{

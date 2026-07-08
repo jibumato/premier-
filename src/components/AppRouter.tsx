@@ -17,6 +17,8 @@ interface RouterState {
   region: string;
   /** awase.id backing the current `detail` screen, once a backend is connected. */
   selectedAwaseId: string | null;
+  /** conversation.id backing the current `chat` screen, once a backend is connected. */
+  selectedConversationId: string | null;
 }
 
 interface RouterApi extends RouterState {
@@ -27,6 +29,8 @@ interface RouterApi extends RouterState {
   setRegion: (r: string) => void;
   /** navigate to `detail` for a specific real awase row */
   openAwase: (awaseId: string) => void;
+  /** navigate to `chat` for a specific real conversation row */
+  openChat: (conversationId: string) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -45,6 +49,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     tab: "home",
     region: "すべて",
     selectedAwaseId: null,
+    selectedConversationId: null,
   });
   const historyRef = useRef<Screen[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -95,9 +100,20 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     [resetScroll]
   );
 
+  const openChat = useCallback(
+    (conversationId: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "chat", selectedConversationId: conversationId };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
   const api = useMemo<RouterApi>(
-    () => ({ ...state, nav, back, setRegion, openAwase, scrollRef }),
-    [state, nav, back, setRegion, openAwase]
+    () => ({ ...state, nav, back, setRegion, openAwase, openChat, scrollRef }),
+    [state, nav, back, setRegion, openAwase, openChat]
   );
 
   return <RouterContext.Provider value={api}>{children}</RouterContext.Provider>;

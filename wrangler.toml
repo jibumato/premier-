@@ -10,8 +10,10 @@ compatibility_flags = ["nodejs_compat"]
 directory = ".open-next/assets"
 binding = "ASSETS"
 
-# 画像用 R2 バケット（Worker から binding `IMAGES` で参照）。
+# 画像用 R2 バケット（Worker から binding `MEDIA` で参照）。
+# `IMAGES` は @cloudflare/workers-types が予約する Cloudflare Images
+# バインディング型と衝突するため使わない。
 # バケットは事前に作成: `wrangler r2 bucket create premier-images`
 [[r2_buckets]]
-binding = "IMAGES"
+binding = "MEDIA"
 bucket_name = "premier-images"

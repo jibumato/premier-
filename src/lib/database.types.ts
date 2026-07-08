@@ -15,6 +15,7 @@ export type UserRole = "layer" | "photographer" | "both";
 export type AwaseStatus = "open" | "closed";
 export type AwaseRoleStatus = "confirmed" | "open";
 export type ApplicationStatus = "applied" | "accepted" | "rejected" | "done";
+export type NotificationType = "application" | "follow" | "like" | "badge" | "message";
 
 export interface Database {
   public: {
@@ -155,14 +156,62 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["awase_applications"]["Insert"]>;
         Relationships: [];
       };
+      conversations: {
+        Row: { id: string; awase_id: string | null; created_at: string };
+        Insert: { id?: string; awase_id?: string | null; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["conversations"]["Insert"]>;
+        Relationships: [];
+      };
+      conversation_members: {
+        Row: { conversation_id: string; user_id: string; last_read_at: string };
+        Insert: { conversation_id: string; user_id: string; last_read_at?: string };
+        Update: Partial<{ conversation_id: string; user_id: string; last_read_at: string }>;
+        Relationships: [];
+      };
+      messages: {
+        Row: { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
+        Insert: { id?: string; conversation_id: string; sender_id: string; body: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["messages"]["Insert"]>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: NotificationType;
+          actor_id: string | null;
+          entity_id: string | null;
+          body: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: NotificationType;
+          actor_id?: string | null;
+          entity_id?: string | null;
+          body: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      find_direct_conversation: {
+        Args: { user_a: string; user_b: string };
+        Returns: string | null;
+      };
+    };
     Enums: {
       user_role: UserRole;
       awase_status: AwaseStatus;
       awase_role_status: AwaseRoleStatus;
       application_status: ApplicationStatus;
+      notification_type: NotificationType;
     };
     CompositeTypes: Record<never, never>;
   };

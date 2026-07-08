@@ -159,6 +159,8 @@ interface CreateAwaseInput {
   region: string;
   womenOnly: boolean;
   beginnerOk: boolean;
+  /** R2 object keys from useUploadImage, in display order. */
+  imageKeys?: string[];
 }
 
 /** Publish a new 併せ (create form submit). */
@@ -181,6 +183,12 @@ export function useCreateAwase() {
         .select("id")
         .single();
       if (error) throw error;
+
+      if (input.imageKeys?.length) {
+        const rows = input.imageKeys.map((storage_path, sort) => ({ awase_id: data.id, storage_path, sort }));
+        const { error: imgErr } = await supabase.from("awase_images").insert(rows);
+        if (imgErr) throw imgErr;
+      }
       return data;
     },
     onSuccess: () => {

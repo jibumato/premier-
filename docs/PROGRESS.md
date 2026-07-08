@@ -5,7 +5,7 @@
 > [ARCHITECTURE.md](ARCHITECTURE.md)、Phase 1 の実装計画は
 > [PHASE1_PLAN.md](PHASE1_PLAN.md) を参照。
 
-- **更新日**: 2026-07-08 ・ 版: v1.3
+- **更新日**: 2026-07-08 ・ 版: v1.4
 - **リポジトリ**: jibumato/premier-
 - **採用スタック（確定・稼働中）**: Cloudflare Workers（OpenNextアダプタ配信 / R2画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
 - **本番URL**: https://premier.sunny-rainy1115.workers.dev（動作確認済み）
@@ -20,10 +20,11 @@
 | バックエンド設計 | ✅ 100% |
 | 基盤接続（P1-01） | ✅ 100% |
 | コアループ実データ化（P1-03） | ✅ 100% |
+| メッセージ・通知・画像基盤（Phase 2） | ✅ 100% |
 
 - 実装済み画面: **24**（プロトタイプ 8 ・ 新規 12 ・ デザイン集 4）
-- 直近の成果: **登録〜募集〜応募のコアループが実データで稼働**（ログイン/サインアップ・home/search/detail/create/apply を Supabase に接続、未接続時は元のプロトタイプ動作を完全維持）
-- フェーズ進捗: **Phase 0 完了 ／ Phase 1 (P0) のコアループ完了 → Phase 2 へ**
+- 直近の成果: **Phase 2 完了**（メッセージ Realtime・自動通知・R2画像アップロードを Supabase/Cloudflare に接続、未接続時は元のプロトタイプ動作を完全維持）
+- フェーズ進捗: **Phase 0・Phase 1 (P0)・Phase 2 (P1) 完了 → Phase 3 へ**
 
 凡例: ✅ 完了 ・ 🟡 進行中 ・ ⬜ 未着手 ・ ⏸ 保留（方針） ・ ⚠️ 要判断
 
@@ -35,7 +36,7 @@
 | --- | --- | --- | --- | --- | --- |
 | **Phase 0** | デザイン検討・プロトタイプ実装（全24画面 / CI / 設計書） | 全画面 | ✅ 完了 | 済 | — |
 | **Phase 1 (P0)** | コア基盤: Auth＋profiles＋awase＋applications | オンボ/home/search/detail/applied/create/profile | ✅ 完了 | 済 | — |
-| **Phase 2 (P1)** | メッセージ(realtime)・通知・画像基盤(署名URL+CDN) | messages/chat/notify/全画像 | ⬜ 未着手 | 2週 | Phase 1 |
+| **Phase 2 (P1)** | メッセージ(realtime)・通知・画像基盤(R2アップロード) | messages/chat/notify/create(参考画像) | ✅ 完了 | 済 | — |
 | **Phase 3 (P2)** | 本人確認(eKYC)・ゾーニング・レビュー | onboardVerify/応援リンク/reviewWrite/photographerProfile | ⬜ 未着手 | 2週 | eKYC契約 |
 | **Phase 4 (P3)** | コミュニティ拡張(フリマ/イベント/知恵袋) | market*/events*/qa* | ⬜ 未着手 | 2–3週 | Phase 1–2 |
 | **Phase 5 (P4)** | 通報自動処理・自動バッジ・法人掲載 | report/profile(バッジ)/corporate | ⬜ 未着手 | 2週 | Phase 1–4 |
@@ -52,8 +53,9 @@
 | Phase 1 | 認証・プロフィール（role/profiles/フォロー / ログインUI / P1-03〜05） | ✅ 完了 | 基盤接続 | 済 |
 | Phase 1 | 募集・応募のデータ化（home/search/detail/create/apply） | ✅ 完了 | 認証 | 済 |
 | Phase 1 | データ取得層の導入（TanStack Query 化・ガード付きフォールバック） | ✅ 完了 | 認証 | 済 |
-| Phase 2 | 画像アップロード基盤（署名URL/CDN/変換/NSFW自動判定） | ⬜ 未着手 | Phase 1 | 1週 |
-| Phase 2 | メッセージ・通知（Realtime/既読/Web Push） | ⬜ 未着手 | Phase 1 | 1週 |
+| Phase 2 | 画像アップロード基盤（R2バインディング経由アップロード、募集作成フォームに接続） | ✅ 完了 | Phase 1 | 済 |
+| Phase 2 | メッセージ・通知（Realtime/既読、応募時の自動通知トリガー） | ✅ 完了 | Phase 1 | 済 |
+| Phase 2 | （フォローアップ）NSFW自動判定・画像変換・Web Push・プロフィール系画像への適用 | ⬜ 未着手 | — | 未定 |
 | Phase 3 | eKYC 連携・ゾーニング（Webhook自動更新/年齢確認） | ⚠️ 要判断 | ベンダー契約 | 2週 |
 | Phase 3 | レビュー（投稿・平均集計、完了条件をRLSで制御） | ⬜ 未着手 | Phase 1 | 0.5週 |
 | Phase 4 | フリマ / イベント / 知恵袋 のサーバー化 | ⬜ 未着手 | Phase 1–2 | 2–3週 |
@@ -81,7 +83,9 @@
 - [x] **ログイン/サインアップ画面**（`LoginScreen`）＋ **AuthGate**（未ログイン時に自動表示、ログイン成功で自動的に消える）。設定「ログアウト」も実際に `signOut()` するよう修正
 - [x] **works シード**（`0002_seed_works.sql`）＋ **オンボ②を実データ接続**（`useWorks`/`useFollowedWorks`/`useFollowWorks`、未接続時は従来のモック動作を維持）
 - [x] **募集・応募のコアループを実データ化**: home/search/detail/create/apply を `src/lib/queries/awase.ts` で接続。作成フォームは実入力＋必須バリデーション化。未接続時は元のモック表示・遷移を完全維持（回帰テスト済み）
-- [ ] **Phase 2 に着手**: メッセージ(Realtime)・通知・画像アップロード基盤（署名URL+R2+CDN） ← 現在ここ
+- [x] **Phase 2 完了**: メッセージ(Realtime)・自動通知(DBトリガー)・画像アップロード(R2バインディング)。
+      応募完了画面の主催者名も実データ化済み（`useAwase` の `profiles.display_name` を再利用）
+- [ ] **Phase 3 に着手**: eKYC 連携・ゾーニング・レビュー ← 現在ここ
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
-- [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）
-- [ ] （小規模フォローアップ）応募完了画面の主催者名を実データ化、併せ実績カウントの集計
+- [ ] NSFW 判定 API の比較検討（Phase 2 フォローアップ、画像投稿全般に適用）
+- [ ] （小規模フォローアップ）併せ実績カウント（36回等）の集計、プロフィール系画像（アバター/カバー/ギャラリー）への `useUploadImage` 適用
