@@ -3,7 +3,9 @@
 > スコープ: **登録 → 募集 → 応募** のコアループを実データ化する。
 > 対応画面: オンボーディング / home / search / detail / applied / create / profile
 > 想定期間: **2–3 週間**（3 スプリント）
-> 前提: バックエンド基盤に **Supabase** を採用（要判断項目 → 本計画では採用を前提に置く）
+> 採用スタック（確定 2026-07-08）: **Cloudflare（Pages 配信 / R2 画像 / Workers）＋
+> Supabase（Auth / Postgres＋RLS / Realtime）**。ログインと DB は RLS 連携のため
+> Supabase に一体化、画面配信と画像は Cloudflare。詳細は [ARCHITECTURE.md](ARCHITECTURE.md) §1。
 
 関連: [ARCHITECTURE.md](ARCHITECTURE.md)（全体設計） / [PROGRESS.md](PROGRESS.md)（進行表） /
 確定スキーマ: [`supabase/migrations/0001_phase1_core.sql`](../supabase/migrations/0001_phase1_core.sql)
@@ -61,7 +63,7 @@ eKYC（Phase 3）。画像は Storage キーのプレースホルダのみ、通
 
 | ID | チケット | 見積 | 依存 | 対応画面 |
 | --- | --- | --- | --- | --- |
-| P1-01 | Supabase プロジェクト初期化・環境変数・ローカル/CI 接続 | 2d | — | — |
+| P1-01 | 基盤初期化: Supabase 作成・接続、Cloudflare Pages+R2、`next-on-pages` 検証、環境変数・CI | 2d | — | — |
 | P1-02 | マイグレーション適用（enums / profiles / works / follows）＋ RLS | 1d | P1-01 | — |
 | P1-03 | 認証フロー（サインアップ/ログイン）＋ profile 自動生成トリガ | 2d | P1-02 | オンボ8a/8c |
 | P1-04 | データ取得層セットアップ（TanStack Query / 型付きクライアント / auth コンテキスト） | 1d | P1-02 | 全体 |
@@ -121,7 +123,7 @@ eKYC（Phase 3）。画像は Storage キーのプレースホルダのみ、通
 
 | リスク | 対応 |
 | --- | --- |
-| Supabase 採用の最終決定が未確定 | 本計画は Supabase 前提。Firebase の場合もデータモデルは流用可、RLS→Security Rules へ読替え（+2–3d） |
+| Next.js を Cloudflare Pages に載せる際の Edge Runtime 制約 | P1-01 で `@cloudflare/next-on-pages`（または OpenNext）を先に検証。非対応 API があれば Worker/API 側へ寄せる |
 | RLS の作り込みで想定超過しやすい | P1-12 で RLS 専用テストを用意し早期に検証 |
 | 女性限定の性別要件が未定義 | A5 の通り `is_verified` 代替で進め、Phase 3 で確定 |
 | 画像なしで UI が寂しい | Phase 2 まではプレースホルダ継続（既存 `ImageSlot`） |

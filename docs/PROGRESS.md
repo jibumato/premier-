@@ -5,8 +5,9 @@
 > [ARCHITECTURE.md](ARCHITECTURE.md)、Phase 1 の実装計画は
 > [PHASE1_PLAN.md](PHASE1_PLAN.md) を参照。
 
-- **更新日**: 2026-07-08 ・ 版: v1.0
+- **更新日**: 2026-07-08 ・ 版: v1.1
 - **リポジトリ**: jibumato/premier-
+- **採用スタック（確定）**: Cloudflare（Pages 配信 / R2 画像 / Workers）＋ Supabase（Auth / Postgres＋RLS / Realtime）
 - ビジュアル版ダッシュボード（Artifact）:
   https://claude.ai/code/artifact/8cbe7489-6e47-4a9b-b0c9-731ca47ec17c
 
@@ -44,7 +45,8 @@
 | --- | --- | --- | --- | --- |
 | Phase 0 | 全24画面・CI・設計書 | ✅ 完了 | — | 済 |
 | Phase 1 | **詳細タスク分解・スキーマ確定**（[PHASE1_PLAN.md](PHASE1_PLAN.md) / [migration](../supabase/migrations/0001_phase1_core.sql)） | ✅ 完了 | — | 済 |
-| Phase 1 | バックエンド基盤の選定・初期化（Supabase 推奨 / P1-01） | ⚠️ 要判断 | — | 2日 |
+| Phase 1 | ~~バックエンド基盤の選定~~ → **Cloudflare＋Supabase で確定** | ✅ 完了 | — | 済 |
+| Phase 1 | 基盤初期化（Supabase 接続 / Cloudflare Pages+R2 / next-on-pages 検証 / P1-01） | ⬜ 未着手 | — | 2日 |
 | Phase 1 | 認証・プロフィール（role/profiles/フォロー / P1-03〜05） | ⬜ 未着手 | 基盤選定 | 1週 |
 | Phase 1 | 募集・応募のデータ化（awase/roles/applications） | ⬜ 未着手 | 認証 | 1–1.5週 |
 | Phase 1 | データ取得層の導入（TanStack Query 化・楽観更新） | ⬜ 未着手 | 認証 | 0.5週 |
@@ -60,7 +62,8 @@
 
 | 重要度 | 項目 | 内容 |
 | --- | --- | --- |
-| 🔴 高 | **バックエンド基盤の選定** | Supabase / Firebase。Phase 1 着手の前提で全フェーズのクリティカルパス。**最優先。** |
+| ✅ 解消 | ~~バックエンド基盤の選定~~ | **Cloudflare（配信/R2）＋ Supabase（Auth/DB）で確定**（2026-07-08）。 |
+| 🟡 中 | **Next.js × Cloudflare Pages** | next-on-pages / OpenNext アダプタが必要。Edge Runtime 制約を P1-01 で検証。 |
 | 🔴 高 | **eKYC ベンダー契約** | TRUSTDOCK 等。契約・審査にリードタイム。Phase 3 の前提のため**先行着手**を推奨。 |
 | 🟡 中 | 金銭仲介の運用体制 | ワンオペ制約により初期はスコープ外で合意済み。将来着手時に体制再検討。 |
 | 🟡 中 | 画像の自動モデレーション | 投稿画像の NSFW 自動判定 API 選定。人手モデレーションを前提にしない方針。 |
@@ -69,6 +72,7 @@
 ## 次アクション
 
 - [x] **Phase 1 の詳細分解・見積確定**（→ [PHASE1_PLAN.md](PHASE1_PLAN.md) / スキーマ確定）
-- [ ] **バックエンド基盤を決定**（推奨: Supabase ／ 意思決定者の合意）→ P1-01 着手可
+- [x] **バックエンド基盤を決定** → Cloudflare（配信/R2）＋ Supabase（Auth/DB）
+- [ ] **P1-01 基盤初期化に着手**（Supabase 作成・接続、Cloudflare Pages+R2、next-on-pages 検証）
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）
