@@ -1,0 +1,51 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* Canvas outside the phone frame (prototype presentation only). */
+  background: #e9e6ef;
+  font-family: "Zen Kaku Gothic New", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+a {
+  color: #6d5dab;
+  text-decoration: none;
+}
+
+a:hover {
+  opacity: 0.72;
+}
+
+/* Hide scrollbars on horizontal chip rails and the phone scroll region. */
+.noscroll::-webkit-scrollbar,
+.pt-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.noscroll,
+.pt-scroll {
+  scrollbar-width: none;
+}
+
+/* On narrow viewports let the phone frame take the full width. */
+@media (max-width: 430px) {
+  body {
+    padding: 0;
+    align-items: stretch;
+  }
+}
