@@ -8,6 +8,7 @@ import { SectionHeading, PrimaryButton } from "../ui";
 import { ChevronLeftIcon, FlagIcon, ShareIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useApply, useAwase, useAwaseRoles } from "@/lib/queries/awase";
+import { useAwaseAchievementCount } from "@/lib/queries/profile";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const mockInfoGrid = [
@@ -34,6 +35,8 @@ export function DetailScreen() {
   const worldTag = real?.world_tags?.[0] ?? "透明感";
   const hostName = real?.profiles?.display_name ?? "澪 / mio";
   const hostVerified = real?.profiles?.is_verified ?? true;
+  const hostAchievements = useAwaseAchievementCount(real?.host_id);
+  const hostAchievementCount = real ? (hostAchievements.data ?? 0) : 36;
   const infoGrid = real
     ? [
         { label: "日程", value: real.event_date },
@@ -175,7 +178,7 @@ export function DetailScreen() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>主催・{hostName}</div>
             <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>
-              {hostVerified ? "本人確認済" : "本人確認前"} · 併せ実績 36回
+              {hostVerified ? "本人確認済" : "本人確認前"} · 併せ実績 {hostAchievementCount}回
             </div>
           </div>
           <span style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap" }}>

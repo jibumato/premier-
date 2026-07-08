@@ -1,11 +1,16 @@
 "use client";
 
+import { useRef } from "react";
 import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, SettingsIcon, VerifiedBadge } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage } from "@/lib/queries/profile";
+import { useUploadImage } from "@/lib/queries/upload";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
  * External support links (Fantia / pixivFANBOX / Skeb). Per the handoff
@@ -20,16 +25,57 @@ const supportLinks = [
 
 export function ProfileScreen() {
   const { back, nav } = useRouter();
-  // In production this comes from the eKYC age-verification result.
-  const ageVerified = true;
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  // This screen is reached both from the bottom-nav "マイページ" tab (always
+  // the signed-in user) and from a detail/market host card's "プロフ→" (not
+  // yet backed by a real other-user lookup — see docs/PROGRESS.md follow-ups).
+  const profileQuery = useProfile(user?.id);
+  const followerCount = useFollowerCount(user?.id);
+  const achievementCount = useAwaseAchievementCount(user?.id);
+  const updateImage = useUpdateProfileImage();
+  const uploadImage = useUploadImage();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const real = configured ? profileQuery.data : undefined;
+  const displayName = real?.display_name ?? "澪 / mio";
+  const bio = real?.bio || "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
+  const isVerified = real?.is_verified ?? true;
+  const ageVerified = real?.is_age_verified ?? true; // fallback matches the prototype's always-shown support section
+  const meisterTitle = real?.meister_title ?? "併せマイスター";
+  const stats = [
+    { n: "128", l: "投稿" }, // no posts/gallery table yet — stays illustrative
+    { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
+    { n: real ? String(achievementCount.data ?? 0) : "36", l: "併せ実績" },
+  ];
+
+  const handlePickImage = (field: "avatar_url" | "cover_url") => {
+    if (!configured || !user) return;
+    (field === "avatar_url" ? avatarInputRef : coverInputRef).current?.click();
+  };
+
+  const handleFileSelected = async (field: "avatar_url" | "cover_url", e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    const result = await uploadImage.mutateAsync({ file, kind: field === "avatar_url" ? "avatar" : "cover" });
+    if (result.url) updateImage.mutate({ userId: user.id, field, url: result.url });
+  };
 
   return (
     <div>
       {/* cover + avatar */}
       <div style={{ position: "relative" }}>
-        <div style={{ height: 140 }}>
-          <ImageSlot radius={0} />
-        </div>
+        <button
+          onClick={() => handlePickImage("cover_url")}
+          disabled={!configured}
+          style={{ display: "block", width: "100%", height: 140, padding: 0, border: "none", cursor: configured ? "pointer" : "default" }}
+        >
+          <ImageSlot radius={0} src={real?.cover_url} />
+        </button>
+        <input ref={coverInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelected("cover_url", e)} style={{ display: "none" }} />
         <button
           onClick={back}
           style={{
@@ -70,7 +116,9 @@ export function ProfileScreen() {
         >
           <SettingsIcon size={19} />
         </button>
-        <div
+        <button
+          onClick={() => handlePickImage("avatar_url")}
+          disabled={!configured}
           style={{
             position: "absolute",
             left: 20,
@@ -80,6 +128,8 @@ export function ProfileScreen() {
             borderRadius: "50%",
             padding: 3,
             background: avatarRing,
+            border: "none",
+            cursor: configured ? "pointer" : "default",
           }}
         >
           <div
@@ -91,35 +141,36 @@ export function ProfileScreen() {
               overflow: "hidden",
             }}
           >
-            <ImageSlot circle />
+            <ImageSlot circle src={real?.avatar_url} />
           </div>
-        </div>
+        </button>
+        <input ref={avatarInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelected("avatar_url", e)} style={{ display: "none" }} />
       </div>
 
       {/* identity */}
       <div style={{ padding: "46px 22px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>澪 / mio</h2>
-          <VerifiedBadge />
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{displayName}</h2>
+          {isVerified && <VerifiedBadge />}
         </div>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            marginTop: 9,
-            padding: "5px 11px",
-            borderRadius: 999,
-            background: "linear-gradient(135deg,#FBE9F2,#EFEBF8)",
-            border: "1px solid #EBDCF0",
-          }}
-        >
-          <MeisterIcon />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#8A4E86" }}>併せマイスター</span>
-        </div>
-        <p style={{ margin: "13px 0 0", fontSize: 13, lineHeight: 1.85, color: colors.textSecondary }}>
-          ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎
-        </p>
+        {meisterTitle && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              marginTop: 9,
+              padding: "5px 11px",
+              borderRadius: 999,
+              background: "linear-gradient(135deg,#FBE9F2,#EFEBF8)",
+              border: "1px solid #EBDCF0",
+            }}
+          >
+            <MeisterIcon />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#8A4E86" }}>{meisterTitle}</span>
+          </div>
+        )}
+        <p style={{ margin: "13px 0 0", fontSize: 13, lineHeight: 1.85, color: colors.textSecondary }}>{bio}</p>
 
         {/* stats */}
         <div
@@ -132,11 +183,7 @@ export function ProfileScreen() {
             background: colors.primaryBg5,
           }}
         >
-          {[
-            { n: "128", l: "投稿" },
-            { n: "4.2k", l: "フォロワー" },
-            { n: "36", l: "併せ実績" },
-          ].map((s, i) => (
+          {stats.map((s, i) => (
             <div
               key={s.l}
               style={{
