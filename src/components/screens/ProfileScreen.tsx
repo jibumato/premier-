@@ -6,10 +6,11 @@ import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, SettingsIcon, StarIcon, VerifiedBadge } from "../icons";
+import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadge } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
+import { useCreatePost, usePosts } from "@/lib/queries/posts";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -40,21 +41,25 @@ export function ProfileScreen() {
   const followerCount = useFollowerCount(targetId);
   const achievementCount = useAwaseAchievementCount(targetId);
   const reviewsReceived = useReviewsReceived(targetId);
+  const postsQuery = usePosts(targetId);
   const updateImage = useUpdateProfileImage();
   const uploadImage = useUploadImage();
+  const createPost = useCreatePost();
   const getOrCreateConversation = useGetOrCreateConversation();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const postInputRef = useRef<HTMLInputElement>(null);
 
   const real = configured && targetId ? profileQuery.data : undefined;
   const canEdit = configured && isOwnProfile;
+  const posts = real ? (postsQuery.data ?? []) : undefined;
   const displayName = real?.display_name ?? "澪 / mio";
   const bio = real?.bio || "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
   const isVerified = real?.is_verified ?? true;
   const ageVerified = real?.is_age_verified ?? true; // fallback matches the prototype's always-shown support section
   const meisterTitle = real?.meister_title ?? "併せマイスター";
   const stats = [
-    { n: "128", l: "投稿" }, // no posts/gallery table yet — stays illustrative
+    { n: posts ? String(posts.length) : "128", l: "投稿" },
     { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
     { n: real ? String(achievementCount.data ?? 0) : "36", l: "併せ実績" },
   ];
@@ -70,6 +75,14 @@ export function ProfileScreen() {
     if (!file || !canEdit || !user) return;
     const result = await uploadImage.mutateAsync({ file, kind: field === "avatar_url" ? "avatar" : "cover" });
     if (result.url) updateImage.mutate({ userId: user.id, field, url: result.url });
+  };
+
+  const handleAddPost = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !canEdit || !user) return;
+    const result = await uploadImage.mutateAsync({ file, kind: "post" });
+    if (result.url) createPost.mutate({ authorId: user.id, imageUrl: result.url });
   };
 
   const handleMessage = () => {
@@ -420,12 +433,46 @@ export function ProfileScreen() {
             marginTop: 13,
           }}
         >
-          {galleryKeys.map((g) => (
-            <div key={g} style={{ height: 108 }}>
-              <ImageSlot radius={12} />
-            </div>
-          ))}
+          {posts ? (
+            <>
+              {canEdit && (
+                <button
+                  onClick={() => postInputRef.current?.click()}
+                  style={{
+                    height: 108,
+                    borderRadius: 12,
+                    border: `1.5px dashed ${colors.border}`,
+                    background: colors.primaryBg5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                  aria-label="投稿を追加"
+                >
+                  <PlusIcon size={22} color={colors.textMutedAlt} />
+                </button>
+              )}
+              {posts.map((p) => (
+                <div key={p.id} style={{ height: 108 }}>
+                  <ImageSlot radius={12} src={p.image_url} />
+                </div>
+              ))}
+              {posts.length === 0 && !canEdit && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "18px 0", fontSize: 12, color: colors.textMutedAlt }}>
+                  まだ投稿がありません
+                </div>
+              )}
+            </>
+          ) : (
+            galleryKeys.map((g) => (
+              <div key={g} style={{ height: 108 }}>
+                <ImageSlot radius={12} />
+              </div>
+            ))
+          )}
         </div>
+        <input ref={postInputRef} type="file" accept="image/*" onChange={handleAddPost} style={{ display: "none" }} />
 
         {/* report */}
         <button
