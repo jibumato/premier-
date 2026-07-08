@@ -19,7 +19,7 @@ const mockInfoGrid = [
 ];
 
 export function DetailScreen() {
-  const { back, nav, selectedAwaseId } = useRouter();
+  const { back, nav, openProfile, selectedAwaseId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -157,7 +157,7 @@ export function DetailScreen() {
       {/* host card */}
       <div style={{ padding: "18px 22px 0" }}>
         <button
-          onClick={() => nav("profile", "mypage")}
+          onClick={() => (real ? openProfile(real.host_id) : nav("profile", "mypage"))}
           style={{
             width: "100%",
             display: "flex",

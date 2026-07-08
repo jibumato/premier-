@@ -9,6 +9,7 @@ import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, SettingsIcon, StarIcon, VerifiedBadge } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage } from "@/lib/queries/profile";
+import { useGetOrCreateConversation } from "@/lib/queries/messages";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -25,23 +26,28 @@ const supportLinks = [
 ];
 
 export function ProfileScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, openChat, selectedProfileId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
-  // This screen is reached both from the bottom-nav "マイページ" tab (always
-  // the signed-in user) and from a detail/market host card's "プロフ→" (not
-  // yet backed by a real other-user lookup — see docs/PROGRESS.md follow-ups).
-  const profileQuery = useProfile(user?.id);
-  const followerCount = useFollowerCount(user?.id);
-  const achievementCount = useAwaseAchievementCount(user?.id);
-  const reviewsReceived = useReviewsReceived(user?.id);
+  // Reached both from the bottom-nav "マイページ" tab (selectedProfileId is
+  // null → always the signed-in user) and from a detail/market host card's
+  // "プロフ→" via openProfile(userId) (viewing someone else).
+  const targetId = selectedProfileId ?? user?.id;
+  const isOwnProfile = !selectedProfileId || selectedProfileId === user?.id;
+
+  const profileQuery = useProfile(targetId);
+  const followerCount = useFollowerCount(targetId);
+  const achievementCount = useAwaseAchievementCount(targetId);
+  const reviewsReceived = useReviewsReceived(targetId);
   const updateImage = useUpdateProfileImage();
   const uploadImage = useUploadImage();
+  const getOrCreateConversation = useGetOrCreateConversation();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const real = configured ? profileQuery.data : undefined;
+  const real = configured && targetId ? profileQuery.data : undefined;
+  const canEdit = configured && isOwnProfile;
   const displayName = real?.display_name ?? "澪 / mio";
   const bio = real?.bio || "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
   const isVerified = real?.is_verified ?? true;
@@ -54,16 +60,27 @@ export function ProfileScreen() {
   ];
 
   const handlePickImage = (field: "avatar_url" | "cover_url") => {
-    if (!configured || !user) return;
+    if (!canEdit || !user) return;
     (field === "avatar_url" ? avatarInputRef : coverInputRef).current?.click();
   };
 
   const handleFileSelected = async (field: "avatar_url" | "cover_url", e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !user) return;
+    if (!file || !canEdit || !user) return;
     const result = await uploadImage.mutateAsync({ file, kind: field === "avatar_url" ? "avatar" : "cover" });
     if (result.url) updateImage.mutate({ userId: user.id, field, url: result.url });
+  };
+
+  const handleMessage = () => {
+    if (real && user && targetId && !isOwnProfile) {
+      getOrCreateConversation.mutate(
+        { userId: user.id, otherUserId: targetId },
+        { onSuccess: (conversationId) => openChat(conversationId) },
+      );
+    } else {
+      nav("chat");
+    }
   };
 
   return (
@@ -72,8 +89,8 @@ export function ProfileScreen() {
       <div style={{ position: "relative" }}>
         <button
           onClick={() => handlePickImage("cover_url")}
-          disabled={!configured}
-          style={{ display: "block", width: "100%", height: 140, padding: 0, border: "none", cursor: configured ? "pointer" : "default" }}
+          disabled={!canEdit}
+          style={{ display: "block", width: "100%", height: 140, padding: 0, border: "none", cursor: canEdit ? "pointer" : "default" }}
         >
           <ImageSlot radius={0} src={real?.cover_url} />
         </button>
@@ -98,29 +115,31 @@ export function ProfileScreen() {
         >
           <ChevronLeftIcon size={20} />
         </button>
-        <button
-          onClick={() => nav("settings")}
-          style={{
-            position: "absolute",
-            right: 16,
-            top: 12,
-            width: 34,
-            height: 34,
-            border: "none",
-            borderRadius: "50%",
-            background: "rgba(255,255,255,.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-          aria-label="設定"
-        >
-          <SettingsIcon size={19} />
-        </button>
+        {isOwnProfile && (
+          <button
+            onClick={() => nav("settings")}
+            style={{
+              position: "absolute",
+              right: 16,
+              top: 12,
+              width: 34,
+              height: 34,
+              border: "none",
+              borderRadius: "50%",
+              background: "rgba(255,255,255,.9)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+            aria-label="設定"
+          >
+            <SettingsIcon size={19} />
+          </button>
+        )}
         <button
           onClick={() => handlePickImage("avatar_url")}
-          disabled={!configured}
+          disabled={!canEdit}
           style={{
             position: "absolute",
             left: 20,
@@ -131,7 +150,7 @@ export function ProfileScreen() {
             padding: 3,
             background: avatarRing,
             border: "none",
-            cursor: configured ? "pointer" : "default",
+            cursor: canEdit ? "pointer" : "default",
           }}
         >
           <div
@@ -204,7 +223,7 @@ export function ProfileScreen() {
         {/* action buttons */}
         <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
           <button
-            onClick={() => nav("chat")}
+            onClick={handleMessage}
             style={{
               flex: 1,
               display: "flex",
