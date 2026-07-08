@@ -5,12 +5,19 @@ import { regions, searchResults } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, PinIcon, SearchIcon, SlidersIcon } from "../icons";
+import { useAwaseSearch } from "@/lib/queries/awase";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function SearchScreen() {
-  const { back, nav, region, setRegion } = useRouter();
+  const { back, nav, openAwase, region, setRegion } = useRouter();
+  const configured = isSupabaseConfigured();
+  const results = useAwaseSearch(region);
 
-  const filtered =
+  const mockFiltered =
     region === "すべて" ? searchResults : searchResults.filter((r) => r.region === region);
+  // Real, already-filtered results once connected and loaded; the mock list
+  // (client-filtered) otherwise — same SearchResult shape either way.
+  const filtered = configured && results.data ? results.data : mockFiltered;
   const isEmpty = filtered.length === 0;
 
   return (
@@ -153,7 +160,7 @@ export function SearchScreen() {
         {filtered.map((res) => (
           <button
             key={res.key}
-            onClick={() => nav("detail")}
+            onClick={() => (configured && results.data ? openAwase(res.key) : nav("detail"))}
             style={{
               display: "flex",
               gap: 13,

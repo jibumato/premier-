@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import { colors } from "@/lib/tokens";
+import { onboardWorks as mockWorks, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { PrimaryButton, Toggle } from "../ui";
-import { ChevronDownIcon, PlusIcon } from "../icons";
+import { PlusIcon } from "../icons";
 import { ImageSlot } from "../ImageSlot";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useCreateAwase } from "@/lib/queries/awase";
+import { useWorks } from "@/lib/queries/works";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const inputBox: React.CSSProperties = {
+  width: "100%",
   marginTop: 8,
   border: `1px solid ${colors.border}`,
   borderRadius: 13,
@@ -15,6 +21,9 @@ const inputBox: React.CSSProperties = {
   fontSize: 13.5,
   color: colors.textPrimary,
   fontWeight: 500,
+  fontFamily: "inherit",
+  background: colors.white,
+  outline: "none",
 };
 
 const label: React.CSSProperties = {
@@ -23,10 +32,57 @@ const label: React.CSSProperties = {
   color: "#3A3548",
 };
 
+const creatableRegions = regions.filter((r) => r !== "すべて");
+
 export function CreateScreen() {
   const { nav } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const worksQuery = useWorks();
+  const createAwase = useCreateAwase();
+  // Real works (id/name) once connected; the handoff's mock list otherwise.
+  const works = configured
+    ? (worksQuery.data ?? []).map((w) => ({ id: w.id, name: w.name }))
+    : mockWorks.map((w) => ({ id: w.key, name: w.name }));
+
+  const [title, setTitle] = useState("");
+  const [workId, setWorkId] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [region, setRegion] = useState("");
   const [womenOnly, setWomenOnly] = useState(true);
   const [beginnerOk, setBeginnerOk] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handlePublish = async () => {
+    setError(null);
+    if (!title.trim() || !workId || !eventDate.trim() || !region) {
+      setError("タイトル・作品・日程・地域は必須です");
+      return;
+    }
+    if (configured && user) {
+      setSubmitting(true);
+      try {
+        await createAwase.mutateAsync({
+          hostId: user.id,
+          title: title.trim(),
+          workId,
+          eventDate: eventDate.trim(),
+          region,
+          womenOnly,
+          beginnerOk,
+        });
+        nav("created");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "公開に失敗しました");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    nav("created"); // prototype mode: no backend to persist to
+  };
 
   return (
     <div>
@@ -101,31 +157,49 @@ export function CreateScreen() {
       {/* fields */}
       <div style={{ padding: "22px 22px 0", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <label style={label}>タイトル</label>
-          <div style={inputBox}>魔法学園シリーズ 生徒会併せ</div>
+          <label style={label}>タイトル *</label>
+          <input
+            style={inputBox}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="例：魔法学園シリーズ 生徒会併せ"
+          />
         </div>
         <div>
-          <label style={label}>作品</label>
-          <div
-            style={{
-              ...inputBox,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span>葬送のフリーレン</span>
-            <ChevronDownIcon />
-          </div>
+          <label style={label}>作品 *</label>
+          <select style={{ ...inputBox, appearance: "none" }} value={workId} onChange={(e) => setWorkId(e.target.value)}>
+            <option value="">選択してください</option>
+            {works.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <label style={label}>日程</label>
-            <div style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}>7/26(日)</div>
+            <label style={label}>日程 *</label>
+            <input
+              style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              placeholder="例：7/26(日)"
+            />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={label}>地域</label>
-            <div style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}>東京</div>
+            <label style={label}>地域 *</label>
+            <select
+              style={{ ...inputBox, fontSize: 13, padding: "13px 14px", appearance: "none" }}
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+            >
+              <option value="">選択</option>
+              {creatableRegions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -175,10 +249,18 @@ export function CreateScreen() {
           on={beginnerOk}
           onChange={setBeginnerOk}
         />
+
+        {error && (
+          <div style={{ fontSize: 12, color: "#C0453F", background: "#FBEBEA", borderRadius: 10, padding: "10px 12px" }}>
+            {error}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: "26px 22px 30px" }}>
-        <PrimaryButton onClick={() => nav("created")}>公開する</PrimaryButton>
+        <PrimaryButton onClick={handlePublish} style={submitting ? { opacity: 0.6, cursor: "not-allowed" } : undefined}>
+          {submitting ? "公開中…" : "公開する"}
+        </PrimaryButton>
       </div>
     </div>
   );

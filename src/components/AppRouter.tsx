@@ -15,6 +15,8 @@ interface RouterState {
   screen: Screen;
   tab: Tab;
   region: string;
+  /** awase.id backing the current `detail` screen, once a backend is connected. */
+  selectedAwaseId: string | null;
 }
 
 interface RouterApi extends RouterState {
@@ -23,6 +25,8 @@ interface RouterApi extends RouterState {
   /** pop the back stack (bottom-nav-aware, mirrors prototype back()) */
   back: () => void;
   setRegion: (r: string) => void;
+  /** navigate to `detail` for a specific real awase row */
+  openAwase: (awaseId: string) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -40,6 +44,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     screen: "home",
     tab: "home",
     region: "すべて",
+    selectedAwaseId: null,
   });
   const historyRef = useRef<Screen[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -79,9 +84,20 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, region }));
   }, []);
 
+  const openAwase = useCallback(
+    (awaseId: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "detail", selectedAwaseId: awaseId };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
   const api = useMemo<RouterApi>(
-    () => ({ ...state, nav, back, setRegion, scrollRef }),
-    [state, nav, back, setRegion]
+    () => ({ ...state, nav, back, setRegion, openAwase, scrollRef }),
+    [state, nav, back, setRegion, openAwase]
   );
 
   return <RouterContext.Provider value={api}>{children}</RouterContext.Provider>;
