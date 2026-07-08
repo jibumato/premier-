@@ -156,3 +156,115 @@ export function MeisterIcon({ size = 12, color = "#B063A0", style }: IconProps) 
     </svg>
   );
 }
+
+export function ChevronRightIcon({ size = 18, color = "#B4AEC0", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+export function MessageIcon({ size = 23, color = "#2A2634", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)} strokeWidth={1.7}>
+      <path d="M21 11.5a8.4 8.4 0 01-9 8.4 9.5 9.5 0 01-4-.9L3 21l1.9-4a8.4 8.4 0 01-.9-4A8.4 8.4 0 0112 4a8.4 8.4 0 019 7.5z" />
+    </svg>
+  );
+}
+
+export function SettingsIcon({ size = 22, color = "#2A2634", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)} strokeWidth={1.7}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 110-4h.1a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ size = 20, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <rect x="3" y="4.5" width="18" height="17" rx="3" />
+      <path d="M3 9h18M8 2.5v4M16 2.5v4" />
+    </svg>
+  );
+}
+
+export function BagIcon({ size = 20, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <path d="M5 8h14l-1 12a2 2 0 01-2 2H8a2 2 0 01-2-2L5 8z" />
+      <path d="M9 8V6a3 3 0 016 0v2" />
+    </svg>
+  );
+}
+
+export function HelpIcon({ size = 20, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.2 9.2a2.8 2.8 0 015.4 1c0 1.9-2.8 2.8-2.8 2.8" />
+      <circle cx="12" cy="17" r="0.6" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+export function FlagIcon({ size = 20, color = "#B0538D", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <path d="M5 21V4M5 4h11l-1.5 4L16 12H5" />
+    </svg>
+  );
+}
+
+export function SendIcon({ size = 20, color = "#fff", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}
+
+export function ShieldIcon({ size = 40, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)} strokeWidth={1.6}>
+      <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
+
+/** Star for ratings; filled when `filled`. */
+export function StarIcon({
+  size = 20,
+  filled = false,
+  color = "#E0A93B",
+  style,
+}: IconProps & { filled?: boolean }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={filled ? color : "none"}
+      stroke={color}
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
+      <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" />
+    </svg>
+  );
+}
+
+/** Building/company icon for the corporate landing. */
+export function BuildingIcon({ size = 40, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)} strokeWidth={1.6}>
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3" />
+    </svg>
+  );
+}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
-import { PrimaryButton } from "../ui";
+import { PrimaryButton, Toggle } from "../ui";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { ImageSlot } from "../ImageSlot";
 
@@ -22,44 +22,6 @@ const label: React.CSSProperties = {
   fontWeight: 700,
   color: "#3A3548",
 };
-
-/** iOS-style toggle. */
-function Toggle({ on, onChange, ariaLabel }: { on: boolean; onChange: (v: boolean) => void; ariaLabel: string }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={on}
-      aria-label={ariaLabel}
-      onClick={() => onChange(!on)}
-      style={{
-        width: 44,
-        height: 26,
-        borderRadius: 99,
-        background: on ? colors.primary : "#DAD5E6",
-        position: "relative",
-        flex: "0 0 auto",
-        border: "none",
-        cursor: "pointer",
-        padding: 0,
-        transition: "background .15s ease",
-      }}
-    >
-      <span
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: colors.white,
-          position: "absolute",
-          top: 3,
-          left: on ? 21 : 3,
-          transition: "left .15s ease",
-          boxShadow: "0 1px 3px rgba(0,0,0,.2)",
-        }}
-      />
-    </button>
-  );
-}
 
 export function CreateScreen() {
   const { nav } = useRouter();

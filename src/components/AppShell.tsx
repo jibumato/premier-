@@ -10,6 +10,18 @@ import { CreateScreen } from "./screens/CreateScreen";
 import { CreatedScreen } from "./screens/CreatedScreen";
 import { NotifyScreen } from "./screens/NotifyScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
+import { MessagesScreen } from "./screens/MessagesScreen";
+import { ChatScreen } from "./screens/ChatScreen";
+import { ReviewWriteScreen } from "./screens/ReviewWriteScreen";
+import { MarketScreen } from "./screens/MarketScreen";
+import { MarketDetailScreen } from "./screens/MarketDetailScreen";
+import { EventsScreen } from "./screens/EventsScreen";
+import { EventDetailScreen } from "./screens/EventDetailScreen";
+import { QaScreen } from "./screens/QaScreen";
+import { QaDetailScreen } from "./screens/QaDetailScreen";
+import { ReportScreen } from "./screens/ReportScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
+import { CorporateScreen } from "./screens/CorporateScreen";
 import type { Screen } from "@/lib/types";
 
 const screens: Record<Screen, () => React.ReactElement> = {
@@ -21,6 +33,18 @@ const screens: Record<Screen, () => React.ReactElement> = {
   created: CreatedScreen,
   notify: NotifyScreen,
   profile: ProfileScreen,
+  messages: MessagesScreen,
+  chat: ChatScreen,
+  reviewWrite: ReviewWriteScreen,
+  market: MarketScreen,
+  marketDetail: MarketDetailScreen,
+  events: EventsScreen,
+  eventDetail: EventDetailScreen,
+  qa: QaScreen,
+  qaDetail: QaDetailScreen,
+  report: ReportScreen,
+  settings: SettingsScreen,
+  corporate: CorporateScreen,
 };
 
 function CurrentScreen() {

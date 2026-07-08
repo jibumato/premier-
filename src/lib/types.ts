@@ -1,5 +1,10 @@
-/** Screen keys — mirror `state.screen` from the clickable prototype. */
+/**
+ * Screen keys. The first block mirrors `state.screen` from the clickable
+ * prototype; the rest are the "Not Yet Designed" features, newly designed to
+ * fit the same design system.
+ */
 export type Screen =
+  // designed in the handoff prototype
   | "home"
   | "search"
   | "detail"
@@ -7,7 +12,20 @@ export type Screen =
   | "create"
   | "created"
   | "notify"
-  | "profile";
+  | "profile"
+  // newly designed features
+  | "messages"
+  | "chat"
+  | "reviewWrite"
+  | "market"
+  | "marketDetail"
+  | "events"
+  | "eventDetail"
+  | "qa"
+  | "qaDetail"
+  | "report"
+  | "settings"
+  | "corporate";
 
 /** Bottom-nav tabs — mirror `state.tab`. */
 export type Tab = "home" | "search" | "notify" | "mypage";
@@ -57,3 +75,48 @@ export interface Post {
   key: string;
   likes: string;
 }
+
+export interface Conversation {
+  key: string;
+  name: string;
+  last: string;
+  time: string;
+  unread: number;
+}
+
+export interface ChatMessage {
+  key: string;
+  from: "me" | "them";
+  text: string;
+  time: string;
+}
+
+export interface MarketItem {
+  key: string;
+  title: string;
+  work: string;
+  price: string;
+  size: string;
+  condition: string;
+  sold?: boolean;
+}
+
+export interface EventItem {
+  key: string;
+  name: string;
+  date: string;
+  venue: string;
+  region: string;
+  going: number;
+  tag: string;
+}
+
+export interface QaItem {
+  key: string;
+  title: string;
+  excerpt: string;
+  tag: string;
+  answers: number;
+  solved: boolean;
+}
+

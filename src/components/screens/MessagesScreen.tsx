@@ -1,0 +1,93 @@
+"use client";
+
+import { colors } from "@/lib/tokens";
+import { conversations } from "@/lib/data";
+import { useRouter } from "../AppRouter";
+import { ImageSlot } from "../ImageSlot";
+import { AppBar } from "../ui";
+
+export function MessagesScreen() {
+  const { back, nav } = useRouter();
+
+  return (
+    <div>
+      <AppBar title="メッセージ" onBack={back} />
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {conversations.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => nav("chat")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "14px 22px",
+              borderBottom: "1px solid #F1EFF6",
+              background: c.unread > 0 ? colors.primaryBg5 : colors.white,
+              border: "none",
+              borderBottomWidth: 1,
+              borderBottomStyle: "solid",
+              borderBottomColor: "#F1EFF6",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              textAlign: "left",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                flex: "0 0 46px",
+                height: 46,
+                borderRadius: "50%",
+                overflow: "hidden",
+                background: colors.primaryBg1,
+              }}
+            >
+              <ImageSlot circle />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>{c.name}</span>
+                <span style={{ fontSize: 10.5, color: colors.textMutedSoft, whiteSpace: "nowrap" }}>{c.time}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 4 }}>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: c.unread > 0 ? colors.textSecondary : colors.textMutedAlt,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontWeight: c.unread > 0 ? 500 : 400,
+                  }}
+                >
+                  {c.last}
+                </span>
+                {c.unread > 0 && (
+                  <span
+                    style={{
+                      flex: "0 0 auto",
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 999,
+                      background: colors.pink,
+                      color: colors.white,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 5px",
+                    }}
+                  >
+                    {c.unread}
+                  </span>
+                )}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -5,7 +5,7 @@ import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, MeisterIcon, VerifiedBadge } from "../icons";
+import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, SettingsIcon, VerifiedBadge } from "../icons";
 
 /**
  * External support links (Fantia / pixivFANBOX / Skeb). Per the handoff
@@ -19,7 +19,7 @@ const supportLinks = [
 ];
 
 export function ProfileScreen() {
-  const { back } = useRouter();
+  const { back, nav } = useRouter();
   // In production this comes from the eKYC age-verification result.
   const ageVerified = true;
 
@@ -49,6 +49,26 @@ export function ProfileScreen() {
           aria-label="戻る"
         >
           <ChevronLeftIcon size={20} />
+        </button>
+        <button
+          onClick={() => nav("settings")}
+          style={{
+            position: "absolute",
+            right: 16,
+            top: 12,
+            width: 34,
+            height: 34,
+            border: "none",
+            borderRadius: "50%",
+            background: "rgba(255,255,255,.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+          aria-label="設定"
+        >
+          <SettingsIcon size={19} />
         </button>
         <div
           style={{
@@ -130,6 +150,49 @@ export function ProfileScreen() {
               <div style={{ fontSize: 10, color: colors.textMutedAlt, marginTop: 2 }}>{s.l}</div>
             </div>
           ))}
+        </div>
+
+        {/* action buttons */}
+        <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
+          <button
+            onClick={() => nav("chat")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              border: "none",
+              background: colors.primary,
+              color: colors.white,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "12px 0",
+              borderRadius: 13,
+              cursor: "pointer",
+            }}
+          >
+            <MessageIcon size={16} color={colors.white} />
+            メッセージ
+          </button>
+          <button
+            onClick={() => nav("create")}
+            style={{
+              flex: 1,
+              border: `1px solid ${colors.border}`,
+              background: colors.white,
+              color: colors.primary,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "12px 0",
+              borderRadius: 13,
+              cursor: "pointer",
+            }}
+          >
+            併せに誘う
+          </button>
         </div>
       </div>
 
@@ -234,6 +297,29 @@ export function ProfileScreen() {
             </div>
           ))}
         </div>
+
+        {/* report */}
+        <button
+          onClick={() => nav("report")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            width: "100%",
+            marginTop: 22,
+            border: "none",
+            background: "none",
+            color: colors.textMutedAlt,
+            fontFamily: "inherit",
+            fontSize: 12,
+            padding: 8,
+            cursor: "pointer",
+          }}
+        >
+          <FlagIcon size={14} color={colors.textMutedAlt} />
+          このユーザーを通報・ブロック
+        </button>
       </div>
     </div>
   );

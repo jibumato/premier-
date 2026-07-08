@@ -32,11 +32,11 @@ export function AppliedScreen() {
         <br />
         メッセージで日程や持ち物をすり合わせましょう。
       </p>
-      <PrimaryButton onClick={() => nav("home", "home")} style={{ marginTop: 30 }}>
-        ホームに戻る
+      <PrimaryButton onClick={() => nav("chat")} style={{ marginTop: 30 }}>
+        主催者にメッセージを送る
       </PrimaryButton>
       <button
-        onClick={back}
+        onClick={() => nav("home", "home")}
         style={{
           width: "100%",
           marginTop: 11,
@@ -48,6 +48,23 @@ export function AppliedScreen() {
           fontWeight: 600,
           padding: 14,
           borderRadius: 14,
+          cursor: "pointer",
+        }}
+      >
+        ホームに戻る
+      </button>
+      <button
+        onClick={back}
+        style={{
+          width: "100%",
+          marginTop: 11,
+          border: "none",
+          background: "none",
+          color: colors.textMutedAlt,
+          fontFamily: "inherit",
+          fontSize: 13,
+          fontWeight: 500,
+          padding: 6,
           cursor: "pointer",
         }}
       >

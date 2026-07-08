@@ -5,7 +5,14 @@ import { homeAwase, homePosts, popularWorks } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { BellIcon, HeartIcon, SearchIcon } from "../icons";
+import { BagIcon, BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
+import type { Screen } from "@/lib/types";
+
+const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
+  { key: "market", label: "フリマ", icon: <BagIcon size={22} /> },
+  { key: "events", label: "イベント", icon: <CalendarIcon size={22} /> },
+  { key: "qa", label: "知恵袋", icon: <HelpIcon size={22} /> },
+];
 
 export function HomeScreen() {
   const { nav } = useRouter();
@@ -31,13 +38,22 @@ export function HomeScreen() {
         >
           プルミエ<span style={{ color: colors.pink }}>！</span>
         </div>
-        <button
-          onClick={() => nav("notify", "notify")}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-          aria-label="おしらせ"
-        >
-          <BellIcon />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <button
+            onClick={() => nav("messages")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            aria-label="メッセージ"
+          >
+            <MessageIcon />
+          </button>
+          <button
+            onClick={() => nav("notify", "notify")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            aria-label="おしらせ"
+          >
+            <BellIcon />
+          </button>
+        </div>
       </div>
 
       {/* search entry */}
@@ -60,6 +76,45 @@ export function HomeScreen() {
           <SearchIcon />
           <span style={{ fontSize: 14, color: "#AFAABB" }}>作品・キャラで仲間を探す</span>
         </button>
+      </div>
+
+      {/* feature shortcuts */}
+      <div style={{ display: "flex", gap: 10, padding: "16px 22px 0" }}>
+        {shortcuts.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => nav(s.key)}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 7,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 16,
+              padding: "14px 0",
+              background: colors.primaryBg5,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: colors.white,
+                border: `1px solid ${colors.borderSoft}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {s.icon}
+            </span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>{s.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* popular works */}

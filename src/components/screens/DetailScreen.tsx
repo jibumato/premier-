@@ -5,7 +5,7 @@ import { detailRoles } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading, PrimaryButton } from "../ui";
-import { ChevronLeftIcon, ShareIcon } from "../icons";
+import { ChevronLeftIcon, FlagIcon, ShareIcon } from "../icons";
 
 const infoGrid = [
   { label: "日程", value: "7/26(日) 13:00〜" },
@@ -226,6 +226,27 @@ export function DetailScreen() {
         <PrimaryButton onClick={() => nav("applied")} style={{ marginTop: 22 }}>
           この併せに応募する
         </PrimaryButton>
+        <button
+          onClick={() => nav("report")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            width: "100%",
+            marginTop: 14,
+            border: "none",
+            background: "none",
+            color: colors.textMutedAlt,
+            fontFamily: "inherit",
+            fontSize: 12,
+            padding: 8,
+            cursor: "pointer",
+          }}
+        >
+          <FlagIcon size={14} color={colors.textMutedAlt} />
+          この募集を通報する
+        </button>
       </div>
     </div>
   );
