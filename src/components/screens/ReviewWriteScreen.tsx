@@ -6,19 +6,56 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { AppBar, PrimaryButton } from "../ui";
 import { CheckIcon, StarIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useConversationInfo, useCreateReview } from "@/lib/queries/reviews";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const tagOptions = ["時間を守る", "コミュ○", "写真が上手", "衣装クオリティ高", "また併せたい"];
 
 export function ReviewWriteScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, selectedConversationId } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const convInfo = useConversationInfo(selectedConversationId, user?.id);
+  const createReview = useCreateReview();
+
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const real = configured && selectedConversationId && user ? convInfo.data : undefined;
+  const targetName = real?.otherName ?? "かな";
+  const targetContext = real?.awaseTitle ? `${real.awaseTitle}${real.awaseDate ? ` · ${real.awaseDate}` : ""}` : "魔法学園 生徒会併せ · 7/26";
 
   const toggleTag = (t: string) =>
     setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+
+  const handleSubmit = () => {
+    if (rating === 0) return;
+    setSubmitError(null);
+    if (real && user) {
+      createReview.mutate(
+        {
+          authorId: user.id,
+          targetId: real.otherUserId,
+          awaseId: real.awaseId,
+          rating,
+          goodPoints: tags,
+          comment: text,
+        },
+        {
+          onSuccess: () => setSubmitted(true),
+          onError: (e) => setSubmitError(e instanceof Error ? e.message : "投稿に失敗しました"),
+        },
+      );
+    } else {
+      setSubmitted(true);
+    }
+  };
 
   if (submitted) {
     return (
@@ -73,8 +110,8 @@ export function ReviewWriteScreen() {
             <ImageSlot circle />
           </div>
           <div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>かな さんへの評価</div>
-            <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>魔法学園 生徒会併せ · 7/26</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>{targetName} さんへの評価</div>
+            <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>{targetContext}</div>
           </div>
         </div>
       </div>
@@ -156,8 +193,13 @@ export function ReviewWriteScreen() {
       </div>
 
       <div style={{ padding: "24px 22px 30px" }}>
+        {submitError && (
+          <p style={{ margin: "0 0 12px", fontSize: 12, color: colors.pinkText, textAlign: "center" }}>
+            {submitError}
+          </p>
+        )}
         <PrimaryButton
-          onClick={() => rating > 0 && setSubmitted(true)}
+          onClick={handleSubmit}
           style={rating === 0 ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
         >
           レビューを投稿する

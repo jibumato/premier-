@@ -5,7 +5,7 @@
 > [ARCHITECTURE.md](ARCHITECTURE.md)、Phase 1 の実装計画は
 > [PHASE1_PLAN.md](PHASE1_PLAN.md) を参照。
 
-- **更新日**: 2026-07-08 ・ 版: v1.4
+- **更新日**: 2026-07-08 ・ 版: v1.5
 - **リポジトリ**: jibumato/premier-
 - **採用スタック（確定・稼働中）**: Cloudflare Workers（OpenNextアダプタ配信 / R2画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
 - **本番URL**: https://premier.sunny-rainy1115.workers.dev（動作確認済み）
@@ -21,10 +21,11 @@
 | 基盤接続（P1-01） | ✅ 100% |
 | コアループ実データ化（P1-03） | ✅ 100% |
 | メッセージ・通知・画像基盤（Phase 2） | ✅ 100% |
+| レビュー機能（Phase 3 の一部） | ✅ 100% |
 
 - 実装済み画面: **24**（プロトタイプ 8 ・ 新規 12 ・ デザイン集 4）
-- 直近の成果: **Phase 2 完了**（メッセージ Realtime・自動通知・R2画像アップロードを Supabase/Cloudflare に接続、未接続時は元のプロトタイプ動作を完全維持）
-- フェーズ進捗: **Phase 0・Phase 1 (P0)・Phase 2 (P1) 完了 → Phase 3 へ**
+- 直近の成果: **Phase 3「レビュー」完了**（チャットの「レビュー」ボタンから確定済みの併せ相手へレビュー投稿、マイページに受け取ったレビュー一覧・平均評価を表示。RLSで「accepted/done の応募関係がある相手」のみ投稿可に制御。未接続時は元のプロトタイプ動作を完全維持）
+- フェーズ進捗: **Phase 0・Phase 1 (P0)・Phase 2 (P1) 完了、Phase 3 (P2) はレビューのみ完了 → eKYC/ゾーニングが残る**
 
 凡例: ✅ 完了 ・ 🟡 進行中 ・ ⬜ 未着手 ・ ⏸ 保留（方針） ・ ⚠️ 要判断
 
@@ -37,7 +38,7 @@
 | **Phase 0** | デザイン検討・プロトタイプ実装（全24画面 / CI / 設計書） | 全画面 | ✅ 完了 | 済 | — |
 | **Phase 1 (P0)** | コア基盤: Auth＋profiles＋awase＋applications | オンボ/home/search/detail/applied/create/profile | ✅ 完了 | 済 | — |
 | **Phase 2 (P1)** | メッセージ(realtime)・通知・画像基盤(R2アップロード) | messages/chat/notify/create(参考画像) | ✅ 完了 | 済 | — |
-| **Phase 3 (P2)** | 本人確認(eKYC)・ゾーニング・レビュー | onboardVerify/応援リンク/reviewWrite/photographerProfile | ⬜ 未着手 | 2週 | eKYC契約 |
+| **Phase 3 (P2)** | 本人確認(eKYC)・ゾーニング・レビュー | onboardVerify/応援リンク/reviewWrite/photographerProfile | 🟡 一部完了（レビュー✅ / eKYC・ゾーニング未着手） | 2週 | eKYC契約 |
 | **Phase 4 (P3)** | コミュニティ拡張(フリマ/イベント/知恵袋) | market*/events*/qa* | ⬜ 未着手 | 2–3週 | Phase 1–2 |
 | **Phase 5 (P4)** | 通報自動処理・自動バッジ・法人掲載 | report/profile(バッジ)/corporate | ⬜ 未着手 | 2週 | Phase 1–4 |
 | **後日** | 金銭仲介(コイン/ギフト/出金) | profile(応援ギフトUI) | ⏸ 保留 | 未定 | 運用体制 |
@@ -58,7 +59,7 @@
 | Phase 2 | プロフィール画像（アバター/カバー）への `useUploadImage` 適用＋実プロフィール表示・併せ実績/フォロワー数の集計 | ✅ 完了 | — | 済 |
 | Phase 2 | （フォローアップ）NSFW自動判定・画像変換・Web Push・投稿ギャラリー（要 posts テーブル新設） | ⬜ 未着手 | — | 未定 |
 | Phase 3 | eKYC 連携・ゾーニング（Webhook自動更新/年齢確認） | ⚠️ 要判断 | ベンダー契約 | 2週 |
-| Phase 3 | レビュー（投稿・平均集計、完了条件をRLSで制御） | ⬜ 未着手 | Phase 1 | 0.5週 |
+| Phase 3 | レビュー（投稿・平均集計、完了条件をRLSで制御） | ✅ 完了 | Phase 1 | 済 |
 | Phase 4 | フリマ / イベント / 知恵袋 のサーバー化 | ⬜ 未着手 | Phase 1–2 | 2–3週 |
 | Phase 5 | 通報自動処理・自動バッジ・法人掲載（自動審査） | ⬜ 未着手 | Phase 1–4 | 2週 |
 | 後日 | コイン・ギフト・出金 | ⏸ 保留 | 運用体制 | 未定 |
@@ -90,7 +91,10 @@
       （名前・自己紹介・本人確認バッジ・称号・フォロワー数・併せ実績を実データ化）。
       アバター/カバーをタップでアップロード→`profiles.avatar_url`/`cover_url` に保存。
       募集詳細の主催者カードの「併せ実績」も実カウントに（`useAwaseAchievementCount`）
-- [ ] **Phase 3 に着手**: eKYC 連携・ゾーニング・レビュー ← 現在ここ
+- [x] **Phase 3「レビュー」完了**: `reviews` テーブル＋RLS（`has_confirmed_participation` で accepted/done の相手のみ投稿可）。
+      チャット画面の「レビュー」ボタン→会話の相手・関連する併せを実データ判定→投稿（`ReviewWriteScreen`）。
+      マイページに「受け取ったレビュー」セクション（平均評価・件数・一覧）を追加。未接続時は元のモック表示を完全維持
+- [ ] **Phase 3 の残り**: eKYC 連携・ゾーニング ← 現在ここ
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（画像投稿全般に適用）
 - [ ] 投稿ギャラリー機能（`posts` テーブルの新設が必要。現状「投稿」統計とギャラリーはモックのまま）

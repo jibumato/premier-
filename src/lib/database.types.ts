@@ -198,12 +198,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
         Relationships: [];
       };
+      reviews: {
+        Row: {
+          id: string;
+          author_id: string;
+          target_id: string;
+          awase_id: string | null;
+          rating: number;
+          good_points: string[];
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          target_id: string;
+          awase_id?: string | null;
+          rating: number;
+          good_points?: string[];
+          comment?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reviews"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
       find_direct_conversation: {
         Args: { user_a: string; user_b: string };
         Returns: string | null;
+      };
+      has_confirmed_participation: {
+        Args: { p_author: string; p_target: string; p_awase: string | null };
+        Returns: boolean;
       };
     };
     Enums: {

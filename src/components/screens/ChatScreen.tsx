@@ -8,6 +8,7 @@ import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, SendIcon, StarIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMessages, useSendMessage } from "@/lib/queries/messages";
+import { useConversationInfo } from "@/lib/queries/reviews";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
 import type { ChatMessage } from "@/lib/types";
@@ -18,12 +19,16 @@ export function ChatScreen() {
   const configured = isSupabaseConfigured();
 
   const realMessages = useMessages(selectedConversationId);
+  const convInfo = useConversationInfo(selectedConversationId, user?.id);
   const sendMessage = useSendMessage();
 
   const [mockMessages, setMockMessages] = useState<ChatMessage[]>(chatThread);
   const [draft, setDraft] = useState("");
 
   const real = configured && selectedConversationId ? realMessages.data : undefined;
+  const realInfo = configured && selectedConversationId ? convInfo.data : undefined;
+  const partnerName = realInfo?.otherName ?? "かな";
+  const partnerContext = realInfo?.awaseTitle ?? "魔法学園 生徒会併せ";
   const messages: ChatMessage[] = real
     ? real.map((m) => ({
         key: m.id,
@@ -71,8 +76,8 @@ export function ChatScreen() {
           <ImageSlot circle />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>かな</div>
-          <div style={{ fontSize: 10.5, color: colors.textMutedAlt }}>魔法学園 生徒会併せ</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{partnerName}</div>
+          <div style={{ fontSize: 10.5, color: colors.textMutedAlt }}>{partnerContext}</div>
         </div>
         <button
           onClick={() => nav("reviewWrite")}
