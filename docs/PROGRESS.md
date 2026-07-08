@@ -74,7 +74,8 @@
 - [x] **Phase 1 の詳細分解・見積確定**（→ [PHASE1_PLAN.md](PHASE1_PLAN.md) / スキーマ確定）
 - [x] **バックエンド基盤を決定** → Cloudflare（配信/R2）＋ Supabase（Auth/DB）
 - [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **next-on-pages ビルド検証 ✅**
+- [x] **P1-03 先行実装（接続不要な範囲）**: middleware / useAuth / profile・works フック / オンボ① role 保存の結線（ガード付き・検証は接続後）
 - [ ] **アカウント作成・接続**（[SETUP.md](SETUP.md) のチェックリスト: Supabase プロジェクト / Cloudflare Pages+R2）← 現在ここ
-- [ ] P1-03 認証・プロフィール実装（アカウント接続後）
+- [ ] P1-03 残り（接続後）: ログイン UI / オンボ②作品保存 / 各画面の実データ化
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）

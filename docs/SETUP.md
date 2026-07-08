@@ -58,9 +58,25 @@ npm run deploy     # Cloudflare へデプロイ（wrangler ログイン後）
 - **Next.js のセキュリティ更新**: `next@15.5.20` に更新済み（旧 15.1.6 のクリティカル
   advisory を解消）。残る `npm audit` の指摘は dev/ビルドツール（vercel CLI・eslint・
   esbuild 等）由来で本番配信物には含まれず、強制修正はツールチェーンを壊すため見送り。
-- **CI**: `.github/workflows/ci.yml` で lint / typecheck / build を実行。
+- **CI**: `.github/workflows/ci.yml` で lint / typecheck / build / pages:build を実行。
   `.npmrc` の `legacy-peer-deps=true` は Cloudflare ツールチェーンの optional peer 競合
   （workers-types v4/v5）回避のため。
+- **既知の警告（無害）**: `next build` 時に `@supabase/supabase-js` が Edge Runtime で
+  `process.version` を参照する旨の warning が出るが、ビルドは成功する。Cloudflare Pages は
+  `nodejs_compat` により `process` を提供するため実行にも影響なし（middleware でのセッション
+  更新は正常）。
+
+## P1-03 の先行実装（接続不要な範囲）
+
+バックエンド未接続でも動くよう **`isSupabaseConfigured()` でガード**した状態で、以下を実装済み:
+
+- `src/middleware.ts` — セッション更新（未設定時はパススルー）
+- `src/lib/auth/useAuth.ts` — 認証状態フック
+- `src/lib/queries/profile.ts` / `works.ts` — profile / works の取得・更新フック
+- オンボ①（`OnboardRoleScreen`）— セッションがあれば role を profiles に保存（無ければ従来どおり）
+
+いずれも **実装済み・最終動作確認は Supabase 接続後**。接続後の残作業: ログイン UI、
+オンボ②の作品フォロー保存（works の実 UUID が必要）、各画面の実データ化。
 
 ## 次のチケット
 基盤接続が済んだら **P1-03（認証・プロフィール）**へ。詳細は [PHASE1_PLAN.md](PHASE1_PLAN.md)。
