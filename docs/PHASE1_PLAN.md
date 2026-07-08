@@ -63,7 +63,7 @@ eKYC（Phase 3）。画像は Storage キーのプレースホルダのみ、通
 
 | ID | チケット | 見積 | 依存 | 対応画面 |
 | --- | --- | --- | --- | --- |
-| P1-01 | 基盤初期化: Supabase 作成・接続、Cloudflare Pages+R2、`next-on-pages` 検証、環境変数・CI | 2d | — | — |
+| P1-01 | 基盤初期化: Supabase 作成・接続、Cloudflare Workers+R2、OpenNext ビルド検証、環境変数・CI | 2d | — | — |
 | P1-02 | マイグレーション適用（enums / profiles / works / follows）＋ RLS | 1d | P1-01 | — |
 | P1-03 | 認証フロー（サインアップ/ログイン）＋ profile 自動生成トリガ | 2d | P1-02 | オンボ8a/8c |
 | P1-04 | データ取得層セットアップ（TanStack Query / 型付きクライアント / auth コンテキスト） | 1d | P1-02 | 全体 |
@@ -123,7 +123,7 @@ eKYC（Phase 3）。画像は Storage キーのプレースホルダのみ、通
 
 | リスク | 対応 |
 | --- | --- |
-| Next.js を Cloudflare Pages に載せる際の Edge Runtime 制約 | P1-01 で `@cloudflare/next-on-pages`（または OpenNext）を先に検証。非対応 API があれば Worker/API 側へ寄せる |
+| Next.js を Cloudflare Workers に載せる際の Edge Runtime 制約 | P1-01 で `@opennextjs/cloudflare` によるビルドを検証済み（`npm run cf:build`）。非対応 API があれば Worker/API 側へ寄せる |
 | RLS の作り込みで想定超過しやすい | P1-12 で RLS 専用テストを用意し早期に検証 |
 | 女性限定の性別要件が未定義 | A5 の通り `is_verified` 代替で進め、Phase 3 で確定 |
 | 画像なしで UI が寂しい | Phase 2 まではプレースホルダ継続（既存 `ImageSlot`） |

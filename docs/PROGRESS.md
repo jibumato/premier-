@@ -7,7 +7,7 @@
 
 - **更新日**: 2026-07-08 ・ 版: v1.1
 - **リポジトリ**: jibumato/premier-
-- **採用スタック（確定）**: Cloudflare（Pages 配信 / R2 画像 / Workers）＋ Supabase（Auth / Postgres＋RLS / Realtime）
+- **採用スタック（確定）**: Cloudflare（Workers 配信 / R2 画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
 - ビジュアル版ダッシュボード（Artifact）:
   https://claude.ai/code/artifact/8cbe7489-6e47-4a9b-b0c9-731ca47ec17c
 
@@ -46,7 +46,7 @@
 | Phase 0 | 全24画面・CI・設計書 | ✅ 完了 | — | 済 |
 | Phase 1 | **詳細タスク分解・スキーマ確定**（[PHASE1_PLAN.md](PHASE1_PLAN.md) / [migration](../supabase/migrations/0001_phase1_core.sql)） | ✅ 完了 | — | 済 |
 | Phase 1 | ~~バックエンド基盤の選定~~ → **Cloudflare＋Supabase で確定** | ✅ 完了 | — | 済 |
-| Phase 1 | 基盤初期化（P1-01）: コード側の土台＋**next-on-pages ビルド検証 ✅** | 🟡 進行中 | アカウント作成 | 2日 |
+| Phase 1 | 基盤初期化（P1-01）: コード側の土台＋**OpenNext Cloudflare (opennextjs-cloudflare) ビルド検証 ✅** | 🟡 進行中 | アカウント作成 | 2日 |
 | Phase 1 | 認証・プロフィール（role/profiles/フォロー / P1-03〜05） | ⬜ 未着手 | 基盤選定 | 1週 |
 | Phase 1 | 募集・応募のデータ化（awase/roles/applications） | ⬜ 未着手 | 認証 | 1–1.5週 |
 | Phase 1 | データ取得層の導入（TanStack Query 化・楽観更新） | ⬜ 未着手 | 認証 | 0.5週 |
@@ -63,7 +63,7 @@
 | 重要度 | 項目 | 内容 |
 | --- | --- | --- |
 | ✅ 解消 | ~~バックエンド基盤の選定~~ | **Cloudflare（配信/R2）＋ Supabase（Auth/DB）で確定**（2026-07-08）。 |
-| 🟡 中 | **Next.js × Cloudflare Pages** | next-on-pages / OpenNext アダプタが必要。Edge Runtime 制約を P1-01 で検証。 |
+| ✅ 解消 | ~~Next.js × Cloudflare の載せ方~~ | ダッシュボードが Workers 連携（`wrangler deploy`）だったため OpenNext Cloudflare アダプタ(@opennextjs/cloudflare)に切替、ビルド検証済み。 |
 | 🔴 高 | **eKYC ベンダー契約** | TRUSTDOCK 等。契約・審査にリードタイム。Phase 3 の前提のため**先行着手**を推奨。 |
 | 🟡 中 | 金銭仲介の運用体制 | ワンオペ制約により初期はスコープ外で合意済み。将来着手時に体制再検討。 |
 | 🟡 中 | 画像の自動モデレーション | 投稿画像の NSFW 自動判定 API 選定。人手モデレーションを前提にしない方針。 |
@@ -73,9 +73,9 @@
 
 - [x] **Phase 1 の詳細分解・見積確定**（→ [PHASE1_PLAN.md](PHASE1_PLAN.md) / スキーマ確定）
 - [x] **バックエンド基盤を決定** → Cloudflare（配信/R2）＋ Supabase（Auth/DB）
-- [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **next-on-pages ビルド検証 ✅**
+- [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **OpenNext Cloudflare (opennextjs-cloudflare) ビルド検証 ✅**
 - [x] **P1-03 先行実装（接続不要な範囲）**: middleware / useAuth / profile・works フック / オンボ① role 保存の結線（ガード付き・検証は接続後）
-- [ ] **アカウント作成・接続**（[SETUP.md](SETUP.md) のチェックリスト: Supabase プロジェクト / Cloudflare Pages+R2）← 現在ここ
+- [ ] **アカウント作成・接続**（[SETUP.md](SETUP.md) のチェックリスト: Supabase プロジェクト適用済み / Cloudflare Workers+R2 連携中）← 現在ここ
 - [ ] P1-03 残り（接続後）: ログイン UI / オンボ②作品保存 / 各画面の実データ化
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）

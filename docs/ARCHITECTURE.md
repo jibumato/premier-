@@ -33,15 +33,20 @@
 | ストレージ | **Cloudflare R2** + CDN | S3 互換・転送量無料。Worker 経由の署名付きアップロード → CDN 配信 |
 | リアルタイム | Supabase Realtime | メッセージ・通知の購読（DBと同一基盤） |
 | サーバーロジック | **Cloudflare Workers / Pages Functions** | R2 署名付与、eKYC Webhook、集計。必要に応じ Supabase Edge Functions も併用可 |
-| ホスティング | **Cloudflare Pages** | Next.js は `@cloudflare/next-on-pages`（または OpenNext）で載せる |
+| ホスティング | **Cloudflare Workers**（静的アセット同梱） | Next.js は `@opennextjs/cloudflare`（OpenNext）でビルドし `wrangler deploy` |
 
 > **決定の背景**: 「Cloudflare をベースに、ログインは Supabase」という方針。
 > ログイン(Auth)と DB は RLS で密結合のため切り離さず Supabase にまとめ、確定済みの
 > Postgres スキーマ・RLS（`supabase/migrations/0001_phase1_core.sql`）をそのまま活用する。
-> Cloudflare は画面配信（Pages）・画像（R2）・エッジ処理（Workers）を担当。
+> Cloudflare は画面配信（Workers）・画像（R2）・エッジ処理（Workers）を担当。
 >
-> **留意点**: Next.js を Cloudflare Pages に載せるにはアダプタ（next-on-pages / OpenNext）
-> が必要。Edge Runtime 制約に触れる箇所（一部の Node API）は要確認 → Phase 1 P1-01 で検証。
+> **アダプタ（更新 2026-07-08）**: 当初 `@cloudflare/next-on-pages`（Pages 向け）を検証したが、
+> Cloudflare ダッシュボードの Git 連携が **Workers プロジェクト**（デプロイコマンド
+> `wrangler deploy`）を前提にしていたため、Workers ネイティブの **`@opennextjs/cloudflare`
+> （OpenNext）** に切替え。ビルドコマンド `npx opennextjs-cloudflare build` / デプロイ
+> `npx wrangler deploy` がダッシュボードの既定値とそのまま一致する。`wrangler.toml` は
+> `main = ".open-next/worker.js"` ＋ `[assets]` 構成、Edge Runtime 制約（一部 Node API）は
+> Phase 1 P1-01 でビルド検証済み（`npm run cf:build`）。
 >
 > **不採用**: Cloudflare 単独（D1）は、消費者向けログインが無く別途認証を足す必要があり
 > “一元”にならないこと、RLS が使えず認可をコード側で全実装する必要があること、D1 が

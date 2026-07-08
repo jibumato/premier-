@@ -11,9 +11,9 @@
 - Supabase クライアント: `src/lib/supabase/client.ts`（ブラウザ）/ `server.ts`（サーバー）
 - DB 型: `src/lib/database.types.ts`（スキーマ準拠。将来 `supabase gen types` で再生成）
 - データ層: `src/components/Providers.tsx`（TanStack Query、layout に統合済み）
-- Cloudflare: `wrangler.toml`（R2 バインディング）/ `@cloudflare/next-on-pages`
+- Cloudflare: `wrangler.toml`（Workers + 静的アセット + R2 バインディング）/ `@opennextjs/cloudflare`
 - 環境変数の雛形: `.env.example` / `.dev.vars.example`
-- **検証済み**: `next build` ✅ / `typecheck` ✅ / `npm run pages:build`（Cloudflare Pages 用ビルド）✅
+- **検証済み**: `next build` ✅ / `typecheck` ✅ / `npm run cf:build`（`opennextjs-cloudflare build`）✅
 
 ---
 
@@ -26,14 +26,16 @@
 - [ ] 認証プロバイダを有効化（メール / Google など）
 - [ ] （任意）型を再生成: `supabase gen types typescript --project-id <id> > src/lib/database.types.ts`
 
-### 2. Cloudflare（配信＋画像）
+### 2. Cloudflare（配信＋画像）— Workers プロジェクトとして連携
 - [ ] [dash.cloudflare.com](https://dash.cloudflare.com) でアカウント作成
 - [ ] R2 バケット作成: `wrangler r2 bucket create premier-images`
-- [ ] Pages プロジェクト作成（GitHub リポジトリを接続）
-  - ビルドコマンド: `npx @cloudflare/next-on-pages`
-  - 出力ディレクトリ: `.vercel/output/static`
-  - 互換フラグ: `nodejs_compat`
-- [ ] Pages のプロジェクト環境変数に下記を設定（暗号化）
+- [ ] **Workers & Pages → Create application → Import a repository** で GitHub の
+      `jibumato/premier-` を連携（「Pages」タブではなく Git 連携の Worker プロジェクト）
+  - プロジェクト名: `premier-`
+  - **ビルドコマンド**: `npx opennextjs-cloudflare build`
+  - **デプロイコマンド**: `npx wrangler deploy`（ダッシュボードの初期値のまま）
+  - 「非本番ブランチのビルド」: チェックのままでOK
+- [ ] プロジェクトの環境変数（Settings → Variables）に下記を設定（暗号化）
 
 ### 3. 環境変数
 `.env.example` をコピーして `.env`（ローカル）を作成し、値を入れる:
@@ -47,8 +49,9 @@ cp .env.example .env
 ### 4. ローカル起動 / プレビュー
 ```bash
 npm run dev        # 通常の Next 開発サーバー
-npm run preview    # Cloudflare Pages 相当（next-on-pages + wrangler）
-npm run deploy     # Cloudflare へデプロイ（wrangler ログイン後）
+npm run cf:build   # Cloudflare Workers 用ビルド（opennextjs-cloudflare build）
+npm run preview    # ローカルで Worker としてプレビュー
+npm run deploy     # Cloudflare へデプロイ（wrangler ログイン後、ダッシュボード外からの手動デプロイ用）
 ```
 
 ---
@@ -56,13 +59,15 @@ npm run deploy     # Cloudflare へデプロイ（wrangler ログイン後）
 ## ⚠️ 補足・推奨
 
 - **Next.js のセキュリティ更新**: `next@15.5.20` に更新済み（旧 15.1.6 のクリティカル
-  advisory を解消）。残る `npm audit` の指摘は dev/ビルドツール（vercel CLI・eslint・
-  esbuild 等）由来で本番配信物には含まれず、強制修正はツールチェーンを壊すため見送り。
-- **CI**: `.github/workflows/ci.yml` で lint / typecheck / build / pages:build を実行。
+  advisory を解消）。残る `npm audit` の指摘は `@opennextjs/cloudflare` / `wrangler` の
+  ビルド時 transitive dependency（express・path-to-regexp・eslint 関連等）由来で、
+  `wrangler deploy` が生成する `.open-next/worker.js` には含まれない。強制修正は
+  ツールチェーンを壊すため見送り。
+- **CI**: `.github/workflows/ci.yml` で lint / typecheck / build / cf:build を実行。
   `.npmrc` の `legacy-peer-deps=true` は Cloudflare ツールチェーンの optional peer 競合
   （workers-types v4/v5）回避のため。
 - **既知の警告（無害）**: `next build` 時に `@supabase/supabase-js` が Edge Runtime で
-  `process.version` を参照する旨の warning が出るが、ビルドは成功する。Cloudflare Pages は
+  `process.version` を参照する旨の warning が出るが、ビルドは成功する。Cloudflare Workers は
   `nodejs_compat` により `process` を提供するため実行にも影響なし（middleware でのセッション
   更新は正常）。
 

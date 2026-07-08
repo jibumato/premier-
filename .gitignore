@@ -24,8 +24,8 @@ yarn-error.log*
 .env
 .dev.vars
 
-# cloudflare / vercel build output
-/.vercel/
+# cloudflare build output (OpenNext adapter)
+/.open-next/
 /.wrangler/
 
 # typescript
