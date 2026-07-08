@@ -5,9 +5,10 @@
 > [ARCHITECTURE.md](ARCHITECTURE.md)、Phase 1 の実装計画は
 > [PHASE1_PLAN.md](PHASE1_PLAN.md) を参照。
 
-- **更新日**: 2026-07-08 ・ 版: v1.1
+- **更新日**: 2026-07-08 ・ 版: v1.2
 - **リポジトリ**: jibumato/premier-
-- **採用スタック（確定）**: Cloudflare（Workers 配信 / R2 画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
+- **採用スタック（確定・稼働中）**: Cloudflare Workers（OpenNextアダプタ配信 / R2画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
+- **本番URL**: https://premier.sunny-rainy1115.workers.dev（動作確認済み）
 - ビジュアル版ダッシュボード（Artifact）:
   https://claude.ai/code/artifact/8cbe7489-6e47-4a9b-b0c9-731ca47ec17c
 
@@ -17,11 +18,12 @@
 | --- | --- |
 | デザイン・プロトタイプ | ✅ 100% |
 | バックエンド設計 | ✅ 100% |
-| プロダクション実装 | ⬜ 0% |
+| 基盤接続（P1-01） | ✅ 100% |
+| プロダクション実装（P1-03〜） | ⬜ 0% |
 
 - 実装済み画面: **24**（プロトタイプ 8 ・ 新規 12 ・ デザイン集 4）
-- 直近の成果: **PR #1 マージ**（main 統合 / CI green / 設計書同梱）
-- フェーズ進捗: **1 / 6 完了**
+- 直近の成果: **本番デプロイ成功**（Cloudflare Workers + Supabase 接続、実機動作確認済み）
+- フェーズ進捗: **Phase 0 完了 ／ Phase 1 基盤接続完了、認証・データ化はこれから**
 
 凡例: ✅ 完了 ・ 🟡 進行中 ・ ⬜ 未着手 ・ ⏸ 保留（方針） ・ ⚠️ 要判断
 
@@ -75,7 +77,7 @@
 - [x] **バックエンド基盤を決定** → Cloudflare（配信/R2）＋ Supabase（Auth/DB）
 - [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **OpenNext Cloudflare (opennextjs-cloudflare) ビルド検証 ✅**
 - [x] **P1-03 先行実装（接続不要な範囲）**: middleware / useAuth / profile・works フック / オンボ① role 保存の結線（ガード付き・検証は接続後）
-- [ ] **アカウント作成・接続**（[SETUP.md](SETUP.md) のチェックリスト: Supabase プロジェクト適用済み / Cloudflare Workers+R2 連携中）← 現在ここ
-- [ ] P1-03 残り（接続後）: ログイン UI / オンボ②作品保存 / 各画面の実データ化
+- [x] **アカウント作成・接続完了**（Supabase プロジェクト＋マイグレーション適用済み、Cloudflare Workers+R2 連携済み、本番URL `premier.sunny-rainy1115.workers.dev` で実機動作確認済み）
+- [ ] **P1-03 残り（接続後）**: ログイン UI（サインアップ/ログイン画面）/ オンボ②作品保存（works の実データ投入）/ 各画面の実データ化 ← 現在ここ
 - [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
 - [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）
