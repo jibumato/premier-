@@ -1,13 +1,30 @@
 "use client";
 
+import { useEffect } from "react";
 import { colors } from "@/lib/tokens";
-import { notifications } from "@/lib/data";
+import { notifications as mockNotifications } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function NotifyScreen() {
   const { back } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+  const notifsQuery = useNotifications(user?.id);
+  const markRead = useMarkNotificationsRead();
+  // Real notifications once connected and loaded; the handoff's mock list
+  // otherwise — same Notification shape either way.
+  const notifications = configured && notifsQuery.data ? notifsQuery.data : mockNotifications;
+
+  // Opening this screen clears the unread state (bell badge), same as reading a DM thread.
+  useEffect(() => {
+    if (configured && user) markRead.mutate(user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configured, user?.id]);
 
   return (
     <div>

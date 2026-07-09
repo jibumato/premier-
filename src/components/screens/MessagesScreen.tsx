@@ -1,13 +1,22 @@
 "use client";
 
 import { colors } from "@/lib/tokens";
-import { conversations } from "@/lib/data";
+import { conversations as mockConversations } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { AppBar } from "../ui";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useConversations } from "@/lib/queries/messages";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function MessagesScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, openChat } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+  const convosQuery = useConversations(user?.id);
+  // Real conversations once connected and loaded; the handoff's mock list
+  // otherwise — same Conversation shape either way.
+  const conversations = configured && convosQuery.data ? convosQuery.data : mockConversations;
 
   return (
     <div>
@@ -16,7 +25,7 @@ export function MessagesScreen() {
         {conversations.map((c) => (
           <button
             key={c.key}
-            onClick={() => nav("chat")}
+            onClick={() => (configured && convosQuery.data ? openChat(c.key) : nav("chat"))}
             style={{
               display: "flex",
               alignItems: "center",

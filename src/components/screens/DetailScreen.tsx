@@ -6,8 +6,12 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading, PrimaryButton } from "../ui";
 import { ChevronLeftIcon, FlagIcon, ShareIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useApply, useAwase, useAwaseRoles } from "@/lib/queries/awase";
+import { useAwaseAchievementCount } from "@/lib/queries/profile";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-const infoGrid = [
+const mockInfoGrid = [
   { label: "日程", value: "7/26(日) 13:00〜" },
   { label: "場所", value: "都内スタジオ" },
   { label: "募集人数", value: "あと2名（4/6）" },
@@ -15,7 +19,42 @@ const infoGrid = [
 ];
 
 export function DetailScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, openProfile, selectedAwaseId } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const awaseQuery = useAwase(selectedAwaseId);
+  const rolesQuery = useAwaseRoles(selectedAwaseId);
+  const apply = useApply();
+
+  const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
+  const roles = real ? (rolesQuery.data ?? []) : detailRoles;
+
+  const title = real?.title ?? "魔法学園シリーズ 生徒会併せ";
+  const workName = real?.works?.name ?? "葬送のフリーレン";
+  const worldTag = real?.world_tags?.[0] ?? "透明感";
+  const hostName = real?.profiles?.display_name ?? "澪 / mio";
+  const hostVerified = real?.profiles?.is_verified ?? true;
+  const hostAchievements = useAwaseAchievementCount(real?.host_id);
+  const hostAchievementCount = real ? (hostAchievements.data ?? 0) : 36;
+  const infoGrid = real
+    ? [
+        { label: "日程", value: real.event_date },
+        { label: "場所", value: real.place ?? "未定" },
+        { label: "募集人数", value: real.capacity ? `定員${real.capacity}名` : "募集中" },
+        { label: "費用", value: real.fee_text ?? "応相談" },
+      ]
+    : mockInfoGrid;
+  const bodyText =
+    real?.body ||
+    "生徒会メンバーで併せをします◎ 透明感のある世界観で、自然光メインのスタジオ撮影予定。カメラマンさん1名にも入っていただけると嬉しいです。初めての方も歓迎、当日は和やかに進めます。";
+
+  const handleApply = () => {
+    if (real && user) {
+      apply.mutate({ awaseId: real.id, applicantId: user.id });
+    }
+    nav("applied");
+  };
 
   return (
     <div>
@@ -84,7 +123,7 @@ export function DetailScreen() {
       {/* title + tags */}
       <div style={{ padding: "18px 22px 0" }}>
         <h2 style={{ margin: 0, fontSize: 21, lineHeight: 1.4, fontWeight: 700, color: colors.textPrimary }}>
-          魔法学園シリーズ 生徒会併せ
+          {title}
         </h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
           <span
@@ -97,26 +136,28 @@ export function DetailScreen() {
               fontWeight: 500,
             }}
           >
-            葬送のフリーレン
+            {workName}
           </span>
-          <span
-            style={{
-              fontSize: 11.5,
-              color: "#4A4458",
-              border: `1px solid ${colors.border}`,
-              padding: "6px 12px",
-              borderRadius: 999,
-            }}
-          >
-            透明感
-          </span>
+          {worldTag && (
+            <span
+              style={{
+                fontSize: 11.5,
+                color: "#4A4458",
+                border: `1px solid ${colors.border}`,
+                padding: "6px 12px",
+                borderRadius: 999,
+              }}
+            >
+              {worldTag}
+            </span>
+          )}
         </div>
       </div>
 
       {/* host card */}
       <div style={{ padding: "18px 22px 0" }}>
         <button
-          onClick={() => nav("profile", "mypage")}
+          onClick={() => (real ? openProfile(real.host_id) : nav("profile", "mypage"))}
           style={{
             width: "100%",
             display: "flex",
@@ -135,9 +176,9 @@ export function DetailScreen() {
             <ImageSlot circle />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>主催・澪 / mio</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>主催・{hostName}</div>
             <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>
-              本人確認済 · 併せ実績 36回
+              {hostVerified ? "本人確認済" : "本人確認前"} · 併せ実績 {hostAchievementCount}回
             </div>
           </div>
           <span style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -167,7 +208,7 @@ export function DetailScreen() {
       <div style={{ padding: "24px 22px 0" }}>
         <SectionHeading size={15}>募集内容</SectionHeading>
         <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.9, color: colors.textSecondary }}>
-          生徒会メンバーで併せをします◎ 透明感のある世界観で、自然光メインのスタジオ撮影予定。カメラマンさん1名にも入っていただけると嬉しいです。初めての方も歓迎、当日は和やかに進めます。
+          {bodyText}
         </p>
       </div>
 
@@ -175,7 +216,7 @@ export function DetailScreen() {
       <div style={{ padding: "22px 22px 26px" }}>
         <SectionHeading size={15}>募集キャラ</SectionHeading>
         <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
-          {detailRoles.map((ro) => {
+          {roles.map((ro) => {
             const confirmed = ro.status === "確定";
             const isPhotographer = ro.char.includes("カメラマン");
             return (
@@ -232,7 +273,7 @@ export function DetailScreen() {
             );
           })}
         </div>
-        <PrimaryButton onClick={() => nav("applied")} style={{ marginTop: 22 }}>
+        <PrimaryButton onClick={handleApply} style={{ marginTop: 22 }}>
           この併せに応募する
         </PrimaryButton>
         <button

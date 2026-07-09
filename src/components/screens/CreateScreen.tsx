@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { colors } from "@/lib/tokens";
+import { onboardWorks as mockWorks, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { PrimaryButton, Toggle } from "../ui";
-import { ChevronDownIcon, PlusIcon } from "../icons";
+import { PlusIcon } from "../icons";
 import { ImageSlot } from "../ImageSlot";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useCreateAwase } from "@/lib/queries/awase";
+import { useWorks } from "@/lib/queries/works";
+import { useUploadImage } from "@/lib/queries/upload";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const inputBox: React.CSSProperties = {
+  width: "100%",
   marginTop: 8,
   border: `1px solid ${colors.border}`,
   borderRadius: 13,
@@ -15,6 +22,9 @@ const inputBox: React.CSSProperties = {
   fontSize: 13.5,
   color: colors.textPrimary,
   fontWeight: 500,
+  fontFamily: "inherit",
+  background: colors.white,
+  outline: "none",
 };
 
 const label: React.CSSProperties = {
@@ -23,10 +33,80 @@ const label: React.CSSProperties = {
   color: "#3A3548",
 };
 
+const creatableRegions = regions.filter((r) => r !== "すべて");
+
 export function CreateScreen() {
   const { nav } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const worksQuery = useWorks();
+  const createAwase = useCreateAwase();
+  const uploadImage = useUploadImage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Real works (id/name) once connected; the handoff's mock list otherwise.
+  const works = configured
+    ? (worksQuery.data ?? []).map((w) => ({ id: w.id, name: w.name }))
+    : mockWorks.map((w) => ({ id: w.key, name: w.name }));
+
+  const [title, setTitle] = useState("");
+  const [workId, setWorkId] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [region, setRegion] = useState("");
   const [womenOnly, setWomenOnly] = useState(true);
   const [beginnerOk, setBeginnerOk] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handlePickImage = () => {
+    if (!configured) return; // uploads need R2 + a signed-in host; no-op in pure prototype mode
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    setUploadError(null);
+    try {
+      const result = await uploadImage.mutateAsync({ file, kind: "awase" });
+      setImages((cur) => [...cur, result]);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "アップロードに失敗しました");
+    }
+  };
+
+  const handlePublish = async () => {
+    setError(null);
+    if (!title.trim() || !workId || !eventDate.trim() || !region) {
+      setError("タイトル・作品・日程・地域は必須です");
+      return;
+    }
+    if (configured && user) {
+      setSubmitting(true);
+      try {
+        await createAwase.mutateAsync({
+          hostId: user.id,
+          title: title.trim(),
+          workId,
+          eventDate: eventDate.trim(),
+          region,
+          womenOnly,
+          beginnerOk,
+          imageKeys: images.map((img) => img.key),
+        });
+        nav("created");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "公開に失敗しました");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    nav("created"); // prototype mode: no backend to persist to
+  };
 
   return (
     <div>
@@ -72,13 +152,15 @@ export function CreateScreen() {
       <div style={{ padding: "22px 22px 0" }}>
         <label style={label}>参考画像・イメージ</label>
         <div style={{ display: "flex", gap: 9, marginTop: 10 }}>
-          <div style={{ flex: 1, height: 92 }}>
-            <ImageSlot radius={14} label="参考" />
-          </div>
-          <div style={{ flex: 1, height: 92 }}>
-            <ImageSlot radius={14} />
-          </div>
-          <div
+          {[0, 1].map((i) => (
+            <div key={i} style={{ flex: 1, height: 92 }}>
+              <ImageSlot radius={14} label={i === 0 && !images[0] ? "参考" : undefined} src={images[i]?.url} />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handlePickImage}
+            disabled={!configured || images.length >= 2 || uploadImage.isPending}
             style={{
               flex: 1,
               height: 92,
@@ -90,42 +172,77 @@ export function CreateScreen() {
               justifyContent: "center",
               gap: 5,
               background: colors.primaryBg5,
+              cursor: !configured || images.length >= 2 ? "not-allowed" : "pointer",
+              opacity: images.length >= 2 ? 0.5 : 1,
+              fontFamily: "inherit",
             }}
           >
             <PlusIcon size={22} color="#A79FC0" />
-            <span style={{ fontSize: 10, color: "#A79FC0" }}>追加</span>
-          </div>
+            <span style={{ fontSize: 10, color: "#A79FC0" }}>
+              {uploadImage.isPending ? "アップロード中…" : "追加"}
+            </span>
+          </button>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelected}
+          style={{ display: "none" }}
+        />
+        {uploadError && (
+          <div style={{ marginTop: 9, fontSize: 11.5, color: "#C0453F", background: "#FBEBEA", borderRadius: 10, padding: "8px 11px" }}>
+            {uploadError}
+          </div>
+        )}
       </div>
 
       {/* fields */}
       <div style={{ padding: "22px 22px 0", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <label style={label}>タイトル</label>
-          <div style={inputBox}>魔法学園シリーズ 生徒会併せ</div>
+          <label style={label}>タイトル *</label>
+          <input
+            style={inputBox}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="例：魔法学園シリーズ 生徒会併せ"
+          />
         </div>
         <div>
-          <label style={label}>作品</label>
-          <div
-            style={{
-              ...inputBox,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span>葬送のフリーレン</span>
-            <ChevronDownIcon />
-          </div>
+          <label style={label}>作品 *</label>
+          <select style={{ ...inputBox, appearance: "none" }} value={workId} onChange={(e) => setWorkId(e.target.value)}>
+            <option value="">選択してください</option>
+            {works.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <label style={label}>日程</label>
-            <div style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}>7/26(日)</div>
+            <label style={label}>日程 *</label>
+            <input
+              style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              placeholder="例：7/26(日)"
+            />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={label}>地域</label>
-            <div style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}>東京</div>
+            <label style={label}>地域 *</label>
+            <select
+              style={{ ...inputBox, fontSize: 13, padding: "13px 14px", appearance: "none" }}
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+            >
+              <option value="">選択</option>
+              {creatableRegions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -175,10 +292,18 @@ export function CreateScreen() {
           on={beginnerOk}
           onChange={setBeginnerOk}
         />
+
+        {error && (
+          <div style={{ fontSize: 12, color: "#C0453F", background: "#FBEBEA", borderRadius: 10, padding: "10px 12px" }}>
+            {error}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: "26px 22px 30px" }}>
-        <PrimaryButton onClick={() => nav("created")}>公開する</PrimaryButton>
+        <PrimaryButton onClick={handlePublish} style={submitting ? { opacity: 0.6, cursor: "not-allowed" } : undefined}>
+          {submitting ? "公開中…" : "公開する"}
+        </PrimaryButton>
       </div>
     </div>
   );

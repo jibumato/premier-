@@ -15,9 +15,16 @@ const CHROMELESS = new Set(["onboardRole", "onboardWorks", "onboardVerify"]);
  * bottom nav persists on every logged-in screen, but is hidden for the
  * pre-login onboarding flow (chromeless).
  */
-export function PhoneFrame({ children }: { children: ReactNode }) {
+export function PhoneFrame({
+  children,
+  forceChromeless = false,
+}: {
+  children: ReactNode;
+  /** Hide the bottom nav regardless of the current router screen (e.g. the auth gate). */
+  forceChromeless?: boolean;
+}) {
   const { scrollRef, screen } = useRouter();
-  const chromeless = CHROMELESS.has(screen);
+  const chromeless = forceChromeless || CHROMELESS.has(screen);
 
   return (
     <div

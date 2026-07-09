@@ -6,6 +6,8 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { BagIcon, BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
+import { useAwaseFeed } from "@/lib/queries/awase";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
@@ -15,7 +17,12 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function HomeScreen() {
-  const { nav } = useRouter();
+  const { nav, openAwase } = useRouter();
+  const configured = isSupabaseConfigured();
+  const feed = useAwaseFeed();
+  // Real feed once connected and loaded; the handoff's mock list otherwise —
+  // same AwaseCard shape, so the card markup below never branches.
+  const awaseList = configured && feed.data ? feed.data : homeAwase;
 
   return (
     <div>
@@ -181,10 +188,10 @@ export function HomeScreen() {
             padding: "15px 22px 0",
           }}
         >
-          {homeAwase.map((a) => (
+          {awaseList.map((a) => (
             <button
               key={a.key}
-              onClick={() => nav("detail")}
+              onClick={() => (configured && feed.data ? openAwase(a.key) : nav("detail"))}
               style={{
                 display: "flex",
                 gap: 13,

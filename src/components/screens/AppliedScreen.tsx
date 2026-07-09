@@ -4,9 +4,34 @@ import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { PrimaryButton } from "../ui";
 import { CheckIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useAwase } from "@/lib/queries/awase";
+import { useGetOrCreateConversation } from "@/lib/queries/messages";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function AppliedScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, openChat, selectedAwaseId } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const awaseQuery = useAwase(selectedAwaseId);
+  const getOrCreateConversation = useGetOrCreateConversation();
+
+  const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
+  const hostName = real?.profiles?.display_name ?? "澪";
+
+  const handleMessage = async () => {
+    if (real && user) {
+      const conversationId = await getOrCreateConversation.mutateAsync({
+        userId: user.id,
+        otherUserId: real.host_id,
+        awaseId: real.id,
+      });
+      openChat(conversationId);
+      return;
+    }
+    nav("chat");
+  };
 
   return (
     <div style={{ padding: "70px 30px 0", textAlign: "center" }}>
@@ -28,11 +53,11 @@ export function AppliedScreen() {
         応募しました！
       </h2>
       <p style={{ margin: "14px 0 0", fontSize: 13, color: colors.textMuted, lineHeight: 1.9 }}>
-        主催の澪さんに応募が届きました。
+        主催の{hostName}さんに応募が届きました。
         <br />
         メッセージで日程や持ち物をすり合わせましょう。
       </p>
-      <PrimaryButton onClick={() => nav("chat")} style={{ marginTop: 30 }}>
+      <PrimaryButton onClick={handleMessage} style={{ marginTop: 30 }}>
         主催者にメッセージを送る
       </PrimaryButton>
       <button

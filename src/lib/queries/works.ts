@@ -2,12 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Tables } from "@/lib/database.types";
 
 /** All selectable works (home chips / create form / onboarding 8b). */
 export function useWorks() {
   return useQuery({
     queryKey: ["works"],
+    enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<Tables<"works">[]> => {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase.from("works").select("*").order("name");

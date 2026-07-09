@@ -35,3 +35,68 @@ export function useUpdateProfileRole() {
       qc.invalidateQueries({ queryKey: ["profile", userId] }),
   });
 }
+
+/** Number of followers (profile stats bar). */
+export function useFollowerCount(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["follower_count", userId],
+    enabled: Boolean(userId),
+    queryFn: async (): Promise<number> => {
+      const supabase = getSupabaseBrowserClient();
+      const { count, error } = await supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("followee_id", userId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
+/**
+ * 併せ実績: awase hosted + awase applied to with an accepted/done outcome.
+ * A simple proxy count (not a dedicated stats table) — good enough for the
+ * profile stat tile; revisit once "done" is a real post-event workflow step.
+ */
+export function useAwaseAchievementCount(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["awase_achievement_count", userId],
+    enabled: Boolean(userId),
+    queryFn: async (): Promise<number> => {
+      const supabase = getSupabaseBrowserClient();
+      const [hosted, participated] = await Promise.all([
+        supabase.from("awase").select("*", { count: "exact", head: true }).eq("host_id", userId!),
+        supabase
+          .from("awase_applications")
+          .select("*", { count: "exact", head: true })
+          .eq("applicant_id", userId!)
+          .in("status", ["accepted", "done"]),
+      ]);
+      if (hosted.error) throw hosted.error;
+      if (participated.error) throw participated.error;
+      return (hosted.count ?? 0) + (participated.count ?? 0);
+    },
+  });
+}
+
+/** Persist a newly uploaded avatar/cover image onto the profile. */
+export function useUpdateProfileImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      field,
+      url,
+    }: {
+      userId: string;
+      field: "avatar_url" | "cover_url";
+      url: string;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      const patch = field === "avatar_url" ? { avatar_url: url } : { cover_url: url };
+      const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, { userId }) => qc.invalidateQueries({ queryKey: ["profile", userId] }),
+  });
+}

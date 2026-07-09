@@ -27,10 +27,11 @@ export function useAuth(): AuthState {
     if (!configured) return;
     const supabase = getSupabaseBrowserClient();
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setUser(data.user))
+      .catch(() => setUser(null)) // e.g. transient network failure — fall through to signed-out
+      .finally(() => setLoading(false));
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);

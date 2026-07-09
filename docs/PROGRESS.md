@@ -5,9 +5,10 @@
 > [ARCHITECTURE.md](ARCHITECTURE.md)、Phase 1 の実装計画は
 > [PHASE1_PLAN.md](PHASE1_PLAN.md) を参照。
 
-- **更新日**: 2026-07-08 ・ 版: v1.1
+- **更新日**: 2026-07-08 ・ 版: v1.8
 - **リポジトリ**: jibumato/premier-
-- **採用スタック（確定）**: Cloudflare（Workers 配信 / R2 画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
+- **採用スタック（確定・稼働中）**: Cloudflare Workers（OpenNextアダプタ配信 / R2画像）＋ Supabase（Auth / Postgres＋RLS / Realtime）
+- **本番URL**: https://premier.sunny-rainy1115.workers.dev（動作確認済み）
 - ビジュアル版ダッシュボード（Artifact）:
   https://claude.ai/code/artifact/8cbe7489-6e47-4a9b-b0c9-731ca47ec17c
 
@@ -17,11 +18,15 @@
 | --- | --- |
 | デザイン・プロトタイプ | ✅ 100% |
 | バックエンド設計 | ✅ 100% |
-| プロダクション実装 | ⬜ 0% |
+| 基盤接続（P1-01） | ✅ 100% |
+| コアループ実データ化（P1-03） | ✅ 100% |
+| メッセージ・通知・画像基盤（Phase 2） | ✅ 100% |
+| レビュー機能（Phase 3 の一部） | ✅ 100% |
+| 知恵袋（Phase 4 の一部） | ✅ 100% |
 
 - 実装済み画面: **24**（プロトタイプ 8 ・ 新規 12 ・ デザイン集 4）
-- 直近の成果: **PR #1 マージ**（main 統合 / CI green / 設計書同梱）
-- フェーズ進捗: **1 / 6 完了**
+- 直近の成果: **知恵袋（Q&A）を実データ接続**（`qa_questions`/`qa_answers`/`qa_answer_likes` テーブル新設。質問一覧・詳細・回答投稿・「役に立った」いいね・ベストアンサー選定（質問者のみ、`mark_best_answer()` で自動制御）まで実データ化。「質問する」から実際に投稿可能に。未接続時は元のプロトタイプ動作を完全維持）
+- フェーズ進捗: **Phase 0・Phase 1 (P0)・Phase 2 (P1) 完了、Phase 3 (P2) はレビュー・他ユーザー閲覧完了、Phase 4 (P3) は知恵袋のみ完了 → フリマ・イベント・eKYC/ゾーニングが残る**
 
 凡例: ✅ 完了 ・ 🟡 進行中 ・ ⬜ 未着手 ・ ⏸ 保留（方針） ・ ⚠️ 要判断
 
@@ -32,10 +37,10 @@
 | フェーズ | スコープ | 対応画面 | 状態 | 想定 | 依存 |
 | --- | --- | --- | --- | --- | --- |
 | **Phase 0** | デザイン検討・プロトタイプ実装（全24画面 / CI / 設計書） | 全画面 | ✅ 完了 | 済 | — |
-| **Phase 1 (P0)** | コア基盤: Auth＋profiles＋awase＋applications | オンボ/home/search/detail/applied/create/profile | ⬜ 未着手 | 2–3週 | 基盤選定 |
-| **Phase 2 (P1)** | メッセージ(realtime)・通知・画像基盤(署名URL+CDN) | messages/chat/notify/全画像 | ⬜ 未着手 | 2週 | Phase 1 |
-| **Phase 3 (P2)** | 本人確認(eKYC)・ゾーニング・レビュー | onboardVerify/応援リンク/reviewWrite/photographerProfile | ⬜ 未着手 | 2週 | eKYC契約 |
-| **Phase 4 (P3)** | コミュニティ拡張(フリマ/イベント/知恵袋) | market*/events*/qa* | ⬜ 未着手 | 2–3週 | Phase 1–2 |
+| **Phase 1 (P0)** | コア基盤: Auth＋profiles＋awase＋applications | オンボ/home/search/detail/applied/create/profile | ✅ 完了 | 済 | — |
+| **Phase 2 (P1)** | メッセージ(realtime)・通知・画像基盤(R2アップロード) | messages/chat/notify/create(参考画像) | ✅ 完了 | 済 | — |
+| **Phase 3 (P2)** | 本人確認(eKYC)・ゾーニング・レビュー | onboardVerify/応援リンク/reviewWrite/photographerProfile | 🟡 一部完了（レビュー✅ / eKYC・ゾーニング未着手） | 2週 | eKYC契約 |
+| **Phase 4 (P3)** | コミュニティ拡張(フリマ/イベント/知恵袋) | market*/events*/qa* | 🟡 一部完了（知恵袋✅ / フリマ・イベント未着手） | 2–3週 | Phase 1–2 |
 | **Phase 5 (P4)** | 通報自動処理・自動バッジ・法人掲載 | report/profile(バッジ)/corporate | ⬜ 未着手 | 2週 | Phase 1–4 |
 | **後日** | 金銭仲介(コイン/ギフト/出金) | profile(応援ギフトUI) | ⏸ 保留 | 未定 | 運用体制 |
 
@@ -46,15 +51,20 @@
 | Phase 0 | 全24画面・CI・設計書 | ✅ 完了 | — | 済 |
 | Phase 1 | **詳細タスク分解・スキーマ確定**（[PHASE1_PLAN.md](PHASE1_PLAN.md) / [migration](../supabase/migrations/0001_phase1_core.sql)） | ✅ 完了 | — | 済 |
 | Phase 1 | ~~バックエンド基盤の選定~~ → **Cloudflare＋Supabase で確定** | ✅ 完了 | — | 済 |
-| Phase 1 | 基盤初期化（P1-01）: コード側の土台＋**OpenNext Cloudflare (opennextjs-cloudflare) ビルド検証 ✅** | 🟡 進行中 | アカウント作成 | 2日 |
-| Phase 1 | 認証・プロフィール（role/profiles/フォロー / P1-03〜05） | ⬜ 未着手 | 基盤選定 | 1週 |
-| Phase 1 | 募集・応募のデータ化（awase/roles/applications） | ⬜ 未着手 | 認証 | 1–1.5週 |
-| Phase 1 | データ取得層の導入（TanStack Query 化・楽観更新） | ⬜ 未着手 | 認証 | 0.5週 |
-| Phase 2 | 画像アップロード基盤（署名URL/CDN/変換/NSFW自動判定） | ⬜ 未着手 | Phase 1 | 1週 |
-| Phase 2 | メッセージ・通知（Realtime/既読/Web Push） | ⬜ 未着手 | Phase 1 | 1週 |
+| Phase 1 | 基盤初期化（P1-01）: コード側の土台＋Cloudflare/Supabase 本番接続 | ✅ 完了 | — | 済 |
+| Phase 1 | 認証・プロフィール（role/profiles/フォロー / ログインUI / P1-03〜05） | ✅ 完了 | 基盤接続 | 済 |
+| Phase 1 | 募集・応募のデータ化（home/search/detail/create/apply） | ✅ 完了 | 認証 | 済 |
+| Phase 1 | データ取得層の導入（TanStack Query 化・ガード付きフォールバック） | ✅ 完了 | 認証 | 済 |
+| Phase 2 | 画像アップロード基盤（R2バインディング経由アップロード、募集作成フォームに接続） | ✅ 完了 | Phase 1 | 済 |
+| Phase 2 | メッセージ・通知（Realtime/既読、応募時の自動通知トリガー） | ✅ 完了 | Phase 1 | 済 |
+| Phase 2 | プロフィール画像（アバター/カバー）への `useUploadImage` 適用＋実プロフィール表示・併せ実績/フォロワー数の集計 | ✅ 完了 | — | 済 |
+| Phase 2 | 投稿ギャラリー（`posts` テーブル新設・マイページ実接続） | ✅ 完了 | — | 済 |
+| Phase 2 | （フォローアップ）NSFW自動判定・画像変換・Web Push | ⬜ 未着手 | — | 未定 |
 | Phase 3 | eKYC 連携・ゾーニング（Webhook自動更新/年齢確認） | ⚠️ 要判断 | ベンダー契約 | 2週 |
-| Phase 3 | レビュー（投稿・平均集計、完了条件をRLSで制御） | ⬜ 未着手 | Phase 1 | 0.5週 |
-| Phase 4 | フリマ / イベント / 知恵袋 のサーバー化 | ⬜ 未着手 | Phase 1–2 | 2–3週 |
+| Phase 3 | レビュー（投稿・平均集計、完了条件をRLSで制御） | ✅ 完了 | Phase 1 | 済 |
+| Phase 4 | 知恵袋（質問・回答・いいね・ベストアンサー選定） | ✅ 完了 | Phase 1 | 済 |
+| Phase 4 | フリマのサーバー化 | ⬜ 未着手 | Phase 1–2 | 1週 |
+| Phase 4 | イベントカレンダーのサーバー化 | ⬜ 未着手 | Phase 1–2 | 1週 |
 | Phase 5 | 通報自動処理・自動バッジ・法人掲載（自動審査） | ⬜ 未着手 | Phase 1–4 | 2週 |
 | 後日 | コイン・ギフト・出金 | ⏸ 保留 | 運用体制 | 未定 |
 
@@ -75,7 +85,33 @@
 - [x] **バックエンド基盤を決定** → Cloudflare（配信/R2）＋ Supabase（Auth/DB）
 - [x] **P1-01 コード側の土台**（Supabase クライアント・型・データ層・Cloudflare 設定）＋ **OpenNext Cloudflare (opennextjs-cloudflare) ビルド検証 ✅**
 - [x] **P1-03 先行実装（接続不要な範囲）**: middleware / useAuth / profile・works フック / オンボ① role 保存の結線（ガード付き・検証は接続後）
-- [ ] **アカウント作成・接続**（[SETUP.md](SETUP.md) のチェックリスト: Supabase プロジェクト適用済み / Cloudflare Workers+R2 連携中）← 現在ここ
-- [ ] P1-03 残り（接続後）: ログイン UI / オンボ②作品保存 / 各画面の実データ化
-- [ ] eKYC ベンダー選定を先行開始（Phase 3 のリードタイム対策）
-- [ ] NSFW 判定 API の比較検討（Phase 2 の画像基盤に組込み）
+- [x] **アカウント作成・接続完了**（Supabase プロジェクト＋マイグレーション適用済み、Cloudflare Workers+R2 連携済み、本番URL `premier.sunny-rainy1115.workers.dev` で実機動作確認済み）
+- [x] **ログイン/サインアップ画面**（`LoginScreen`）＋ **AuthGate**（未ログイン時に自動表示、ログイン成功で自動的に消える）。設定「ログアウト」も実際に `signOut()` するよう修正
+- [x] **works シード**（`0002_seed_works.sql`）＋ **オンボ②を実データ接続**（`useWorks`/`useFollowedWorks`/`useFollowWorks`、未接続時は従来のモック動作を維持）
+- [x] **募集・応募のコアループを実データ化**: home/search/detail/create/apply を `src/lib/queries/awase.ts` で接続。作成フォームは実入力＋必須バリデーション化。未接続時は元のモック表示・遷移を完全維持（回帰テスト済み）
+- [x] **Phase 2 完了**: メッセージ(Realtime)・自動通知(DBトリガー)・画像アップロード(R2バインディング)。
+      応募完了画面の主催者名も実データ化済み（`useAwase` の `profiles.display_name` を再利用）
+- [x] **Phase 2 フォローアップ**: マイページ（`ProfileScreen`）を実プロフィールに接続
+      （名前・自己紹介・本人確認バッジ・称号・フォロワー数・併せ実績を実データ化）。
+      アバター/カバーをタップでアップロード→`profiles.avatar_url`/`cover_url` に保存。
+      募集詳細の主催者カードの「併せ実績」も実カウントに（`useAwaseAchievementCount`）
+- [x] **Phase 3「レビュー」完了**: `reviews` テーブル＋RLS（`has_confirmed_participation` で accepted/done の相手のみ投稿可）。
+      チャット画面の「レビュー」ボタン→会話の相手・関連する併せを実データ判定→投稿（`ReviewWriteScreen`）。
+      マイページに「受け取ったレビュー」セクション（平均評価・件数・一覧）を追加。未接続時は元のモック表示を完全維持
+- [x] **他ユーザーのプロフィール閲覧**: ルーターに `openProfile(userId)` / `selectedProfileId` を追加。
+      募集詳細のホストカードから実際のプロフィールIDへ遷移するように。本人以外を見ている場合は
+      アバター/カバーのアップロード・設定ボタンを非表示にし、「メッセージ」ボタンは
+      `useGetOrCreateConversation` で実際の会話を作成/再開して `openChat` するよう接続
+      （フリマ出品者カードは Phase 4 未着手のため据え置き）
+- [x] **投稿ギャラリー機能**: `posts` テーブル新設（RLSは profiles と同じ非公開ルールを踏襲）。
+      マイページのギャラリーが実投稿に接続、本人閲覧時は「＋」タイルから
+      `useUploadImage`（kind: "post"）→ R2 アップロード→ `useCreatePost` で投稿。
+      「投稿」統計も実カウントに。未接続時は元のモック表示を完全維持
+- [x] **Phase 4「知恵袋」完了**: `qa_questions`/`qa_answers`/`qa_answer_likes` テーブル新設。
+      一覧画面の「質問する」から実際に質問を投稿できるように（未接続時は従来通り詳細画面へnav）。
+      詳細画面は実際の質問・回答・「役に立った」いいね（1人1回、トグルで取消可）に接続。
+      ベストアンサーは質問の投稿者のみが選べる（`mark_best_answer()` がRLSではなくSECURITY DEFINER関数で権限チェック）。
+      「解決済み」表示はベストアンサーの有無から導出（専用カラムなし）。未接続時は元のモック表示を完全維持
+- [ ] **Phase 4 の残り**: フリマ・イベントカレンダーのサーバー化 ← 現在ここ
+- [ ] **Phase 3 の残り**: eKYC 連携・ゾーニング（ベンダー契約待ち）
+- [ ] NSFW 判定 API の比較検討（画像投稿全般に適用）

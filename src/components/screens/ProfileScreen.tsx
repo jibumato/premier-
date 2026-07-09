@@ -1,11 +1,19 @@
 "use client";
 
+import { useRef } from "react";
 import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, SettingsIcon, VerifiedBadge } from "../icons";
+import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadge } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage } from "@/lib/queries/profile";
+import { useGetOrCreateConversation } from "@/lib/queries/messages";
+import { useCreatePost, usePosts } from "@/lib/queries/posts";
+import { useReviewsReceived } from "@/lib/queries/reviews";
+import { useUploadImage } from "@/lib/queries/upload";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
  * External support links (Fantia / pixivFANBOX / Skeb). Per the handoff
@@ -19,17 +27,87 @@ const supportLinks = [
 ];
 
 export function ProfileScreen() {
-  const { back, nav } = useRouter();
-  // In production this comes from the eKYC age-verification result.
-  const ageVerified = true;
+  const { back, nav, openChat, selectedProfileId } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  // Reached both from the bottom-nav "マイページ" tab (selectedProfileId is
+  // null → always the signed-in user) and from a detail/market host card's
+  // "プロフ→" via openProfile(userId) (viewing someone else).
+  const targetId = selectedProfileId ?? user?.id;
+  const isOwnProfile = !selectedProfileId || selectedProfileId === user?.id;
+
+  const profileQuery = useProfile(targetId);
+  const followerCount = useFollowerCount(targetId);
+  const achievementCount = useAwaseAchievementCount(targetId);
+  const reviewsReceived = useReviewsReceived(targetId);
+  const postsQuery = usePosts(targetId);
+  const updateImage = useUpdateProfileImage();
+  const uploadImage = useUploadImage();
+  const createPost = useCreatePost();
+  const getOrCreateConversation = useGetOrCreateConversation();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const postInputRef = useRef<HTMLInputElement>(null);
+
+  const real = configured && targetId ? profileQuery.data : undefined;
+  const canEdit = configured && isOwnProfile;
+  const posts = real ? (postsQuery.data ?? []) : undefined;
+  const displayName = real?.display_name ?? "澪 / mio";
+  const bio = real?.bio || "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
+  const isVerified = real?.is_verified ?? true;
+  const ageVerified = real?.is_age_verified ?? true; // fallback matches the prototype's always-shown support section
+  const meisterTitle = real?.meister_title ?? "併せマイスター";
+  const stats = [
+    { n: posts ? String(posts.length) : "128", l: "投稿" },
+    { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
+    { n: real ? String(achievementCount.data ?? 0) : "36", l: "併せ実績" },
+  ];
+
+  const handlePickImage = (field: "avatar_url" | "cover_url") => {
+    if (!canEdit || !user) return;
+    (field === "avatar_url" ? avatarInputRef : coverInputRef).current?.click();
+  };
+
+  const handleFileSelected = async (field: "avatar_url" | "cover_url", e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !canEdit || !user) return;
+    const result = await uploadImage.mutateAsync({ file, kind: field === "avatar_url" ? "avatar" : "cover" });
+    if (result.url) updateImage.mutate({ userId: user.id, field, url: result.url });
+  };
+
+  const handleAddPost = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !canEdit || !user) return;
+    const result = await uploadImage.mutateAsync({ file, kind: "post" });
+    if (result.url) createPost.mutate({ authorId: user.id, imageUrl: result.url });
+  };
+
+  const handleMessage = () => {
+    if (real && user && targetId && !isOwnProfile) {
+      getOrCreateConversation.mutate(
+        { userId: user.id, otherUserId: targetId },
+        { onSuccess: (conversationId) => openChat(conversationId) },
+      );
+    } else {
+      nav("chat");
+    }
+  };
 
   return (
     <div>
       {/* cover + avatar */}
       <div style={{ position: "relative" }}>
-        <div style={{ height: 140 }}>
-          <ImageSlot radius={0} />
-        </div>
+        <button
+          onClick={() => handlePickImage("cover_url")}
+          disabled={!canEdit}
+          style={{ display: "block", width: "100%", height: 140, padding: 0, border: "none", cursor: canEdit ? "pointer" : "default" }}
+        >
+          <ImageSlot radius={0} src={real?.cover_url} />
+        </button>
+        <input ref={coverInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelected("cover_url", e)} style={{ display: "none" }} />
         <button
           onClick={back}
           style={{
@@ -50,27 +128,31 @@ export function ProfileScreen() {
         >
           <ChevronLeftIcon size={20} />
         </button>
+        {isOwnProfile && (
+          <button
+            onClick={() => nav("settings")}
+            style={{
+              position: "absolute",
+              right: 16,
+              top: 12,
+              width: 34,
+              height: 34,
+              border: "none",
+              borderRadius: "50%",
+              background: "rgba(255,255,255,.9)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+            aria-label="設定"
+          >
+            <SettingsIcon size={19} />
+          </button>
+        )}
         <button
-          onClick={() => nav("settings")}
-          style={{
-            position: "absolute",
-            right: 16,
-            top: 12,
-            width: 34,
-            height: 34,
-            border: "none",
-            borderRadius: "50%",
-            background: "rgba(255,255,255,.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-          aria-label="設定"
-        >
-          <SettingsIcon size={19} />
-        </button>
-        <div
+          onClick={() => handlePickImage("avatar_url")}
+          disabled={!canEdit}
           style={{
             position: "absolute",
             left: 20,
@@ -80,6 +162,8 @@ export function ProfileScreen() {
             borderRadius: "50%",
             padding: 3,
             background: avatarRing,
+            border: "none",
+            cursor: canEdit ? "pointer" : "default",
           }}
         >
           <div
@@ -91,35 +175,36 @@ export function ProfileScreen() {
               overflow: "hidden",
             }}
           >
-            <ImageSlot circle />
+            <ImageSlot circle src={real?.avatar_url} />
           </div>
-        </div>
+        </button>
+        <input ref={avatarInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelected("avatar_url", e)} style={{ display: "none" }} />
       </div>
 
       {/* identity */}
       <div style={{ padding: "46px 22px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>澪 / mio</h2>
-          <VerifiedBadge />
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{displayName}</h2>
+          {isVerified && <VerifiedBadge />}
         </div>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            marginTop: 9,
-            padding: "5px 11px",
-            borderRadius: 999,
-            background: "linear-gradient(135deg,#FBE9F2,#EFEBF8)",
-            border: "1px solid #EBDCF0",
-          }}
-        >
-          <MeisterIcon />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#8A4E86" }}>併せマイスター</span>
-        </div>
-        <p style={{ margin: "13px 0 0", fontSize: 13, lineHeight: 1.85, color: colors.textSecondary }}>
-          ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎
-        </p>
+        {meisterTitle && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              marginTop: 9,
+              padding: "5px 11px",
+              borderRadius: 999,
+              background: "linear-gradient(135deg,#FBE9F2,#EFEBF8)",
+              border: "1px solid #EBDCF0",
+            }}
+          >
+            <MeisterIcon />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#8A4E86" }}>{meisterTitle}</span>
+          </div>
+        )}
+        <p style={{ margin: "13px 0 0", fontSize: 13, lineHeight: 1.85, color: colors.textSecondary }}>{bio}</p>
 
         {/* stats */}
         <div
@@ -132,11 +217,7 @@ export function ProfileScreen() {
             background: colors.primaryBg5,
           }}
         >
-          {[
-            { n: "128", l: "投稿" },
-            { n: "4.2k", l: "フォロワー" },
-            { n: "36", l: "併せ実績" },
-          ].map((s, i) => (
+          {stats.map((s, i) => (
             <div
               key={s.l}
               style={{
@@ -155,7 +236,7 @@ export function ProfileScreen() {
         {/* action buttons */}
         <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
           <button
-            onClick={() => nav("chat")}
+            onClick={handleMessage}
             style={{
               flex: 1,
               display: "flex",
@@ -280,6 +361,67 @@ export function ProfileScreen() {
         </button>
       </div>
 
+      {/* reviews received */}
+      {real && reviewsReceived.data && reviewsReceived.data.count > 0 && (
+        <div style={{ padding: "26px 22px 0" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <SectionHeading size={15}>受け取ったレビュー</SectionHeading>
+            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>
+              <StarIcon size={13} color={colors.starGold} filled />
+              {reviewsReceived.data.average.toFixed(1)}
+              <span style={{ fontSize: 11, fontWeight: 400, color: colors.textMutedAlt }}>
+                （{reviewsReceived.data.count}件）
+              </span>
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
+            {reviewsReceived.data.reviews.slice(0, 5).map((r) => (
+              <div
+                key={r.id}
+                style={{
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  background: colors.white,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>{r.author_name}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <StarIcon key={n} size={11} color={colors.starGold} filled={r.rating >= n} />
+                    ))}
+                  </span>
+                </div>
+                {r.good_points.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {r.good_points.map((g) => (
+                      <span
+                        key={g}
+                        style={{
+                          fontSize: 10.5,
+                          color: colors.primary,
+                          background: colors.primaryBg1,
+                          padding: "4px 9px",
+                          borderRadius: 999,
+                        }}
+                      >
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {r.comment && (
+                  <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.7, color: colors.textSecondary }}>
+                    {r.comment}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* gallery */}
       <div style={{ padding: "26px 22px 30px" }}>
         <SectionHeading size={15}>ギャラリー</SectionHeading>
@@ -291,12 +433,46 @@ export function ProfileScreen() {
             marginTop: 13,
           }}
         >
-          {galleryKeys.map((g) => (
-            <div key={g} style={{ height: 108 }}>
-              <ImageSlot radius={12} />
-            </div>
-          ))}
+          {posts ? (
+            <>
+              {canEdit && (
+                <button
+                  onClick={() => postInputRef.current?.click()}
+                  style={{
+                    height: 108,
+                    borderRadius: 12,
+                    border: `1.5px dashed ${colors.border}`,
+                    background: colors.primaryBg5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                  aria-label="投稿を追加"
+                >
+                  <PlusIcon size={22} color={colors.textMutedAlt} />
+                </button>
+              )}
+              {posts.map((p) => (
+                <div key={p.id} style={{ height: 108 }}>
+                  <ImageSlot radius={12} src={p.image_url} />
+                </div>
+              ))}
+              {posts.length === 0 && !canEdit && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "18px 0", fontSize: 12, color: colors.textMutedAlt }}>
+                  まだ投稿がありません
+                </div>
+              )}
+            </>
+          ) : (
+            galleryKeys.map((g) => (
+              <div key={g} style={{ height: 108 }}>
+                <ImageSlot radius={12} />
+              </div>
+            ))
+          )}
         </div>
+        <input ref={postInputRef} type="file" accept="image/*" onChange={handleAddPost} style={{ display: "none" }} />
 
         {/* report */}
         <button
