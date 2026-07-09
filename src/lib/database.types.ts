@@ -240,6 +240,38 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>;
         Relationships: [];
       };
+      qa_questions: {
+        Row: { id: string; author_id: string; title: string; body: string; tag: string; created_at: string };
+        Insert: { id?: string; author_id: string; title: string; body: string; tag?: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["qa_questions"]["Insert"]>;
+        Relationships: [];
+      };
+      qa_answers: {
+        Row: {
+          id: string;
+          question_id: string;
+          author_id: string;
+          body: string;
+          is_best: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          author_id: string;
+          body: string;
+          is_best?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["qa_answers"]["Insert"]>;
+        Relationships: [];
+      };
+      qa_answer_likes: {
+        Row: { answer_id: string; user_id: string; created_at: string };
+        Insert: { answer_id: string; user_id: string; created_at?: string };
+        Update: Partial<{ answer_id: string; user_id: string; created_at: string }>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -250,6 +282,10 @@ export interface Database {
       has_confirmed_participation: {
         Args: { p_author: string; p_target: string; p_awase: string | null };
         Returns: boolean;
+      };
+      mark_best_answer: {
+        Args: { p_answer_id: string };
+        Returns: undefined;
       };
     };
     Enums: {
