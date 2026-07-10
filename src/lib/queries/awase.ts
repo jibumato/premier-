@@ -8,6 +8,7 @@ import type { AwaseCard, DetailRole, SearchResult } from "@/lib/types";
 /** Row shape returned by the awase list queries below (embeds work name). */
 type AwaseRow = {
   id: string;
+  host_id: string;
   title: string;
   event_date: string;
   place: string | null;
@@ -20,7 +21,20 @@ type AwaseRow = {
 };
 
 const AWASE_LIST_SELECT =
-  "id, title, event_date, place, region, world_tags, women_only, beginner_ok, capacity, works(name)";
+  "id, host_id, title, event_date, place, region, world_tags, women_only, beginner_ok, capacity, works(name)";
+
+/** Blocked hosts + auto-hidden 併せ to keep out of the feeds (Phase 5). */
+export interface AwaseFeedFilter {
+  blockedUserIds: string[];
+  hiddenAwaseIds: string[];
+}
+
+function applyFilter(rows: AwaseRow[], filter?: AwaseFeedFilter): AwaseRow[] {
+  if (!filter) return rows;
+  const blocked = new Set(filter.blockedUserIds);
+  const hidden = new Set(filter.hiddenAwaseIds);
+  return rows.filter((r) => !blocked.has(r.host_id) && !hidden.has(r.id));
+}
 
 /** Simple, deterministic tag derived from the flags — refine once designers spec more tag combos. */
 function tagFor(row: Pick<AwaseRow, "women_only" | "beginner_ok">): string {
@@ -54,10 +68,11 @@ function toSearchResult(row: AwaseRow): SearchResult {
   };
 }
 
-/** Latest open 併せ for the home feed. */
-export function useAwaseFeed() {
+/** Latest open 併せ for the home feed. Blocked hosts / auto-hidden 併せ are
+ * filtered out when a viewer's moderation filter is supplied (Phase 5). */
+export function useAwaseFeed(filter?: AwaseFeedFilter) {
   return useQuery({
-    queryKey: ["awase_feed"],
+    queryKey: ["awase_feed", filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
     enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<AwaseCard[]> => {
       const supabase = getSupabaseBrowserClient();
@@ -70,15 +85,15 @@ export function useAwaseFeed() {
       if (error) throw error;
       // PostgREST's generated types over-widen embedded array columns (e.g.
       // world_tags); the shape at runtime matches AwaseRow.
-      return ((data ?? []) as unknown as AwaseRow[]).map(toAwaseCard);
+      return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toAwaseCard);
     },
   });
 }
 
 /** Open 併せ filtered by region ("すべて" = no filter), for the search screen. */
-export function useAwaseSearch(region: string) {
+export function useAwaseSearch(region: string, filter?: AwaseFeedFilter) {
   return useQuery({
-    queryKey: ["awase_search", region],
+    queryKey: ["awase_search", region, filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
     enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<SearchResult[]> => {
       const supabase = getSupabaseBrowserClient();
@@ -86,7 +101,7 @@ export function useAwaseSearch(region: string) {
       if (region !== "すべて") query = query.eq("region", region);
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as unknown as AwaseRow[]).map(toSearchResult);
+      return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toSearchResult);
     },
   });
 }

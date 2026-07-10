@@ -6,12 +6,16 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, PinIcon, SearchIcon, SlidersIcon } from "../icons";
 import { useAwaseSearch } from "@/lib/queries/awase";
+import { useModerationFilter } from "@/lib/queries/moderation";
+import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function SearchScreen() {
   const { back, nav, openAwase, region, setRegion } = useRouter();
+  const { user } = useAuth();
   const configured = isSupabaseConfigured();
-  const results = useAwaseSearch(region);
+  const moderation = useModerationFilter(user?.id);
+  const results = useAwaseSearch(region, moderation.data);
 
   const mockFiltered =
     region === "すべて" ? searchResults : searchResults.filter((r) => r.region === region);

@@ -10,6 +10,16 @@ import {
   type ReactNode,
 } from "react";
 import type { Screen, Tab } from "@/lib/types";
+import type { ReportTargetType } from "@/lib/queries/moderation";
+
+export interface ReportTarget {
+  type: ReportTargetType;
+  /** entity id (awase/market/qa) or the user id being reported */
+  id: string;
+  /** the reported user's id — set for blockability (user reports, or the
+   * host/seller behind an entity). null when there is no user to block. */
+  userId: string | null;
+}
 
 interface RouterState {
   screen: Screen;
@@ -24,6 +34,12 @@ interface RouterState {
   selectedProfileId: string | null;
   /** qa_question.id backing the current `qaDetail` screen, once a backend is connected. */
   selectedQaQuestionId: string | null;
+  /** event.id backing the current `eventDetail` screen, once a backend is connected. */
+  selectedEventId: string | null;
+  /** market_item.id backing the current `marketDetail` screen, once a backend is connected. */
+  selectedMarketItemId: string | null;
+  /** what the `report` screen is reporting; null when reached without a target. */
+  reportTarget: ReportTarget | null;
 }
 
 interface RouterApi extends RouterState {
@@ -42,6 +58,12 @@ interface RouterApi extends RouterState {
   openProfile: (userId: string) => void;
   /** navigate to `qaDetail` for a specific real question row */
   openQaQuestion: (questionId: string) => void;
+  /** navigate to `eventDetail` for a specific real event row */
+  openEvent: (eventId: string) => void;
+  /** navigate to `marketDetail` for a specific real listing row */
+  openMarketItem: (itemId: string) => void;
+  /** navigate to `report` for a specific real target (user/awase/market/qa) */
+  openReport: (target: ReportTarget) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -63,6 +85,9 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     selectedConversationId: null,
     selectedProfileId: null,
     selectedQaQuestionId: null,
+    selectedEventId: null,
+    selectedMarketItemId: null,
+    reportTarget: null,
   });
   const historyRef = useRef<Screen[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -80,6 +105,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
           screen,
           tab: tab ?? s.tab,
           selectedProfileId: screen === "profile" ? null : s.selectedProfileId,
+          reportTarget: screen === "report" ? null : s.reportTarget,
         };
       });
       resetScroll();
@@ -151,9 +177,67 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     [resetScroll]
   );
 
+  const openEvent = useCallback(
+    (eventId: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "eventDetail", selectedEventId: eventId };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
+  const openMarketItem = useCallback(
+    (itemId: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "marketDetail", selectedMarketItemId: itemId };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
+  const openReport = useCallback(
+    (target: ReportTarget) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "report", reportTarget: target };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
   const api = useMemo<RouterApi>(
-    () => ({ ...state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion, scrollRef }),
-    [state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion]
+    () => ({
+      ...state,
+      nav,
+      back,
+      setRegion,
+      openAwase,
+      openChat,
+      openProfile,
+      openQaQuestion,
+      openEvent,
+      openMarketItem,
+      openReport,
+      scrollRef,
+    }),
+    [
+      state,
+      nav,
+      back,
+      setRegion,
+      openAwase,
+      openChat,
+      openProfile,
+      openQaQuestion,
+      openEvent,
+      openMarketItem,
+      openReport,
+    ]
   );
 
   return <RouterContext.Provider value={api}>{children}</RouterContext.Provider>;

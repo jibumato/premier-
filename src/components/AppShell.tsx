@@ -24,6 +24,7 @@ import { QaDetailScreen } from "./screens/QaDetailScreen";
 import { ReportScreen } from "./screens/ReportScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { CorporateScreen } from "./screens/CorporateScreen";
+import { VerifyScreen } from "./screens/VerifyScreen";
 import { OnboardRoleScreen } from "./screens/OnboardRoleScreen";
 import { OnboardWorksScreen } from "./screens/OnboardWorksScreen";
 import { OnboardVerifyScreen } from "./screens/OnboardVerifyScreen";
@@ -51,6 +52,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   report: ReportScreen,
   settings: SettingsScreen,
   corporate: CorporateScreen,
+  verify: VerifyScreen,
   onboardRole: OnboardRoleScreen,
   onboardWorks: OnboardWorksScreen,
   onboardVerify: OnboardVerifyScreen,

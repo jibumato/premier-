@@ -6,13 +6,52 @@ import { reportReasons } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AppBar, PrimaryButton, Toggle } from "../ui";
 import { CheckIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useBlockUser, useSubmitReport } from "@/lib/queries/moderation";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function ReportScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, reportTarget } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+  const submitReport = useSubmitReport();
+  const blockUser = useBlockUser();
+
   const [reason, setReason] = useState<string | null>(null);
   const [detail, setDetail] = useState("");
   const [alsoBlock, setAlsoBlock] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Real submission only when we have a signed-in user AND a concrete target
+  // (reached via openReport). Targetless entry (e.g. Settings link) stays a
+  // no-op demo, matching the prototype.
+  const canReport = configured && Boolean(user) && Boolean(reportTarget);
+  const blockable = Boolean(reportTarget?.userId);
+
+  const handleSubmit = async () => {
+    if (!reason) return;
+    if (canReport && user && reportTarget) {
+      setSubmitting(true);
+      try {
+        await submitReport.mutateAsync({
+          reporterId: user.id,
+          targetType: reportTarget.type,
+          targetId: reportTarget.id,
+          reason,
+          detail,
+        });
+        if (alsoBlock && reportTarget.userId) {
+          await blockUser.mutateAsync({ blockerId: user.id, blockedId: reportTarget.userId });
+        }
+        setDone(true);
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      setDone(true);
+    }
+  };
 
   if (done) {
     return (
@@ -128,35 +167,37 @@ export function ReportScreen() {
         />
       </div>
 
-      {/* also block */}
-      <div style={{ padding: "16px 22px 0" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            border: `1px solid ${colors.borderSoft}`,
-            borderRadius: 14,
-            padding: "13px 15px",
-            background: colors.primaryBg5,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>このユーザーもブロック</div>
-            <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>
-              今後お互いの投稿・メッセージが表示されなくなります
+      {/* also block (only when there's a user behind the target) */}
+      {(blockable || !configured) && (
+        <div style={{ padding: "16px 22px 0" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 14,
+              padding: "13px 15px",
+              background: colors.primaryBg5,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>このユーザーもブロック</div>
+              <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>
+                今後お互いの投稿・メッセージが表示されなくなります
+              </div>
             </div>
+            <Toggle on={alsoBlock} onChange={setAlsoBlock} ariaLabel="ブロックする" />
           </div>
-          <Toggle on={alsoBlock} onChange={setAlsoBlock} ariaLabel="ブロックする" />
         </div>
-      </div>
+      )}
 
       <div style={{ padding: "24px 22px 30px" }}>
         <PrimaryButton
-          onClick={() => reason && setDone(true)}
-          style={reason ? undefined : { opacity: 0.45, cursor: "not-allowed" }}
+          onClick={handleSubmit}
+          style={reason && !submitting ? undefined : { opacity: 0.45, cursor: "not-allowed" }}
         >
-          通報を送信する
+          {submitting ? "送信中…" : "通報を送信する"}
         </PrimaryButton>
       </div>
     </div>

@@ -19,7 +19,7 @@ const mockInfoGrid = [
 ];
 
 export function DetailScreen() {
-  const { back, nav, openProfile, selectedAwaseId } = useRouter();
+  const { back, nav, openProfile, openReport, selectedAwaseId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -277,7 +277,11 @@ export function DetailScreen() {
           この併せに応募する
         </PrimaryButton>
         <button
-          onClick={() => nav("report")}
+          onClick={() =>
+            real
+              ? openReport({ type: "awase", id: real.id, userId: real.host_id })
+              : nav("report")
+          }
           style={{
             display: "flex",
             alignItems: "center",

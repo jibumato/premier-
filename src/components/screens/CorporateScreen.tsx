@@ -5,6 +5,8 @@ import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { AppBar, PrimaryButton, SectionHeading } from "../ui";
 import { BuildingIcon, CalendarIcon, BagIcon, CheckIcon } from "../icons";
+import { useSubmitCorporateLead } from "@/lib/queries/corporate";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const plans = [
   {
@@ -35,7 +37,31 @@ const points = [
 
 export function CorporateScreen() {
   const { back } = useRouter();
+  const configured = isSupabaseConfigured();
+  const submitLead = useSubmitCorporateLead();
   const [sent, setSent] = useState(false);
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  const canSubmit = Boolean(company.trim()) && emailValid;
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    if (configured) {
+      setSubmitting(true);
+      try {
+        await submitLead.mutateAsync({ company: company.trim(), email: email.trim(), message: message.trim() });
+        setSent(true);
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      setSent(true);
+    }
+  };
 
   return (
     <div style={{ paddingBottom: 30 }}>
@@ -149,7 +175,61 @@ export function CorporateScreen() {
             </p>
           </div>
         ) : (
-          <PrimaryButton onClick={() => setSent(true)}>資料をダウンロード / お問い合わせ</PrimaryButton>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="会社名"
+              style={{
+                border: `1px solid ${colors.border}`,
+                borderRadius: 12,
+                padding: "12px 14px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                outline: "none",
+                background: colors.white,
+              }}
+            />
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              inputMode="email"
+              placeholder="ご連絡先メールアドレス"
+              style={{
+                border: `1px solid ${colors.border}`,
+                borderRadius: 12,
+                padding: "12px 14px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                outline: "none",
+                background: colors.white,
+              }}
+            />
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="ご相談内容（任意）"
+              rows={3}
+              style={{
+                border: `1px solid ${colors.border}`,
+                borderRadius: 12,
+                padding: "12px 14px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                lineHeight: 1.7,
+                resize: "none",
+                outline: "none",
+                background: colors.white,
+              }}
+            />
+            <PrimaryButton
+              onClick={handleSubmit}
+              style={canSubmit && !submitting ? undefined : { opacity: 0.45, cursor: "not-allowed" }}
+            >
+              {submitting ? "送信中…" : "資料請求 / お問い合わせ"}
+            </PrimaryButton>
+          </div>
         )}
       </div>
     </div>

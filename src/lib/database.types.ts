@@ -272,6 +272,158 @@ export interface Database {
         Update: Partial<{ answer_id: string; user_id: string; created_at: string }>;
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          name: string;
+          event_date: string;
+          venue: string;
+          region: string;
+          tag: string;
+          fee_text: string | null;
+          body: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          event_date: string;
+          venue: string;
+          region: string;
+          tag?: string;
+          fee_text?: string | null;
+          body?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
+        Relationships: [];
+      };
+      event_rsvps: {
+        Row: { event_id: string; user_id: string; created_at: string };
+        Insert: { event_id: string; user_id: string; created_at?: string };
+        Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
+        Relationships: [];
+      };
+      market_items: {
+        Row: {
+          id: string;
+          seller_id: string;
+          title: string;
+          work_id: string | null;
+          price: number;
+          size: string;
+          item_condition: string;
+          shipping: string | null;
+          body: string | null;
+          image_url: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          seller_id: string;
+          title: string;
+          work_id?: string | null;
+          price: number;
+          size?: string;
+          item_condition?: string;
+          shipping?: string | null;
+          body?: string | null;
+          image_url?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["market_items"]["Insert"]>;
+        Relationships: [];
+      };
+      reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          target_type: string;
+          target_id: string;
+          reason: string;
+          detail: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          target_type: string;
+          target_id: string;
+          reason: string;
+          detail?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reports"]["Insert"]>;
+        Relationships: [];
+      };
+      blocks: {
+        Row: { blocker_id: string; blocked_id: string; created_at: string };
+        Insert: { blocker_id: string; blocked_id: string; created_at?: string };
+        Update: Partial<{ blocker_id: string; blocked_id: string; created_at: string }>;
+        Relationships: [];
+      };
+      content_flags: {
+        Row: {
+          target_type: string;
+          target_id: string;
+          auto_hidden: boolean;
+          report_count: number;
+          flagged_at: string;
+        };
+        Insert: {
+          target_type: string;
+          target_id: string;
+          auto_hidden?: boolean;
+          report_count?: number;
+          flagged_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["content_flags"]["Insert"]>;
+        Relationships: [];
+      };
+      corporate_leads: {
+        Row: {
+          id: string;
+          company: string;
+          email: string;
+          plan: string | null;
+          message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company: string;
+          email: string;
+          plan?: string | null;
+          message?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["corporate_leads"]["Insert"]>;
+        Relationships: [];
+      };
+      verification_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          doc_url: string;
+          status: string;
+          note: string | null;
+          created_at: string;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          doc_url: string;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+          reviewed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["verification_requests"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {

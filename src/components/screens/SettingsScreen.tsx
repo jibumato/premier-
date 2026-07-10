@@ -124,7 +124,7 @@ export function SettingsScreen() {
 
       <Group title="安全とサポート">
         <LinkRow title="ブロックしたユーザー" onClick={() => nav("report")} />
-        <LinkRow title="本人確認" onClick={() => nav("onboardVerify")} />
+        <LinkRow title="本人確認" onClick={() => nav("verify")} />
         <LinkRow title="ヘルプ・お問い合わせ" onClick={() => nav("qa")} last />
       </Group>
 
