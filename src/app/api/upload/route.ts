@@ -26,7 +26,7 @@ interface R2BucketLike {
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const KINDS = new Set(["awase", "avatar", "cover", "post"]);
+const KINDS = new Set(["awase", "avatar", "cover", "post", "market"]);
 
 export async function POST(request: Request) {
   // Require a valid Supabase session — this route writes to R2 directly via

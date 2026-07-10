@@ -304,6 +304,38 @@ export interface Database {
         Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
         Relationships: [];
       };
+      market_items: {
+        Row: {
+          id: string;
+          seller_id: string;
+          title: string;
+          work_id: string | null;
+          price: number;
+          size: string;
+          item_condition: string;
+          shipping: string | null;
+          body: string | null;
+          image_url: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          seller_id: string;
+          title: string;
+          work_id?: string | null;
+          price: number;
+          size?: string;
+          item_condition?: string;
+          shipping?: string | null;
+          body?: string | null;
+          image_url?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["market_items"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {

@@ -7,7 +7,7 @@ export interface UploadResult {
   url: string | null;
 }
 
-export type UploadKind = "awase" | "avatar" | "cover" | "post";
+export type UploadKind = "awase" | "avatar" | "cover" | "post" | "market";
 
 /**
  * Uploads an image to R2 via `/api/upload` (see that route for the binding
