@@ -18,7 +18,7 @@ const mockSpec = [
 ];
 
 export function MarketDetailScreen() {
-  const { back, nav, openChat, openProfile, selectedMarketItemId } = useRouter();
+  const { back, nav, openChat, openProfile, openReport, selectedMarketItemId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -174,7 +174,11 @@ export function MarketDetailScreen() {
           </PrimaryButton>
         )}
         <button
-          onClick={() => nav("report")}
+          onClick={() =>
+            real
+              ? openReport({ type: "market", id: real.id, userId: real.sellerId })
+              : nav("report")
+          }
           style={{
             width: "100%",
             display: "flex",

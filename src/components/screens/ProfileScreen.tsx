@@ -27,7 +27,7 @@ const supportLinks = [
 ];
 
 export function ProfileScreen() {
-  const { back, nav, openChat, selectedProfileId } = useRouter();
+  const { back, nav, openChat, openReport, selectedProfileId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -474,9 +474,13 @@ export function ProfileScreen() {
         </div>
         <input ref={postInputRef} type="file" accept="image/*" onChange={handleAddPost} style={{ display: "none" }} />
 
-        {/* report */}
+        {/* report — only meaningful for another user's profile */}
         <button
-          onClick={() => nav("report")}
+          onClick={() =>
+            real && targetId && !isOwnProfile
+              ? openReport({ type: "user", id: targetId, userId: targetId })
+              : nav("report")
+          }
           style={{
             display: "flex",
             alignItems: "center",

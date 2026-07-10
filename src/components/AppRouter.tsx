@@ -10,6 +10,16 @@ import {
   type ReactNode,
 } from "react";
 import type { Screen, Tab } from "@/lib/types";
+import type { ReportTargetType } from "@/lib/queries/moderation";
+
+export interface ReportTarget {
+  type: ReportTargetType;
+  /** entity id (awase/market/qa) or the user id being reported */
+  id: string;
+  /** the reported user's id — set for blockability (user reports, or the
+   * host/seller behind an entity). null when there is no user to block. */
+  userId: string | null;
+}
 
 interface RouterState {
   screen: Screen;
@@ -28,6 +38,8 @@ interface RouterState {
   selectedEventId: string | null;
   /** market_item.id backing the current `marketDetail` screen, once a backend is connected. */
   selectedMarketItemId: string | null;
+  /** what the `report` screen is reporting; null when reached without a target. */
+  reportTarget: ReportTarget | null;
 }
 
 interface RouterApi extends RouterState {
@@ -50,6 +62,8 @@ interface RouterApi extends RouterState {
   openEvent: (eventId: string) => void;
   /** navigate to `marketDetail` for a specific real listing row */
   openMarketItem: (itemId: string) => void;
+  /** navigate to `report` for a specific real target (user/awase/market/qa) */
+  openReport: (target: ReportTarget) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -73,6 +87,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     selectedQaQuestionId: null,
     selectedEventId: null,
     selectedMarketItemId: null,
+    reportTarget: null,
   });
   const historyRef = useRef<Screen[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -90,6 +105,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
           screen,
           tab: tab ?? s.tab,
           selectedProfileId: screen === "profile" ? null : s.selectedProfileId,
+          reportTarget: screen === "report" ? null : s.reportTarget,
         };
       });
       resetScroll();
@@ -183,6 +199,17 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     [resetScroll]
   );
 
+  const openReport = useCallback(
+    (target: ReportTarget) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "report", reportTarget: target };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
   const api = useMemo<RouterApi>(
     () => ({
       ...state,
@@ -195,9 +222,22 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openQaQuestion,
       openEvent,
       openMarketItem,
+      openReport,
       scrollRef,
     }),
-    [state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion, openEvent, openMarketItem]
+    [
+      state,
+      nav,
+      back,
+      setRegion,
+      openAwase,
+      openChat,
+      openProfile,
+      openQaQuestion,
+      openEvent,
+      openMarketItem,
+      openReport,
+    ]
   );
 
   return <RouterContext.Provider value={api}>{children}</RouterContext.Provider>;

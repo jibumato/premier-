@@ -7,6 +7,8 @@ import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { BagIcon, BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
 import { useAwaseFeed } from "@/lib/queries/awase";
+import { useModerationFilter } from "@/lib/queries/moderation";
+import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Screen } from "@/lib/types";
 
@@ -18,8 +20,10 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
 
 export function HomeScreen() {
   const { nav, openAwase } = useRouter();
+  const { user } = useAuth();
   const configured = isSupabaseConfigured();
-  const feed = useAwaseFeed();
+  const moderation = useModerationFilter(user?.id);
+  const feed = useAwaseFeed(moderation.data);
   // Real feed once connected and loaded; the handoff's mock list otherwise —
   // same AwaseCard shape, so the card markup below never branches.
   const awaseList = configured && feed.data ? feed.data : homeAwase;
