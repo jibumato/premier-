@@ -38,6 +38,10 @@ export function ProfileScreen() {
   const isOwnProfile = !selectedProfileId || selectedProfileId === user?.id;
 
   const profileQuery = useProfile(targetId);
+  // Zoning gates on the *viewer's* age verification, not the viewed profile's:
+  // an under-18 viewer must not see anyone's (possibly adult) external links.
+  // React Query dedupes this with profileQuery when viewing one's own profile.
+  const viewerProfileQuery = useProfile(user?.id);
   const followerCount = useFollowerCount(targetId);
   const achievementCount = useAwaseAchievementCount(targetId);
   const reviewsReceived = useReviewsReceived(targetId);
@@ -56,7 +60,9 @@ export function ProfileScreen() {
   const displayName = real?.display_name ?? "澪 / mio";
   const bio = real?.bio || "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
   const isVerified = real?.is_verified ?? true;
-  const ageVerified = real?.is_age_verified ?? true; // fallback matches the prototype's always-shown support section
+  // Zoning: show external support links only to an age-verified viewer. When
+  // unconfigured (prototype) it stays visible, matching the original behavior.
+  const ageVerified = configured ? Boolean(viewerProfileQuery.data?.is_age_verified) : true;
   const meisterTitle = real?.meister_title ?? "併せマイスター";
   const stats = [
     { n: posts ? String(posts.length) : "128", l: "投稿" },

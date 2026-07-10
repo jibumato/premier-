@@ -402,6 +402,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["corporate_leads"]["Insert"]>;
         Relationships: [];
       };
+      verification_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          doc_url: string;
+          status: string;
+          note: string | null;
+          created_at: string;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          doc_url: string;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+          reviewed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["verification_requests"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {

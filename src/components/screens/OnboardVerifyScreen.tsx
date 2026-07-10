@@ -53,15 +53,15 @@ export function OnboardVerifyScreen() {
         ))}
       </div>
 
-      {/* eKYC note (Constraints: 本人確認は外部eKYCに委任・自動判定) */}
+      {/* 本人確認は当面「手動レビュー」で運用（eKYC はスケール時に移行） */}
       <div style={{ padding: "16px 22px 0" }}>
         <p style={{ margin: 0, fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6, textAlign: "center" }}>
-          確認は外部の本人確認サービスで自動的に行われます。
+          身分証の画像を運営が確認して反映します。画像は確認後すぐに削除されます。
         </p>
       </div>
 
       <div style={{ padding: "18px 22px 0", marginTop: "auto" }}>
-        <PrimaryButton onClick={() => nav("home", "home")}>本人確認をはじめる</PrimaryButton>
+        <PrimaryButton onClick={() => nav("verify")}>本人確認をはじめる</PrimaryButton>
       </div>
       <div style={{ padding: "12px 22px 30px", textAlign: "center" }}>
         <button
