@@ -44,7 +44,7 @@
 | **Phase 3 (P2)** | 本人確認・ゾーニング・レビュー | onboardVerify/verify/応援リンク/reviewWrite | ✅ 完了（本人確認は手動運用版・eKYCはスケール時移行） | 済 | — |
 | **Phase 4 (P3)** | コミュニティ拡張(フリマ/イベント/知恵袋) | market*/events*/qa* | ✅ 完了 | 済 | Phase 1–2 |
 | **Phase 5 (P4)** | 通報自動処理・自動バッジ・法人掲載 | report/profile(バッジ)/corporate | ✅ 完了 | 済 | Phase 1–4 |
-| **後日** | 金銭仲介(コイン/ギフト/出金) | profile(応援ギフトUI) | ⏸ 保留 | 未定 | 運用体制 |
+| **後日** | 金銭仲介・投げ銭（[設計: MONETIZATION.md](MONETIZATION.md)） | profile(応援ギフトUI) | 🟡 設計済（着手は要判断） | 中 | 料率・法務・タイミング |
 
 ## タスク一覧
 
