@@ -6,8 +6,11 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { AppBar, PrimaryButton, SectionHeading } from "../ui";
 import { CheckIcon } from "../icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useEvent, useIsGoing, useRsvpEvent } from "@/lib/queries/events";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-const info = [
+const mockInfo = [
   { label: "日程", value: "8/17(日) 10:00〜16:00" },
   { label: "会場", value: "東京ビッグサイト" },
   { label: "エリア", value: "東京" },
@@ -15,8 +18,39 @@ const info = [
 ];
 
 export function EventDetailScreen() {
-  const { back, nav } = useRouter();
-  const [going, setGoing] = useState(false);
+  const { back, nav, selectedEventId } = useRouter();
+  const { user } = useAuth();
+  const configured = isSupabaseConfigured();
+
+  const eventQuery = useEvent(selectedEventId);
+  const isGoingQuery = useIsGoing(selectedEventId, user?.id);
+  const rsvp = useRsvpEvent();
+  const [mockGoing, setMockGoing] = useState(false);
+
+  const real = configured && selectedEventId ? eventQuery.data : undefined;
+  const going = real ? Boolean(isGoingQuery.data) : mockGoing;
+
+  const name = real?.name ?? "ホロサマ 2025";
+  const goingCount = real ? real.going.toLocaleString() : "1,240";
+  const info = real
+    ? [
+        { label: "日程", value: real.date },
+        { label: "会場", value: real.venue },
+        { label: "エリア", value: real.region },
+        { label: "参加費", value: real.feeText ?? "無料" },
+      ]
+    : mockInfo;
+  const bodyText =
+    real?.body ||
+    "夏の大型コスプレイベント。屋内・屋外の撮影エリアあり、更衣室・荷物預かり完備。当日は会場での併せ集合もこのアプリで調整できます。参加表明をすると、同じイベントの併せ募集がホームに優先表示されます。";
+
+  const handleRsvp = () => {
+    if (real && user && selectedEventId) {
+      rsvp.mutate({ eventId: selectedEventId, userId: user.id });
+    } else {
+      setMockGoing(true);
+    }
+  };
 
   return (
     <div>
@@ -44,9 +78,9 @@ export function EventDetailScreen() {
       </div>
 
       <div style={{ padding: "18px 22px 0" }}>
-        <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: colors.textPrimary }}>ホロサマ 2025</h2>
+        <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: colors.textPrimary }}>{name}</h2>
         <div style={{ fontSize: 12.5, color: colors.primary, fontWeight: 600, marginTop: 8 }}>
-          1,240人が参加予定 · 併せ募集 38件
+          {goingCount}人が参加予定
         </div>
       </div>
 
@@ -64,7 +98,7 @@ export function EventDetailScreen() {
       <div style={{ padding: "24px 22px 0" }}>
         <SectionHeading size={15}>イベント概要</SectionHeading>
         <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.9, color: colors.textSecondary }}>
-          夏の大型コスプレイベント。屋内・屋外の撮影エリアあり、更衣室・荷物預かり完備。当日は会場での併せ集合もこのアプリで調整できます。参加表明をすると、同じイベントの併せ募集がホームに優先表示されます。
+          {bodyText}
         </p>
       </div>
 
@@ -105,7 +139,7 @@ export function EventDetailScreen() {
             </PrimaryButton>
           </div>
         ) : (
-          <PrimaryButton onClick={() => setGoing(true)}>参加表明する</PrimaryButton>
+          <PrimaryButton onClick={handleRsvp}>参加表明する</PrimaryButton>
         )}
       </div>
     </div>

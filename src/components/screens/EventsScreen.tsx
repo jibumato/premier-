@@ -1,13 +1,28 @@
 "use client";
 
 import { colors } from "@/lib/tokens";
-import { events } from "@/lib/data";
+import { events as mockEvents } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AppBar } from "../ui";
 import { CalendarIcon, PinIcon } from "../icons";
+import { useEvents } from "@/lib/queries/events";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function EventsScreen() {
-  const { back, nav } = useRouter();
+  const { back, nav, openEvent } = useRouter();
+  const configured = isSupabaseConfigured();
+
+  const eventsQuery = useEvents();
+  const real = configured ? eventsQuery.data : undefined;
+  const events = real ?? mockEvents;
+
+  const handleOpen = (key: string) => {
+    if (real) {
+      openEvent(key);
+    } else {
+      nav("eventDetail");
+    }
+  };
 
   return (
     <div>
@@ -17,7 +32,7 @@ export function EventsScreen() {
         {events.map((ev) => (
           <button
             key={ev.key}
-            onClick={() => nav("eventDetail")}
+            onClick={() => handleOpen(ev.key)}
             style={{
               display: "flex",
               gap: 14,

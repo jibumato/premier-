@@ -24,6 +24,8 @@ interface RouterState {
   selectedProfileId: string | null;
   /** qa_question.id backing the current `qaDetail` screen, once a backend is connected. */
   selectedQaQuestionId: string | null;
+  /** event.id backing the current `eventDetail` screen, once a backend is connected. */
+  selectedEventId: string | null;
 }
 
 interface RouterApi extends RouterState {
@@ -42,6 +44,8 @@ interface RouterApi extends RouterState {
   openProfile: (userId: string) => void;
   /** navigate to `qaDetail` for a specific real question row */
   openQaQuestion: (questionId: string) => void;
+  /** navigate to `eventDetail` for a specific real event row */
+  openEvent: (eventId: string) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -63,6 +67,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     selectedConversationId: null,
     selectedProfileId: null,
     selectedQaQuestionId: null,
+    selectedEventId: null,
   });
   const historyRef = useRef<Screen[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -151,9 +156,20 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     [resetScroll]
   );
 
+  const openEvent = useCallback(
+    (eventId: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "eventDetail", selectedEventId: eventId };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
   const api = useMemo<RouterApi>(
-    () => ({ ...state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion, scrollRef }),
-    [state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion]
+    () => ({ ...state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion, openEvent, scrollRef }),
+    [state, nav, back, setRegion, openAwase, openChat, openProfile, openQaQuestion, openEvent]
   );
 
   return <RouterContext.Provider value={api}>{children}</RouterContext.Provider>;

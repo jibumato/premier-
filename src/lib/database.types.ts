@@ -272,6 +272,38 @@ export interface Database {
         Update: Partial<{ answer_id: string; user_id: string; created_at: string }>;
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          name: string;
+          event_date: string;
+          venue: string;
+          region: string;
+          tag: string;
+          fee_text: string | null;
+          body: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          event_date: string;
+          venue: string;
+          region: string;
+          tag?: string;
+          fee_text?: string | null;
+          body?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
+        Relationships: [];
+      };
+      event_rsvps: {
+        Row: { event_id: string; user_id: string; created_at: string };
+        Insert: { event_id: string; user_id: string; created_at?: string };
+        Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
