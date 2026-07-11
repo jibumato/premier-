@@ -130,6 +130,7 @@ export function SettingsScreen() {
 
       <Group title="サービス">
         <LinkRow title="利用規約・ガイドライン" onClick={() => nav("terms")} />
+        <LinkRow title="プライバシーポリシー" onClick={() => nav("privacy")} />
         <LinkRow title="法人のお客様へ（掲載案内）" onClick={() => nav("corporate")} last />
       </Group>
 

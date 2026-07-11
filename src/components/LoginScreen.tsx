@@ -5,6 +5,7 @@ import { colors } from "@/lib/tokens";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PrimaryButton } from "./ui";
 import { TermsContent } from "./TermsContent";
+import { PrivacyContent } from "./PrivacyContent";
 
 type Mode = "signIn" | "signUp";
 
@@ -23,7 +24,8 @@ export function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [signedUpNotice, setSignedUpNotice] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
+  // Which legal doc the overlay is showing (LoginScreen lives outside the router).
+  const [overlay, setOverlay] = useState<null | "terms" | "privacy">(null);
 
   const submit = async () => {
     setError(null);
@@ -148,10 +150,18 @@ export function LoginScreen() {
             <span style={{ fontSize: 12, lineHeight: 1.7, color: colors.textSecondary }}>
               <button
                 type="button"
-                onClick={() => setShowTerms(true)}
+                onClick={() => setOverlay("terms")}
                 style={{ background: "none", border: "none", padding: 0, color: colors.primary, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}
               >
-                利用規約・ガイドライン
+                利用規約
+              </button>
+              ・
+              <button
+                type="button"
+                onClick={() => setOverlay("privacy")}
+                style={{ background: "none", border: "none", padding: 0, color: colors.primary, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}
+              >
+                プライバシーポリシー
               </button>
               に同意します
             </span>
@@ -186,9 +196,9 @@ export function LoginScreen() {
         </button>
       </div>
 
-      {/* terms overlay — LoginScreen lives outside the router, so the terms are
-          shown here instead of via nav("terms") */}
-      {showTerms && (
+      {/* legal overlay — LoginScreen lives outside the router, so the terms /
+          privacy policy are shown here instead of via nav() */}
+      {overlay && (
         <div
           style={{
             position: "absolute",
@@ -208,26 +218,18 @@ export function LoginScreen() {
               borderBottom: `1px solid ${colors.borderSofter}`,
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>利用規約・ガイドライン</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
+              {overlay === "terms" ? "利用規約・ガイドライン" : "プライバシーポリシー"}
+            </span>
             <button
-              onClick={() => setShowTerms(false)}
+              onClick={() => setOverlay(null)}
               style={{ background: "none", border: "none", fontSize: 13, fontWeight: 700, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
             >
               閉じる
             </button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "12px 22px 24px" }}>
-            <TermsContent />
-          </div>
-          <div style={{ padding: "12px 22px", borderTop: `1px solid ${colors.borderSofter}` }}>
-            <PrimaryButton
-              onClick={() => {
-                setAgreed(true);
-                setShowTerms(false);
-              }}
-            >
-              同意して閉じる
-            </PrimaryButton>
+            {overlay === "terms" ? <TermsContent /> : <PrivacyContent />}
           </div>
         </div>
       )}
