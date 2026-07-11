@@ -27,6 +27,7 @@ export type Screen =
   | "settings"
   | "corporate"
   | "verify"
+  | "terms"
   // designed in the canvas set (screens_all_options), newly implemented
   | "onboardRole"
   | "onboardWorks"
