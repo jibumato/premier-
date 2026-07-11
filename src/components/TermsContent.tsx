@@ -31,7 +31,8 @@ export function TermsContent() {
     <div>
       <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.9, color: colors.textSecondary }}>
         プルミエ！は、コスプレイヤー・カメラマンが好きな作品でつながり、併せ・撮影を楽しむための
-        <strong style={{ color: colors.textPrimary }}>全年齢向けの交流サービス</strong>です。
+        交流サービスです。<strong style={{ color: colors.textPrimary }}>ご利用は18歳以上の方に限ります。</strong>
+        コンテンツは<strong style={{ color: colors.textPrimary }}>非アダルト（健全）方針</strong>です。
         安心して使える場にするため、以下のルールにご協力ください。
       </p>
 
@@ -41,7 +42,7 @@ export function TermsContent() {
           「撮影の同意」と「SNS・アプリへの掲載の同意」は別です。削除を求められたら応じてください。
         </Item>
         <Item>他の人が撮影・制作した写真や作品を、無断で転載したり自分のものとして載せないでください。</Item>
-        <Item>本サービスは全年齢向けです。露骨な性的表現・過度な露出の写真は投稿できません。</Item>
+        <Item>本サービスは非アダルト（健全）方針です。露骨な性的表現・過度な露出の写真は投稿できません。</Item>
       </Section>
 
       <Section title="2. 禁止事項">
@@ -88,6 +89,9 @@ export function TermsContent() {
       <p style={{ margin: "24px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
         本ガイドラインは予告なく改定される場合があります。重要な変更はサービス内でお知らせします。
         困ったときは通報・ブロックをご利用ください。
+      </p>
+      <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
+        運営者: Type&Co（屋号）　お問い合わせ: 16typeandco@gmail.com
       </p>
     </div>
   );

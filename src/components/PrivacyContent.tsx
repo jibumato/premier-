@@ -68,11 +68,15 @@ export function PrivacyContent() {
         <Item>マイナンバー（個人番号）は取得しません。番号が写らない画像の提出をお願いします。</Item>
       </Section>
 
-      <Section title="5. 外部サービス・委託先">
+      <Section title="5. 外部サービス・越境移転">
         <Item>
-          本サービスは提供のため Supabase（認証・データベース）、Cloudflare（配信・画像保管）等を
-          利用します。これらのサーバーが外国に所在する場合があり、個人データが国外に移転される
-          ことがあります。
+          本サービスは提供のため Supabase（認証・データベース）、Cloudflare（配信・画像保管）を
+          利用します。データベースは<strong>東京リージョン（日本国内）</strong>に保管しています。
+        </Item>
+        <Item>
+          これらの委託先は米国法人であり、また Cloudflare は世界中で配信を行うため、
+          <strong>個人データが外国に移転される場合があります</strong>。運営は各委託先が個人データ
+          保護のための相当措置を講じていることを確認します。
         </Item>
         <Item>将来の決済（投げ銭）は決済事業者が処理し、運営はカード番号を保持しません。</Item>
         <Item>外部の支援リンク先での取扱いは、各サービスのプライバシーポリシーに従います。</Item>
@@ -96,7 +100,9 @@ export function PrivacyContent() {
 
       <p style={{ margin: "24px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
         本ポリシーは予告なく改定される場合があります。重要な変更はサービス内でお知らせします。
-        個人情報の取扱いに関するお問い合わせは、運営の窓口までご連絡ください。
+      </p>
+      <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
+        事業者: Type&Co（屋号）　個人情報の取扱いに関するお問い合わせ: 16typeandco@gmail.com
       </p>
     </div>
   );

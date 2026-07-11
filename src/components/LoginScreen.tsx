@@ -163,7 +163,7 @@ export function LoginScreen() {
               >
                 プライバシーポリシー
               </button>
-              に同意します
+              に同意し、18歳以上であることを確認します
             </span>
           </label>
         </div>
