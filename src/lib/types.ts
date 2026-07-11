@@ -28,6 +28,7 @@ export type Screen =
   | "corporate"
   | "verify"
   | "terms"
+  | "privacy"
   // designed in the canvas set (screens_all_options), newly implemented
   | "onboardRole"
   | "onboardWorks"
