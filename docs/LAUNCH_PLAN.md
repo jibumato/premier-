@@ -32,12 +32,12 @@
       （運営者=Type&Co（屋号）・問い合わせ=16typeandco@gmail.com・**利用年齢=18歳以上**を確定し、
       規約/プライバシー/アプリ内（規約サマリー・同意チェック）に反映済み。所在地は有償機能導入時に特商法表記として掲載。
       残る `〔　〕` は将来項目（Stripe）と注釈のみ）
-- ⬜ 👤 弁護士による**利用規約・プライバシーポリシーのレビュー**
-      → 依頼用の論点まとめ [LEGAL_REVIEW_REQUEST.md](LEGAL_REVIEW_REQUEST.md) を用意済み（そのまま弁護士へ渡せる）
-- 🟡 👤 Supabase / Cloudflare のリージョン・所在国を確認し、**越境移転の記載を確定**
-      （Supabase=東京リージョン/米国法人・Cloudflare=エッジ型/米国法人 を確認し、規約/プライバシーに
-      記載ドラフトを反映済み。**該当性・記載方法の最終確定は弁護士レビュー**）
-- ⬜ 🛠 レビュー反映（文言修正を `TERMS_DRAFT.md` / `PRIVACY_DRAFT.md` と `TermsContent`/`PrivacyContent` に反映）
+- ✅ 👤 弁護士による**利用規約・プライバシーポリシーのレビュー** — 実施済み
+      （依頼メモ [LEGAL_REVIEW_REQUEST.md](LEGAL_REVIEW_REQUEST.md)、回答と反映は [LEGAL_REVIEW_RESULT.md](LEGAL_REVIEW_RESULT.md)）
+- ✅ 👤 Supabase / Cloudflare の**越境移転の記載を確定** — 弁護士確認済み。Cloudflare は相当措置の
+      確認方法（DPA/SCC・公表情報の確認）をプライバシー §5 に明記
+- ✅ 🛠 レビュー反映 — 免責(故意・重過失の除外)/年齢(未満時のアカウント削除)/管轄(地裁・簡裁)/越境移転(確認方法) を
+      `TERMS_DRAFT.md`(v0.4) / `PRIVACY_DRAFT.md`(v0.3) と `TermsContent`/`PrivacyContent` に反映
 - ⏸ （有償機能を出す場合のみ）特定商取引法に基づく表記
 
 ### STEP 2 — 運用体制の確立（ワンオペ前提） 　👤 オーナー中心
