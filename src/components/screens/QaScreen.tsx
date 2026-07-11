@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useCreateQaQuestion, useQaQuestions } from "@/lib/queries/qa";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { EmptyState } from "../EmptyState";
 
 export function QaScreen() {
   const { back, nav, openQaQuestion } = useRouter();
@@ -26,6 +27,7 @@ export function QaScreen() {
 
   const real = configured ? questionsQuery.data : undefined;
   const questions = real ?? qaItems;
+  const isEmpty = Boolean(real) && questions.length === 0 && !asking;
 
   const handleAskClick = () => {
     if (configured && user) {
@@ -184,6 +186,31 @@ export function QaScreen() {
         </div>
       )}
 
+      {isEmpty && (
+        <EmptyState
+          icon="💡"
+          title="まだ質問がありません"
+          body="コスプレの悩みや準備のコツなど、最初の質問を投稿してみましょう。"
+          action={
+            <button
+              onClick={handleAskClick}
+              style={{
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "10px 20px",
+                borderRadius: 999,
+                cursor: "pointer",
+              }}
+            >
+              質問する
+            </button>
+          }
+        />
+      )}
       <div style={{ padding: "10px 22px 30px", display: "flex", flexDirection: "column", gap: 12 }}>
         {questions.map((q) => (
           <button

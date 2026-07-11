@@ -10,6 +10,7 @@ import { useAwaseFeed } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { EmptyState } from "../EmptyState";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
@@ -27,6 +28,7 @@ export function HomeScreen() {
   // Real feed once connected and loaded; the handoff's mock list otherwise —
   // same AwaseCard shape, so the card markup below never branches.
   const awaseList = configured && feed.data ? feed.data : homeAwase;
+  const feedEmpty = configured && feed.data?.length === 0;
 
   return (
     <div>
@@ -184,6 +186,31 @@ export function HomeScreen() {
             併せ・合わせ募集
           </SectionHeading>
         </div>
+        {feedEmpty && (
+          <EmptyState
+            icon="🎬"
+            title="まだ募集がありません"
+            body="いちばん乗りで併せを募集してみましょう。あなたの投稿がここに表示されます。"
+            action={
+              <button
+                onClick={() => nav("create")}
+                style={{
+                  border: "none",
+                  background: colors.primary,
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "10px 20px",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                }}
+              >
+                併せを募集する
+              </button>
+            }
+          />
+        )}
         <div
           style={{
             display: "flex",

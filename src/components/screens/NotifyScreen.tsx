@@ -9,6 +9,7 @@ import { ChevronLeftIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { EmptyState } from "../EmptyState";
 
 export function NotifyScreen() {
   const { back } = useRouter();
@@ -19,6 +20,7 @@ export function NotifyScreen() {
   // Real notifications once connected and loaded; the handoff's mock list
   // otherwise — same Notification shape either way.
   const notifications = configured && notifsQuery.data ? notifsQuery.data : mockNotifications;
+  const isEmpty = configured && notifsQuery.data?.length === 0;
 
   // Opening this screen clears the unread state (bell badge), same as reading a DM thread.
   useEffect(() => {
@@ -38,6 +40,13 @@ export function NotifyScreen() {
         </button>
         <div style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary }}>おしらせ</div>
       </div>
+      {isEmpty && (
+        <EmptyState
+          icon="🔔"
+          title="新しいおしらせはありません"
+          body="応募・メッセージ・フォローなどがあると、ここに通知が届きます。"
+        />
+      )}
       <div style={{ display: "flex", flexDirection: "column" }}>
         {notifications.map((n) => (
           <div

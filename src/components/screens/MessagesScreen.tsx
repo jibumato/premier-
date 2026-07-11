@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useConversations } from "@/lib/queries/messages";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { EmptyState } from "../EmptyState";
 
 export function MessagesScreen() {
   const { back, nav, openChat } = useRouter();
@@ -19,10 +20,36 @@ export function MessagesScreen() {
   // Real conversations once connected and loaded; the handoff's mock list
   // otherwise — same Conversation shape either way.
   const conversations = configured && convosQuery.data ? convosQuery.data : mockConversations;
+  const isEmpty = configured && convosQuery.data?.length === 0;
 
   return (
     <div>
       <AppBar title="メッセージ" onBack={back} />
+      {isEmpty && (
+        <EmptyState
+          icon="💬"
+          title="メッセージはまだありません"
+          body="併せに応募したり、募集の主催者に連絡すると、ここにやり取りが表示されます。"
+          action={
+            <button
+              onClick={() => nav("search", "search")}
+              style={{
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "10px 20px",
+                borderRadius: 999,
+                cursor: "pointer",
+              }}
+            >
+              併せを探す
+            </button>
+          }
+        />
+      )}
       <div style={{ display: "flex", flexDirection: "column" }}>
         {conversations.map((c) => (
           <button
