@@ -4,6 +4,7 @@ import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PrimaryButton } from "./ui";
+import { TermsContent } from "./TermsContent";
 
 type Mode = "signIn" | "signUp";
 
@@ -11,7 +12,8 @@ type Mode = "signIn" | "signUp";
  * Auth gate screen shown when Supabase is configured but no session exists.
  * Not part of the screen router (no back-stack): AuthGate swaps it in/out
  * purely based on auth state, so a successful sign-in/up simply reveals the
- * app underneath once onAuthStateChange fires.
+ * app underneath once onAuthStateChange fires. Because it lives outside the
+ * router, the terms are shown via an in-screen overlay rather than nav().
  */
 export function LoginScreen() {
   const [mode, setMode] = useState<Mode>("signIn");
@@ -20,11 +22,17 @@ export function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedUpNotice, setSignedUpNotice] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const submit = async () => {
     setError(null);
     if (!email.trim() || !password) {
       setError("メールアドレスとパスワードを入力してください");
+      return;
+    }
+    if (mode === "signUp" && !agreed) {
+      setError("利用規約・ガイドラインへの同意が必要です");
       return;
     }
     setSubmitting(true);
@@ -46,7 +54,7 @@ export function LoginScreen() {
   };
 
   return (
-    <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
       <div style={{ padding: "70px 26px 0" }}>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: ".06em", color: colors.textPrimary }}>
           プルミエ<span style={{ color: colors.pink }}>！</span>
@@ -128,8 +136,38 @@ export function LoginScreen() {
         )}
       </div>
 
-      <div style={{ padding: "22px 22px 0" }}>
-        <PrimaryButton onClick={submit} style={submitting ? { opacity: 0.6, cursor: "not-allowed" } : undefined}>
+      {mode === "signUp" && (
+        <div style={{ padding: "18px 22px 0" }}>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              style={{ marginTop: 2, width: 16, height: 16, accentColor: colors.primary, flex: "0 0 auto" }}
+            />
+            <span style={{ fontSize: 12, lineHeight: 1.7, color: colors.textSecondary }}>
+              <button
+                type="button"
+                onClick={() => setShowTerms(true)}
+                style={{ background: "none", border: "none", padding: 0, color: colors.primary, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}
+              >
+                利用規約・ガイドライン
+              </button>
+              に同意します
+            </span>
+          </label>
+        </div>
+      )}
+
+      <div style={{ padding: "16px 22px 0" }}>
+        <PrimaryButton
+          onClick={submit}
+          style={
+            submitting || (mode === "signUp" && !agreed)
+              ? { opacity: 0.6, cursor: "not-allowed" }
+              : undefined
+          }
+        >
           {submitting ? "処理中…" : mode === "signIn" ? "ログイン" : "アカウントを作成"}
         </PrimaryButton>
       </div>
@@ -140,12 +178,59 @@ export function LoginScreen() {
             setMode((m) => (m === "signIn" ? "signUp" : "signIn"));
             setError(null);
             setSignedUpNotice(false);
+            setAgreed(false);
           }}
           style={{ background: "none", border: "none", fontFamily: "inherit", fontSize: 12.5, color: colors.textMutedAlt, cursor: "pointer" }}
         >
           {mode === "signIn" ? "アカウントをお持ちでない方はこちら" : "すでにアカウントをお持ちの方はこちら"}
         </button>
       </div>
+
+      {/* terms overlay — LoginScreen lives outside the router, so the terms are
+          shown here instead of via nav("terms") */}
+      {showTerms && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: colors.white,
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 10,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 18px",
+              borderBottom: `1px solid ${colors.borderSofter}`,
+            }}
+          >
+            <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>利用規約・ガイドライン</span>
+            <button
+              onClick={() => setShowTerms(false)}
+              style={{ background: "none", border: "none", fontSize: 13, fontWeight: 700, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              閉じる
+            </button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "12px 22px 24px" }}>
+            <TermsContent />
+          </div>
+          <div style={{ padding: "12px 22px", borderTop: `1px solid ${colors.borderSofter}` }}>
+            <PrimaryButton
+              onClick={() => {
+                setAgreed(true);
+                setShowTerms(false);
+              }}
+            >
+              同意して閉じる
+            </PrimaryButton>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
