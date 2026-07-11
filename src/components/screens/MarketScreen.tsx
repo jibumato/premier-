@@ -9,6 +9,7 @@ import { AppBar } from "../ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useWorks } from "@/lib/queries/works";
 import { useCreateMarketItem, useMarketItems } from "@/lib/queries/market";
+import { useModerationFilter } from "@/lib/queries/moderation";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -28,7 +29,8 @@ export function MarketScreen() {
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
-  const itemsQuery = useMarketItems();
+  const moderation = useModerationFilter(user?.id);
+  const itemsQuery = useMarketItems(moderation.data);
   const worksQuery = useWorks();
   const createItem = useCreateMarketItem();
   const uploadImage = useUploadImage();

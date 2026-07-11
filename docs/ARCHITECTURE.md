@@ -240,12 +240,13 @@ ad_placements(id, advertiser_id, kind, target_scope, -- studio/event/maker
 
 ---
 
-## 8. 金銭まわり（初期リリースは非実装）
+## 8. 金銭まわり（投げ銭・金銭仲介）
 
-- 応援ギフト（コイン）・出金・KYC を伴う金銭仲介は**当面実装しない**。
-- 現行プロフィールの「応援ギフト」UI は将来機能のプレースホルダとして残し、
-  初期は `support_links`（外部サービス誘導）のみを稼働。
-- スキーマ上は `coins/gifts/payouts` の定義だけ用意し、フラグで無効化。
+- 詳細設計は **[MONETIZATION.md](MONETIZATION.md)** に分離。
+- 初期リリースは外部リンク誘導（Fantia/FANBOX/Skeb）のみ稼働（実装済み）。
+- アプリ内の投げ銭は **Stripe Connect による直接支援（都度課金）** を推奨（コイン残高を
+  持たず前払式支払手段を回避、出金の本人確認は Stripe に委任、Web 配信でアプリストア手数料を回避）。
+- ブロッカーは技術ではなく **手数料率・法務レビュー・タイミングの判断**。着手条件は MONETIZATION.md §7。
 
 ---
 

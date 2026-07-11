@@ -7,13 +7,15 @@ import { ImageSlot } from "../ImageSlot";
 import { AppBar } from "../ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useConversations } from "@/lib/queries/messages";
+import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function MessagesScreen() {
   const { back, nav, openChat } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
-  const convosQuery = useConversations(user?.id);
+  const moderation = useModerationFilter(user?.id);
+  const convosQuery = useConversations(user?.id, moderation.data?.blockedUserIds);
   // Real conversations once connected and loaded; the handoff's mock list
   // otherwise — same Conversation shape either way.
   const conversations = configured && convosQuery.data ? convosQuery.data : mockConversations;

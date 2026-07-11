@@ -34,25 +34,39 @@ export interface QaAnswerRow {
   likedByMe: boolean;
 }
 
-/** Question list (知恵袋 top screen), newest first with answer counts. */
-export function useQaQuestions() {
+/** Blocked authors + auto-hidden questions to keep out of the list (Phase 5). */
+export interface QaFilter {
+  blockedUserIds: string[];
+  hiddenQaIds: string[];
+}
+
+/** Question list (知恵袋 top screen), newest first with answer counts.
+ * Blocked authors' questions and auto-hidden questions are filtered out when
+ * a viewer's filter is supplied. */
+export function useQaQuestions(filter?: QaFilter) {
   return useQuery({
-    queryKey: ["qa_questions"],
+    queryKey: ["qa_questions", filter?.blockedUserIds ?? [], filter?.hiddenQaIds ?? []],
     enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<QaQuestionListItem[]> => {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("qa_questions")
-        .select("id, title, body, tag, qa_answers(count)")
+        .select("id, author_id, title, body, tag, qa_answers(count)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const rows = (data ?? []) as unknown as {
+      let rows = (data ?? []) as unknown as {
         id: string;
+        author_id: string;
         title: string;
         body: string;
         tag: string;
         qa_answers: { count: number }[];
       }[];
+      if (filter) {
+        const blocked = new Set(filter.blockedUserIds);
+        const hidden = new Set(filter.hiddenQaIds);
+        rows = rows.filter((r) => !blocked.has(r.author_id) && !hidden.has(r.id));
+      }
       const ids = rows.map((r) => r.id);
       let solvedIds = new Set<string>();
       if (ids.length > 0) {
@@ -112,10 +126,15 @@ export function useQaQuestion(questionId: string | null) {
   });
 }
 
-/** Answers to a question, with like counts and whether the current user liked each. */
-export function useQaAnswers(questionId: string | null, currentUserId: string | undefined) {
+/** Answers to a question, with like counts and whether the current user liked
+ * each. Blocked users' answers are filtered out when `blockedUserIds` is given. */
+export function useQaAnswers(
+  questionId: string | null,
+  currentUserId: string | undefined,
+  blockedUserIds?: string[],
+) {
   return useQuery({
-    queryKey: ["qa_answers", questionId],
+    queryKey: ["qa_answers", questionId, blockedUserIds ?? []],
     enabled: isSupabaseConfigured() && Boolean(questionId),
     queryFn: async (): Promise<QaAnswerRow[]> => {
       const supabase = getSupabaseBrowserClient();
@@ -125,13 +144,17 @@ export function useQaAnswers(questionId: string | null, currentUserId: string | 
         .eq("question_id", questionId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      const rows = (answers ?? []) as unknown as {
+      let rows = (answers ?? []) as unknown as {
         id: string;
         author_id: string;
         body: string;
         is_best: boolean;
         profiles: { display_name: string } | null;
       }[];
+      if (blockedUserIds?.length) {
+        const blocked = new Set(blockedUserIds);
+        rows = rows.filter((r) => !blocked.has(r.author_id));
+      }
       const ids = rows.map((r) => r.id);
       if (ids.length === 0) return [];
 
