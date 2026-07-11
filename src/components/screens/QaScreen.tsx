@@ -8,6 +8,7 @@ import { AppBar } from "../ui";
 import { MessageIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useCreateQaQuestion, useQaQuestions } from "@/lib/queries/qa";
+import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function QaScreen() {
@@ -15,7 +16,8 @@ export function QaScreen() {
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
-  const questionsQuery = useQaQuestions();
+  const moderation = useModerationFilter(user?.id);
+  const questionsQuery = useQaQuestions(moderation.data);
   const createQuestion = useCreateQaQuestion();
   const [asking, setAsking] = useState(false);
   const [title, setTitle] = useState("");

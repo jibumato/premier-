@@ -33,20 +33,28 @@ export interface MarketItemDetail {
 
 const yen = (n: number) => `¥${n.toLocaleString()}`;
 
-/** Marketplace listing grid, newest first. */
-export function useMarketItems() {
+/** Blocked sellers + auto-hidden listings to keep out of the grid (Phase 5). */
+export interface MarketFilter {
+  blockedUserIds: string[];
+  hiddenMarketIds: string[];
+}
+
+/** Marketplace listing grid, newest first. Blocked sellers' items and
+ * auto-hidden listings are filtered out when a viewer's filter is supplied. */
+export function useMarketItems(filter?: MarketFilter) {
   return useQuery({
-    queryKey: ["market_items"],
+    queryKey: ["market_items", filter?.blockedUserIds ?? [], filter?.hiddenMarketIds ?? []],
     enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<MarketListItem[]> => {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("market_items")
-        .select("id, title, price, size, item_condition, status, image_url, works(name)")
+        .select("id, seller_id, title, price, size, item_condition, status, image_url, works(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const rows = (data ?? []) as unknown as {
+      let rows = (data ?? []) as unknown as {
         id: string;
+        seller_id: string;
         title: string;
         price: number;
         size: string;
@@ -55,6 +63,11 @@ export function useMarketItems() {
         image_url: string | null;
         works: { name: string } | null;
       }[];
+      if (filter) {
+        const blocked = new Set(filter.blockedUserIds);
+        const hidden = new Set(filter.hiddenMarketIds);
+        rows = rows.filter((r) => !blocked.has(r.seller_id) && !hidden.has(r.id));
+      }
       return rows.map((r) => ({
         key: r.id,
         title: r.title,

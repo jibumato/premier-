@@ -52,26 +52,38 @@ export function useBlockUser() {
   });
 }
 
+export interface ModerationFilter {
+  blockedUserIds: string[];
+  hiddenAwaseIds: string[];
+  hiddenMarketIds: string[];
+  hiddenQaIds: string[];
+}
+
 /**
  * IDs the viewer should not see: users they've blocked, plus content the
- * report-threshold trigger has auto-hidden. Used by the awase feed to filter
- * blocked hosts and flagged 併せ. Returns empty sets when unconfigured/signed out.
+ * report-threshold trigger has auto-hidden. Applied across the awase feed,
+ * marketplace, Q&A, and message list to filter blocked users and flagged
+ * content. Returns empty sets when unconfigured/signed out.
  */
 export function useModerationFilter(viewerId: string | undefined) {
   return useQuery({
     queryKey: ["moderation_filter", viewerId],
     enabled: isSupabaseConfigured() && Boolean(viewerId),
-    queryFn: async (): Promise<{ blockedUserIds: string[]; hiddenAwaseIds: string[] }> => {
+    queryFn: async (): Promise<ModerationFilter> => {
       const supabase = getSupabaseBrowserClient();
       const [{ data: blocks, error: blocksErr }, { data: flags, error: flagsErr }] = await Promise.all([
         supabase.from("blocks").select("blocked_id").eq("blocker_id", viewerId!),
-        supabase.from("content_flags").select("target_id").eq("target_type", "awase").eq("auto_hidden", true),
+        supabase.from("content_flags").select("target_type, target_id").eq("auto_hidden", true),
       ]);
       if (blocksErr) throw blocksErr;
       if (flagsErr) throw flagsErr;
+      const flagsFor = (type: string) =>
+        (flags ?? []).filter((f) => f.target_type === type).map((f) => f.target_id as string);
       return {
         blockedUserIds: (blocks ?? []).map((b) => b.blocked_id as string),
-        hiddenAwaseIds: (flags ?? []).map((f) => f.target_id as string),
+        hiddenAwaseIds: flagsFor("awase"),
+        hiddenMarketIds: flagsFor("market"),
+        hiddenQaIds: flagsFor("qa"),
       };
     },
   });

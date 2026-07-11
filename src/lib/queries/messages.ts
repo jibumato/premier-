@@ -15,10 +15,11 @@ export interface MessageRow {
   created_at: string;
 }
 
-/** Conversation list for the current user (messages screen). */
-export function useConversations(userId: string | undefined) {
+/** Conversation list for the current user (messages screen). Conversations
+ * whose other participant the viewer has blocked are filtered out (Phase 5). */
+export function useConversations(userId: string | undefined, blockedUserIds?: string[]) {
   return useQuery({
-    queryKey: ["conversations", userId],
+    queryKey: ["conversations", userId, blockedUserIds ?? []],
     enabled: isSupabaseConfigured() && Boolean(userId),
     queryFn: async (): Promise<Conversation[]> => {
       const supabase = getSupabaseBrowserClient();
@@ -28,13 +29,13 @@ export function useConversations(userId: string | undefined) {
         .select("conversation_id, last_read_at")
         .eq("user_id", userId!);
       if (mineErr) throw mineErr;
-      const ids = (mine ?? []).map((r) => r.conversation_id as string);
+      let ids = (mine ?? []).map((r) => r.conversation_id as string);
       if (ids.length === 0) return [];
 
       const [{ data: others, error: othersErr }, { data: msgs, error: msgErr }] = await Promise.all([
         supabase
           .from("conversation_members")
-          .select("conversation_id, profiles(display_name)")
+          .select("conversation_id, user_id, profiles(display_name)")
           .in("conversation_id", ids)
           .neq("user_id", userId!),
         supabase
@@ -46,12 +47,24 @@ export function useConversations(userId: string | undefined) {
       if (othersErr) throw othersErr;
       if (msgErr) throw msgErr;
 
+      const otherRows = (others ?? []) as unknown as {
+        conversation_id: string;
+        user_id: string;
+        profiles: { display_name: string } | null;
+      }[];
+
+      // Drop conversations whose other participant is blocked.
+      if (blockedUserIds?.length) {
+        const blocked = new Set(blockedUserIds);
+        const blockedConvos = new Set(
+          otherRows.filter((r) => blocked.has(r.user_id)).map((r) => r.conversation_id),
+        );
+        ids = ids.filter((id) => !blockedConvos.has(id));
+        if (ids.length === 0) return [];
+      }
+
       const lastReadMap = new Map((mine ?? []).map((r) => [r.conversation_id as string, r.last_read_at as string]));
-      const otherNameMap = new Map(
-        ((others ?? []) as unknown as { conversation_id: string; profiles: { display_name: string } | null }[]).map(
-          (r) => [r.conversation_id, r.profiles?.display_name ?? "不明"],
-        ),
-      );
+      const otherNameMap = new Map(otherRows.map((r) => [r.conversation_id, r.profiles?.display_name ?? "不明"]));
       const lastMsgMap = new Map<string, { body: string; created_at: string }>();
       for (const m of (msgs ?? []) as { conversation_id: string; body: string; created_at: string }[]) {
         if (!lastMsgMap.has(m.conversation_id)) lastMsgMap.set(m.conversation_id, m);

@@ -13,6 +13,7 @@ import {
   useQaQuestion,
   useToggleQaLike,
 } from "@/lib/queries/qa";
+import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 interface Answer {
@@ -52,8 +53,9 @@ export function QaDetailScreen() {
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
+  const moderation = useModerationFilter(user?.id);
   const questionQuery = useQaQuestion(selectedQaQuestionId);
-  const answersQuery = useQaAnswers(selectedQaQuestionId, user?.id);
+  const answersQuery = useQaAnswers(selectedQaQuestionId, user?.id, moderation.data?.blockedUserIds);
   const createAnswer = useCreateQaAnswer();
   const toggleLike = useToggleQaLike();
   const markBest = useMarkBestAnswer();
