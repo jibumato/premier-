@@ -100,7 +100,9 @@ export function PrivacyContent() {
 
       <p style={{ margin: "24px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
         本ポリシーは予告なく改定される場合があります。重要な変更はサービス内でお知らせします。
-        個人情報の取扱いに関するお問い合わせは、運営の窓口までご連絡ください。
+      </p>
+      <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
+        事業者: Type&Co（屋号）　個人情報の取扱いに関するお問い合わせ: 16typeandco@gmail.com
       </p>
     </div>
   );

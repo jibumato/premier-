@@ -89,6 +89,9 @@ export function TermsContent() {
         本ガイドラインは予告なく改定される場合があります。重要な変更はサービス内でお知らせします。
         困ったときは通報・ブロックをご利用ください。
       </p>
+      <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
+        運営者: Type&Co（屋号）　お問い合わせ: 16typeandco@gmail.com
+      </p>
     </div>
   );
 }
