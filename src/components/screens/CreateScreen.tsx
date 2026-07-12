@@ -57,6 +57,10 @@ export function CreateScreen() {
   const [womenOnly, setWomenOnly] = useState(true);
   const [beginnerOk, setBeginnerOk] = useState(false);
   const [worldTags, setWorldTags] = useState<string[]>([]);
+  const [place, setPlace] = useState("");
+  const [feeText, setFeeText] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
@@ -89,6 +93,7 @@ export function CreateScreen() {
     if (configured && user) {
       setSubmitting(true);
       try {
+        const cap = capacity.trim() ? Number(capacity) : null;
         await createAwase.mutateAsync({
           hostId: user.id,
           title: title.trim(),
@@ -98,6 +103,10 @@ export function CreateScreen() {
           womenOnly,
           beginnerOk,
           worldTags,
+          place: place.trim() || null,
+          feeText: feeText.trim() || null,
+          body: body.trim() || null,
+          capacity: cap != null && Number.isFinite(cap) && cap > 0 ? cap : null,
           imageKeys: images.map((img) => img.key),
         });
         nav("created");
@@ -236,6 +245,49 @@ export function CreateScreen() {
               ))}
             </select>
           </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={label}>場所</label>
+            <input
+              style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}
+              value={place}
+              onChange={(e) => setPlace(e.target.value)}
+              placeholder="例：都内スタジオ"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={label}>募集人数（定員）</label>
+            <input
+              style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value.replace(/[^0-9]/g, ""))}
+              inputMode="numeric"
+              placeholder="例：6"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label style={label}>費用</label>
+          <input
+            style={inputBox}
+            value={feeText}
+            onChange={(e) => setFeeText(e.target.value)}
+            placeholder="例：スタジオ代 割り勘"
+          />
+        </div>
+
+        <div>
+          <label style={label}>募集内容</label>
+          <textarea
+            style={{ ...inputBox, lineHeight: 1.7, resize: "none" }}
+            rows={4}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="どんな併せか、集合・進行・雰囲気、参加条件など"
+          />
         </div>
 
         {/* world tags — tap to select (saved with the 併せ) */}

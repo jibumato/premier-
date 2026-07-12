@@ -261,6 +261,10 @@ interface CreateAwaseInput {
   beginnerOk: boolean;
   /** World-view/atmosphere tags selected on the create form. */
   worldTags?: string[];
+  place?: string | null;
+  feeText?: string | null;
+  body?: string | null;
+  capacity?: number | null;
   /** R2 object keys from useUploadImage, in display order. */
   imageKeys?: string[];
 }
@@ -282,6 +286,10 @@ export function useCreateAwase() {
           women_only: input.womenOnly,
           beginner_ok: input.beginnerOk,
           world_tags: input.worldTags ?? [],
+          place: input.place ?? null,
+          fee_text: input.feeText ?? null,
+          body: input.body ?? null,
+          capacity: input.capacity ?? null,
         })
         .select("id")
         .single();
