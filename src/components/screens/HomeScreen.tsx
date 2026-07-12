@@ -1,12 +1,13 @@
 "use client";
 
 import { colors } from "@/lib/tokens";
-import { homeAwase, homePosts, popularWorks, siteTagline } from "@/lib/data";
+import { events as mockEvents, homeAwase, homePosts, popularWorks, siteTagline } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
+import { BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, SearchIcon } from "../icons";
 import { useAwaseFeed } from "@/lib/queries/awase";
+import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAnnouncements } from "@/lib/queries/announcements";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -26,7 +27,7 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function HomeScreen() {
-  const { nav, openAwase } = useRouter();
+  const { nav, openAwase, openEvent } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   const moderation = useModerationFilter(user?.id);
@@ -38,6 +39,11 @@ export function HomeScreen() {
   const announcementsQuery = useAnnouncements();
   const announcementList = configured && announcementsQuery.data ? announcementsQuery.data : mockAnnouncements;
   const latestAnnouncement = announcementList[0];
+  // Nearest events (curated calendar is stored in chronological order). Show a
+  // few on the home top so upcoming events are visible at a glance.
+  const eventsQuery = useEvents();
+  const eventsReal = configured && eventsQuery.data ? eventsQuery.data : undefined;
+  const homeEvents = (eventsReal ?? mockEvents).slice(0, 3);
 
   return (
     <div>
@@ -389,6 +395,74 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
+
+      {/* upcoming events — a few from the curated calendar */}
+      {homeEvents.length > 0 && (
+        <div style={{ padding: "26px 0 0" }}>
+          <div style={{ padding: "0 22px" }}>
+            <SectionHeading
+              accent={colors.primary}
+              right={
+                <button
+                  onClick={() => nav("events")}
+                  style={{ background: "none", border: "none", fontSize: 12, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  すべて見る →
+                </button>
+              }
+            >
+              近日開催のイベント
+            </SectionHeading>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px 22px 0" }}>
+            {homeEvents.map((ev) => (
+              <button
+                key={ev.key}
+                onClick={() => (eventsReal ? openEvent(ev.key) : nav("eventDetail"))}
+                style={{
+                  display: "flex",
+                  gap: 13,
+                  alignItems: "center",
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 16,
+                  padding: 13,
+                  background: colors.white,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                  width: "100%",
+                }}
+              >
+                <div
+                  style={{
+                    flex: "0 0 54px",
+                    height: 54,
+                    borderRadius: 13,
+                    background: "linear-gradient(155deg,#F2EDFB,#F7EEF6)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: colors.primary,
+                  }}
+                >
+                  <CalendarIcon size={16} />
+                  <span style={{ fontSize: 9.5, fontWeight: 700, marginTop: 2 }}>{ev.date.split("(")[0]}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.name}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 11, color: "#877FA0" }}>
+                    <PinIcon />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.venue}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* posts — 実投稿フィード未接続のため本番(configured)では非表示。
           プロトタイプ表示用にモックのみ残す。実装時にここを実データへ差し替える。 */}
