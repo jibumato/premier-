@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
@@ -15,7 +16,7 @@ import {
   type ApplicationStatus,
   type Applicant,
 } from "@/lib/queries/awase";
-import { useGetOrCreateConversation } from "@/lib/queries/messages";
+import { useGetOrCreateConversation, useSendMessage } from "@/lib/queries/messages";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /** Mock applicants so the screen is meaningful in prototype/mock mode. */
@@ -44,6 +45,7 @@ export function HostApplicantsScreen() {
   const updateStatus = useUpdateApplicationStatus();
   const setAwaseStatus = useSetAwaseStatus();
   const getOrCreateConversation = useGetOrCreateConversation();
+  const sendMessage = useSendMessage();
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
   const applicants = real ? (applicantsQuery.data ?? []) : mockApplicants;
@@ -52,7 +54,14 @@ export function HostApplicantsScreen() {
   const capacity = real ? real.capacity : 6;
   const accepted = real ? (countQuery.data?.accepted ?? 0) : mockApplicants.filter((a) => a.status === "accepted").length;
   const isClosed = real ? real.status === "closed" : false;
+  const acceptWaitlist = real ? real.accept_waitlist : false;
   const isFull = capacity != null && accepted >= capacity;
+  const acceptedList = applicants.filter((a) => a.status === "accepted");
+
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastSending, setBroadcastSending] = useState(false);
+  const [broadcastDone, setBroadcastDone] = useState<number | null>(null);
 
   const setStatus = (a: Applicant, status: ApplicationStatus) => {
     if (!real) return;
@@ -69,6 +78,40 @@ export function HostApplicantsScreen() {
         { onSuccess: (conversationId) => openChat(conversationId) },
       );
     }
+  };
+
+  const insertReminder = () => {
+    if (!real) return;
+    setBroadcastText(
+      `【${title}】のリマインダーです。\n日程：${real.event_date}${real.place ? `\n場所：${real.place}` : ""}\n当日はよろしくお願いします！ご不明点があればこのメッセージに返信してください。`,
+    );
+  };
+  const sendBroadcast = async () => {
+    if (!real || !user || !broadcastText.trim() || acceptedList.length === 0) return;
+    setBroadcastSending(true);
+    setBroadcastDone(null);
+    let sent = 0;
+    for (const a of acceptedList) {
+      try {
+        const conversationId = await getOrCreateConversation.mutateAsync({
+          userId: user.id,
+          otherUserId: a.applicantId,
+          awaseId: real.id,
+        });
+        await sendMessage.mutateAsync({ conversationId, senderId: user.id, body: broadcastText.trim() });
+        sent += 1;
+      } catch {
+        // 1件失敗しても残りは続行（送れた数を最後に表示）
+      }
+    }
+    setBroadcastSending(false);
+    setBroadcastDone(sent);
+    setBroadcastText("");
+  };
+  const closeBroadcast = () => {
+    if (broadcastSending) return;
+    setBroadcastOpen(false);
+    setBroadcastDone(null);
   };
 
   return (
@@ -117,38 +160,59 @@ export function HostApplicantsScreen() {
               whiteSpace: "nowrap",
             }}
           >
-            {isClosed ? "募集締切" : isFull ? "満員" : "募集中"}
+            {isClosed ? "募集締切" : isFull ? (acceptWaitlist ? "満員・キャンセル待ち" : "満員") : "募集中"}
           </span>
         </div>
 
-        {real && (
-          <button
-            onClick={toggleRecruit}
-            disabled={setAwaseStatus.isPending}
-            style={{
-              width: "100%",
-              marginTop: 10,
-              border: `1px solid ${colors.border}`,
-              background: colors.white,
-              color: isClosed ? colors.primary : colors.textSecondary,
-              fontFamily: "inherit",
-              fontSize: 12.5,
-              fontWeight: 700,
-              padding: "11px 0",
-              borderRadius: 12,
-              cursor: setAwaseStatus.isPending ? "default" : "pointer",
-            }}
-          >
-            {setAwaseStatus.isPending
-              ? "更新中…"
-              : isClosed
-                ? "募集を再開する"
-                : "募集を締め切る"}
-          </button>
-        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          {real && acceptedList.length > 0 && (
+            <button
+              onClick={() => {
+                setBroadcastOpen(true);
+                setBroadcastDone(null);
+              }}
+              style={{
+                flex: 1,
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                fontWeight: 700,
+                padding: "11px 0",
+                borderRadius: 12,
+                cursor: "pointer",
+              }}
+            >
+              承認者に一斉連絡（{acceptedList.length}名）
+            </button>
+          )}
+          {real && (
+            <button
+              onClick={toggleRecruit}
+              disabled={setAwaseStatus.isPending}
+              style={{
+                flex: 1,
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                color: isClosed ? colors.primary : colors.textSecondary,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                fontWeight: 700,
+                padding: "11px 0",
+                borderRadius: 12,
+                cursor: setAwaseStatus.isPending ? "default" : "pointer",
+              }}
+            >
+              {setAwaseStatus.isPending ? "更新中…" : isClosed ? "募集を再開する" : "募集を締め切る"}
+            </button>
+          )}
+        </div>
         {isFull && !isClosed && (
           <p style={{ margin: "8px 2px 0", fontSize: 11, color: colors.textMutedAlt, lineHeight: 1.6 }}>
-            定員に達すると自動で締め切られます。追加募集する場合は定員を増やしてください。
+            {acceptWaitlist
+              ? "満員です。以降の応募はキャンセル待ちとして受け付けています。空きが出たら承認して繰り上げできます。"
+              : "定員に達すると自動で締め切られます。追加募集する場合は定員を増やしてください。"}
           </p>
         )}
       </div>
@@ -168,7 +232,11 @@ export function HostApplicantsScreen() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
             {applicants.map((a) => {
-              const chip = statusChip[a.status];
+              // 満員でキャンセル待ち受付中の「応募中」は、キャンセル待ちとして見せる
+              const chip =
+                a.status === "applied" && isFull && acceptWaitlist
+                  ? { label: "キャンセル待ち", color: colors.pinkText, bg: colors.pinkBg1 }
+                  : statusChip[a.status];
               return (
                 <div
                   key={a.id}
@@ -253,6 +321,111 @@ export function HostApplicantsScreen() {
           </div>
         )}
       </div>
+
+      {/* broadcast composer — send one message to every accepted applicant */}
+      {broadcastOpen && (
+        <div
+          onClick={closeBroadcast}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 90,
+            background: "rgba(20,14,28,.5)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 560,
+              background: colors.white,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: "20px 20px 26px",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, color: colors.textPrimary }}>承認者に一斉連絡</div>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: colors.textMutedAlt, lineHeight: 1.7 }}>
+              承認済みの{acceptedList.length}名に、同じ内容のメッセージを個別に送信します（グループではなく1対1のDMです）。
+            </p>
+
+            {broadcastDone != null ? (
+              <div style={{ marginTop: 18, textAlign: "center" }}>
+                <div style={{ fontSize: 34 }}>✅</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, marginTop: 6 }}>
+                  {broadcastDone}名に送信しました
+                </div>
+                <button
+                  onClick={closeBroadcast}
+                  style={{ marginTop: 16, width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13, fontWeight: 700, padding: "12px 0", borderRadius: 12, cursor: "pointer" }}
+                >
+                  閉じる
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={insertReminder}
+                  style={{ marginTop: 14, border: `1px solid ${colors.border}`, background: colors.white, color: colors.primary, fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 999, cursor: "pointer" }}
+                >
+                  リマインダー文を挿入
+                </button>
+                <textarea
+                  value={broadcastText}
+                  onChange={(e) => setBroadcastText(e.target.value)}
+                  rows={5}
+                  placeholder="集合時間・場所・持ち物などの連絡事項を入力"
+                  style={{
+                    width: "100%",
+                    marginTop: 10,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 12,
+                    padding: "12px 13px",
+                    fontSize: 13.5,
+                    fontFamily: "inherit",
+                    color: colors.textPrimary,
+                    lineHeight: 1.7,
+                    resize: "none",
+                    outline: "none",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                  <button
+                    onClick={closeBroadcast}
+                    disabled={broadcastSending}
+                    style={{ flex: 1, border: `1px solid ${colors.border}`, background: colors.white, color: colors.textSecondary, fontFamily: "inherit", fontSize: 13, fontWeight: 600, padding: "12px 0", borderRadius: 12, cursor: broadcastSending ? "default" : "pointer" }}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={sendBroadcast}
+                    disabled={!broadcastText.trim() || broadcastSending}
+                    style={{
+                      flex: 2,
+                      border: "none",
+                      background: colors.primary,
+                      color: colors.white,
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      padding: "12px 0",
+                      borderRadius: 12,
+                      cursor: broadcastText.trim() && !broadcastSending ? "pointer" : "default",
+                      opacity: broadcastText.trim() && !broadcastSending ? 1 : 0.5,
+                    }}
+                  >
+                    {broadcastSending ? "送信中…" : `${acceptedList.length}名に送信`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
