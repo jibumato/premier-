@@ -6,7 +6,7 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, SearchIcon } from "../icons";
-import { useAwaseFeed } from "@/lib/queries/awase";
+import { useAwaseFeed, useBeginnerAwase } from "@/lib/queries/awase";
 import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAnnouncements } from "@/lib/queries/announcements";
@@ -17,6 +17,8 @@ import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
 import { WelcomeBanner } from "../WelcomeBanner";
 import { WorkCover } from "../WorkCover";
+import { StarterGuide } from "../StarterGuide";
+import { SafetySection } from "../SafetySection";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
@@ -45,6 +47,11 @@ export function HomeScreen() {
   const eventsQuery = useEvents();
   const eventsReal = configured && eventsQuery.data ? eventsQuery.data : undefined;
   const homeEvents = (eventsReal ?? mockEvents).slice(0, 3);
+  // 「はじめてさん歓迎」= 初心者歓迎(beginner_ok)の併せ。未接続時はモックから代替。
+  const beginnerQuery = useBeginnerAwase(moderation.data);
+  const beginnerReal = configured && beginnerQuery.data ? beginnerQuery.data : undefined;
+  const beginnerFromMock = homeAwase.filter((a) => a.tag.includes("初心者"));
+  const beginnerList = beginnerReal ?? (beginnerFromMock.length ? beginnerFromMock : homeAwase.slice(0, 4));
 
   return (
     <div>
@@ -118,6 +125,9 @@ export function HomeScreen() {
 
       {/* welcome banner — first-visit greeting, dismissible */}
       <WelcomeBanner />
+
+      {/* はじめてガイド（3ステップ進捗）— 準備が整うと自動で消える */}
+      <StarterGuide />
 
       {/* search entry */}
       <div style={{ padding: "12px 22px 0" }}>
@@ -262,6 +272,61 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
+
+      {/* はじめてさん歓迎レーン — 初心者歓迎の併せを横並びで */}
+      {beginnerList.length > 0 && (
+        <div style={{ padding: "26px 0 0" }}>
+          <div style={{ padding: "0 22px", display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ fontSize: 15 }}>🔰</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>はじめてさん歓迎の募集</span>
+          </div>
+          <div className="noscroll" style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 22px 0" }}>
+            {beginnerList.map((a) => (
+              <button
+                key={a.key}
+                onClick={() => (beginnerReal ? openAwase(a.key) : nav("detail"))}
+                style={{
+                  flex: "0 0 auto",
+                  width: 210,
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 16,
+                  padding: 10,
+                  background: colors.white,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                }}
+              >
+                <div style={{ height: 96, position: "relative" }}>
+                  <ImageSlot radius={12} src={a.coverUrl ?? undefined} />
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 8,
+                      top: 8,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: colors.white,
+                      background: "rgba(109,93,171,.92)",
+                      padding: "3px 9px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    初心者歓迎
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, marginTop: 9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {a.title}
+                </div>
+                <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {a.work}
+                </div>
+                <div style={{ fontSize: 11, color: colors.textSecondaryAlt, marginTop: 6 }}>{a.date}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 併せ募集 */}
       <div style={{ padding: "26px 0 0" }}>
@@ -462,6 +527,9 @@ export function HomeScreen() {
           </div>
         </div>
       )}
+
+      {/* 安心して参加できる仕組み — 実装済みの安全機能を新規ユーザーに一枚で伝える */}
+      <SafetySection />
 
       {/* posts — 実投稿フィード未接続のため本番(configured)では非表示。
           プロトタイプ表示用にモックのみ残す。実装時にここを実データへ差し替える。 */}
