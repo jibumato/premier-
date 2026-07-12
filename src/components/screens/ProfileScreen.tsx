@@ -151,9 +151,9 @@ export function ProfileScreen() {
     );
   };
 
-  const handleDeletePost = (id: string) => {
+  const handleDeletePost = (id: string, imageUrl: string | null) => {
     if (!user) return;
-    deletePost.mutate({ id, authorId: user.id });
+    deletePost.mutate({ id, authorId: user.id, imageUrl });
   };
   const handleMovePost = (index: number, dir: -1 | 1) => {
     if (!user || !posts) return;
@@ -718,7 +718,7 @@ export function ProfileScreen() {
                     <>
                       <ImageSlot radius={12} src={p.image_url} />
                       <button
-                        onClick={() => handleDeletePost(p.id)}
+                        onClick={() => handleDeletePost(p.id, p.image_url)}
                         aria-label="削除"
                         style={{
                           position: "absolute",

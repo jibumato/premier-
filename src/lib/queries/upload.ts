@@ -33,3 +33,22 @@ export function useUploadImage() {
     },
   });
 }
+
+/**
+ * Best-effort delete of an uploaded image's underlying R2 object, given its
+ * public URL. Derives the object key by stripping the configured public base,
+ * then calls `DELETE /api/upload` (which enforces owner-only deletion). Silently
+ * no-ops for non-R2 URLs or when the bucket isn't wired — callers still delete
+ * the DB row regardless, so a failed file cleanup never blocks the delete.
+ */
+export async function deleteUploadedImage(url: string | null | undefined): Promise<void> {
+  if (!url) return;
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/+$/, "");
+  if (!base || !url.startsWith(`${base}/`)) return; // not an object we manage
+  const key = url.slice(base.length + 1);
+  try {
+    await fetch(`/api/upload?key=${encodeURIComponent(key)}`, { method: "DELETE" });
+  } catch {
+    // network/other failure — leave cleanup to a future sweep; don't block delete
+  }
+}
