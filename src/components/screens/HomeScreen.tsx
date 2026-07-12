@@ -369,7 +369,9 @@ export function HomeScreen() {
         </div>
       </div>
 
-      {/* posts */}
+      {/* posts — 実投稿フィード未接続のため本番(configured)では非表示。
+          プロトタイプ表示用にモックのみ残す。実装時にここを実データへ差し替える。 */}
+      {!configured && (
       <div style={{ padding: "28px 0 30px" }}>
         <div style={{ padding: "0 22px" }}>
           <SectionHeading accent={colors.primary}>みんなの投稿</SectionHeading>
@@ -408,6 +410,7 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

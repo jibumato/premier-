@@ -26,6 +26,10 @@ export function OnboardWorksScreen() {
     : mockWorks;
 
   const [selected, setSelected] = useState<string[]>(configured ? [] : ["ow1", "ow3", "ow5"]);
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const shownWorks = q ? works.filter((w) => w.name.toLowerCase().includes(q)) : works;
 
   // Seed the selection from the server once the user's existing follows load.
   useEffect(() => {
@@ -71,11 +75,26 @@ export function OnboardWorksScreen() {
           }}
         >
           <SearchIcon size={16} color={colors.textMuted} />
-          <span style={{ fontSize: 13, color: "#AFAABB" }}>作品を検索</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="作品を検索"
+            aria-label="作品を検索"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              fontFamily: "inherit",
+              fontSize: 13,
+              color: colors.textPrimary,
+            }}
+          />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
-          {works.map((w) => {
+          {shownWorks.map((w) => {
             const on = selected.includes(w.key);
             return (
               <button
@@ -140,6 +159,11 @@ export function OnboardWorksScreen() {
             );
           })}
         </div>
+        {q && shownWorks.length === 0 && (
+          <p style={{ margin: "18px 0 0", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt }}>
+            「{query}」に一致する作品が見つかりませんでした。
+          </p>
+        )}
       </div>
 
       <div style={{ padding: "24px 22px 30px", marginTop: "auto" }}>

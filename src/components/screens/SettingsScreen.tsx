@@ -85,7 +85,6 @@ export function SettingsScreen() {
   const [pushMsg, setPushMsg] = useState(true);
   const [pushLike, setPushLike] = useState(false);
   const [privateAccount, setPrivateAccount] = useState(false);
-  const [showSupport, setShowSupport] = useState(true);
 
   const handleLogout = async () => {
     if (isSupabaseConfigured()) {
@@ -112,15 +111,13 @@ export function SettingsScreen() {
           desc="承認した相手だけがプロフィールを見られます"
           on={privateAccount}
           onChange={setPrivateAccount}
-        />
-        <ToggleRow
-          title="応援リンクを表示"
-          desc="年齢確認済みの相手にのみ表示されます"
-          on={showSupport}
-          onChange={setShowSupport}
           last
         />
       </Group>
+
+      <p style={{ padding: "10px 24px 0", margin: 0, fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.7 }}>
+        ※ 通知・プライバシーの各設定の保存は現在準備中です。切り替えは一時的に反映されますが、まだ保存されません。
+      </p>
 
       <Group title="安全とサポート">
         <LinkRow title="ブロックしたユーザー" onClick={() => nav("report")} />

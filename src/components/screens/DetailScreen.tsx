@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { detailRoles } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -56,6 +57,24 @@ export function DetailScreen() {
     nav("applied");
   };
 
+  const [copied, setCopied] = useState(false);
+  const handleShare = async () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    const shareData = { title: `${title}｜プルミエ！`, text: `${title}（${workName}）`, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1800);
+      }
+    } catch {
+      // user cancelled the share sheet — nothing to do
+    }
+  };
+
   return (
     <div>
       {/* app bar */}
@@ -76,12 +95,34 @@ export function DetailScreen() {
         </button>
         <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimaryAlt }}>募集の詳細</div>
         <button
+          onClick={handleShare}
           style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
           aria-label="共有"
         >
           <ShareIcon />
         </button>
       </div>
+
+      {copied && (
+        <div
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: 90,
+            transform: "translateX(-50%)",
+            background: "rgba(38,34,47,.92)",
+            color: colors.white,
+            fontSize: 12.5,
+            fontWeight: 600,
+            padding: "10px 18px",
+            borderRadius: 999,
+            zIndex: 50,
+            whiteSpace: "nowrap",
+          }}
+        >
+          リンクをコピーしました
+        </div>
+      )}
 
       {/* hero */}
       <div style={{ position: "relative", padding: "6px 22px 0" }}>
@@ -218,11 +259,11 @@ export function DetailScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
           {roles.map((ro) => {
             const confirmed = ro.status === "確定";
-            const isPhotographer = ro.char.includes("カメラマン");
+            // カメラマン専用プロフィール画面は実データ未接続のため、当面は遷移
+            // させない（役割は一覧表示のみ）。接続時にここへ導線を戻す。
             return (
-              <button
+              <div
                 key={ro.key}
-                onClick={isPhotographer ? () => nav("photographerProfile") : undefined}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -231,10 +272,6 @@ export function DetailScreen() {
                   borderRadius: 14,
                   padding: "11px 13px",
                   background: confirmed ? colors.primaryBg5 : colors.white,
-                  cursor: isPhotographer ? "pointer" : "default",
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                  width: "100%",
                 }}
               >
                 <div
@@ -253,9 +290,6 @@ export function DetailScreen() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>{ro.char}</div>
                   <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>{ro.who}</div>
                 </div>
-                {isPhotographer && (
-                  <span style={{ fontSize: 11, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap" }}>プロフ →</span>
-                )}
                 <span
                   style={{
                     fontSize: 11,
@@ -269,7 +303,7 @@ export function DetailScreen() {
                 >
                   {ro.status}
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>
