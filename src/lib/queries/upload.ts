@@ -45,7 +45,13 @@ export async function deleteUploadedImage(url: string | null | undefined): Promi
   if (!url) return;
   const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/+$/, "");
   if (!base || !url.startsWith(`${base}/`)) return; // not an object we manage
-  const key = url.slice(base.length + 1);
+  await deleteUploadedKey(url.slice(base.length + 1));
+}
+
+/** Best-effort delete of an R2 object by its key (e.g. `awase/<id>/<uuid>.jpg`).
+ * Same owner-only enforcement server-side; never throws. */
+export async function deleteUploadedKey(key: string | null | undefined): Promise<void> {
+  if (!key) return;
   try {
     await fetch(`/api/upload?key=${encodeURIComponent(key)}`, { method: "DELETE" });
   } catch {

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { deleteUploadedKey } from "@/lib/queries/upload";
 import type { AwaseCard, DetailRole, SearchResult } from "@/lib/types";
 
 /** Row shape returned by the awase list queries below (embeds work name). */
@@ -129,6 +130,7 @@ export interface AwaseDetail {
   region: string;
   fee_text: string | null;
   women_only: boolean;
+  beginner_ok: boolean;
   capacity: number | null;
   world_tags: string[];
   host_id: string;
@@ -146,12 +148,81 @@ export function useAwase(awaseId: string | null) {
       const { data, error } = await supabase
         .from("awase")
         .select(
-          "id, title, body, event_date, place, region, fee_text, women_only, capacity, world_tags, host_id, works(name), profiles(display_name, is_verified)",
+          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, works(name), profiles(display_name, is_verified)",
         )
         .eq("id", awaseId!)
         .single();
       if (error) throw error;
       return data as unknown as AwaseDetail;
+    },
+  });
+}
+
+interface UpdateAwaseInput {
+  awaseId: string;
+  title: string;
+  eventDate: string;
+  region: string;
+  place: string | null;
+  feeText: string | null;
+  body: string | null;
+  capacity: number | null;
+  womenOnly: boolean;
+  beginnerOk: boolean;
+  worldTags: string[];
+}
+
+/** Edit an existing 併せ (host only — enforced by the awase_update RLS policy). */
+export function useUpdateAwase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: UpdateAwaseInput) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("awase")
+        .update({
+          title: input.title,
+          event_date: input.eventDate,
+          region: input.region,
+          place: input.place,
+          fee_text: input.feeText,
+          body: input.body,
+          capacity: input.capacity,
+          women_only: input.womenOnly,
+          beginner_ok: input.beginnerOk,
+          world_tags: input.worldTags,
+        })
+        .eq("id", input.awaseId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId }) => {
+      qc.invalidateQueries({ queryKey: ["awase", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
+    },
+  });
+}
+
+/** Delete a 併せ (host only). Cascades to roles/applications/images; also
+ * best-effort removes the images' R2 files so a delete truly deletes them. */
+export function useDeleteAwase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ awaseId }: { awaseId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { data: imgs } = await supabase
+        .from("awase_images")
+        .select("storage_path")
+        .eq("awase_id", awaseId);
+      await Promise.all(
+        ((imgs ?? []) as { storage_path: string }[]).map((r) => deleteUploadedKey(r.storage_path)),
+      );
+      const { error } = await supabase.from("awase").delete().eq("id", awaseId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
     },
   });
 }

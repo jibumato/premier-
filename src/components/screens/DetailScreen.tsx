@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { colors } from "@/lib/tokens";
-import { detailRoles } from "@/lib/data";
+import { detailRoles, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading, PrimaryButton } from "../ui";
 import { ChevronLeftIcon, FlagIcon, ShareIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useApply, useAwase, useAwaseRoles } from "@/lib/queries/awase";
+import { useApply, useAwase, useAwaseRoles, useDeleteAwase, useUpdateAwase } from "@/lib/queries/awase";
 import { useAwaseAchievementCount } from "@/lib/queries/profile";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+const EDIT_WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
+const editableRegions = regions.filter((r) => r !== "すべて");
 
 const mockInfoGrid = [
   { label: "日程", value: "7/26(日) 13:00〜" },
@@ -27,9 +30,26 @@ export function DetailScreen() {
   const awaseQuery = useAwase(selectedAwaseId);
   const rolesQuery = useAwaseRoles(selectedAwaseId);
   const apply = useApply();
+  const updateAwase = useUpdateAwase();
+  const deleteAwase = useDeleteAwase();
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
   const roles = real ? (rolesQuery.data ?? []) : detailRoles;
+  const isHost = Boolean(real && user && real.host_id === user.id);
+
+  const [confirmApply, setConfirmApply] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [eTitle, setETitle] = useState("");
+  const [eBody, setEBody] = useState("");
+  const [eDate, setEDate] = useState("");
+  const [ePlace, setEPlace] = useState("");
+  const [eRegion, setERegion] = useState("");
+  const [eFee, setEFee] = useState("");
+  const [eCapacity, setECapacity] = useState("");
+  const [eWomenOnly, setEWomenOnly] = useState(false);
+  const [eBeginnerOk, setEBeginnerOk] = useState(false);
+  const [eTags, setETags] = useState<string[]>([]);
 
   const title = real?.title ?? "魔法学園シリーズ 生徒会併せ";
   const workName = real?.works?.name ?? "葬送のフリーレン";
@@ -51,10 +71,53 @@ export function DetailScreen() {
     "生徒会メンバーで併せをします◎ 透明感のある世界観で、自然光メインのスタジオ撮影予定。カメラマンさん1名にも入っていただけると嬉しいです。初めての方も歓迎、当日は和やかに進めます。";
 
   const handleApply = () => {
+    setConfirmApply(false);
     if (real && user) {
       apply.mutate({ awaseId: real.id, applicantId: user.id });
     }
     nav("applied");
+  };
+
+  const openEdit = () => {
+    if (!real) return;
+    setETitle(real.title);
+    setEBody(real.body ?? "");
+    setEDate(real.event_date);
+    setEPlace(real.place ?? "");
+    setERegion(real.region);
+    setEFee(real.fee_text ?? "");
+    setECapacity(real.capacity != null ? String(real.capacity) : "");
+    setEWomenOnly(real.women_only);
+    setEBeginnerOk(real.beginner_ok);
+    setETags(real.world_tags ?? []);
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    if (!real || !eTitle.trim() || !eDate.trim() || !eRegion) return;
+    const cap = eCapacity.trim() ? Number(eCapacity) : null;
+    updateAwase.mutate(
+      {
+        awaseId: real.id,
+        title: eTitle.trim(),
+        eventDate: eDate.trim(),
+        region: eRegion,
+        place: ePlace.trim() || null,
+        feeText: eFee.trim() || null,
+        body: eBody.trim() || null,
+        capacity: cap != null && Number.isFinite(cap) && cap > 0 ? cap : null,
+        womenOnly: eWomenOnly,
+        beginnerOk: eBeginnerOk,
+        worldTags: eTags,
+      },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
+  const doDelete = () => {
+    if (!real) return;
+    deleteAwase.mutate(
+      { awaseId: real.id },
+      { onSuccess: () => nav("home", "home") },
+    );
   };
 
   const [copied, setCopied] = useState(false);
@@ -307,34 +370,365 @@ export function DetailScreen() {
             );
           })}
         </div>
-        <PrimaryButton onClick={handleApply} style={{ marginTop: 22 }}>
-          この併せに応募する
-        </PrimaryButton>
-        <button
-          onClick={() =>
-            real
-              ? openReport({ type: "awase", id: real.id, userId: real.host_id })
-              : nav("report")
-          }
+        {isHost ? (
+          <div style={{ display: "flex", gap: 9, marginTop: 22 }}>
+            <button
+              onClick={openEdit}
+              style={{
+                flex: 1,
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                color: colors.primary,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "13px 0",
+                borderRadius: 13,
+                cursor: "pointer",
+              }}
+            >
+              編集する
+            </button>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                flex: 1,
+                border: "1px solid #E7C6C4",
+                background: colors.white,
+                color: "#C0453F",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "13px 0",
+                borderRadius: 13,
+                cursor: "pointer",
+              }}
+            >
+              削除する
+            </button>
+          </div>
+        ) : (
+          <>
+            <PrimaryButton onClick={() => setConfirmApply(true)} style={{ marginTop: 22 }}>
+              この併せに応募する
+            </PrimaryButton>
+            <button
+              onClick={() =>
+                real
+                  ? openReport({ type: "awase", id: real.id, userId: real.host_id })
+                  : nav("report")
+              }
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+                marginTop: 14,
+                border: "none",
+                background: "none",
+                color: colors.textMutedAlt,
+                fontFamily: "inherit",
+                fontSize: 12,
+                padding: 8,
+                cursor: "pointer",
+              }}
+            >
+              <FlagIcon size={14} color={colors.textMutedAlt} />
+              この募集を通報する
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* apply confirmation — avoids accidental taps */}
+      {confirmApply && (
+        <ConfirmDialog
+          title="この併せに応募しますか？"
+          body="主催者にあなたのプロフィールが通知されます。"
+          confirmLabel="応募する"
+          onConfirm={handleApply}
+          onCancel={() => setConfirmApply(false)}
+        />
+      )}
+
+      {/* delete confirmation (host) */}
+      {confirmDelete && (
+        <ConfirmDialog
+          title="この募集を削除しますか？"
+          body="応募・募集キャラ・画像も含めて削除され、元に戻せません。"
+          confirmLabel={deleteAwase.isPending ? "削除中…" : "削除する"}
+          danger
+          disabled={deleteAwase.isPending}
+          onConfirm={doDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+
+      {/* edit form (host) */}
+      {editing && (
+        <div
           style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 90,
+            background: "rgba(20,14,28,.5)",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-end",
             justifyContent: "center",
-            gap: 6,
-            width: "100%",
-            marginTop: 14,
-            border: "none",
-            background: "none",
-            color: colors.textMutedAlt,
-            fontFamily: "inherit",
-            fontSize: 12,
-            padding: 8,
-            cursor: "pointer",
           }}
+          onClick={() => setEditing(false)}
         >
-          <FlagIcon size={14} color={colors.textMutedAlt} />
-          この募集を通報する
-        </button>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 560,
+              maxHeight: "88vh",
+              overflowY: "auto",
+              background: colors.white,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: "20px 20px 28px",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, color: colors.textPrimary, marginBottom: 14 }}>
+              募集を編集
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+              <Field label="タイトル *">
+                <input value={eTitle} onChange={(e) => setETitle(e.target.value)} style={editInput} placeholder="タイトル" />
+              </Field>
+              <Field label="募集内容">
+                <textarea value={eBody} onChange={(e) => setEBody(e.target.value)} rows={4} style={{ ...editInput, resize: "none", lineHeight: 1.7 }} placeholder="どんな併せか、集合や費用の目安など" />
+              </Field>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Field label="日程 *" flex>
+                  <input value={eDate} onChange={(e) => setEDate(e.target.value)} style={editInput} placeholder="例：7/26(日)" />
+                </Field>
+                <Field label="地域 *" flex>
+                  <select value={eRegion} onChange={(e) => setERegion(e.target.value)} style={{ ...editInput, appearance: "none" }}>
+                    <option value="">選択</option>
+                    {editableRegions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Field label="場所" flex>
+                  <input value={ePlace} onChange={(e) => setEPlace(e.target.value)} style={editInput} placeholder="例：都内スタジオ" />
+                </Field>
+                <Field label="募集人数（定員）" flex>
+                  <input value={eCapacity} onChange={(e) => setECapacity(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" style={editInput} placeholder="例：6" />
+                </Field>
+              </div>
+              <Field label="費用">
+                <input value={eFee} onChange={(e) => setEFee(e.target.value)} style={editInput} placeholder="例：スタジオ代 割り勘" />
+              </Field>
+              <Field label="世界観タグ">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {EDIT_WORLD_TAGS.map((t) => {
+                    const on = eTags.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setETags((c) => (c.includes(t) ? c.filter((x) => x !== t) : [...c, t]))}
+                        style={{
+                          fontSize: 12,
+                          color: on ? colors.white : "#4A4458",
+                          background: on ? colors.primary : colors.white,
+                          border: `1px solid ${on ? colors.primary : colors.border}`,
+                          padding: "7px 13px",
+                          borderRadius: 999,
+                          fontWeight: on ? 600 : 500,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+              <EditToggle label="女性限定で募集" on={eWomenOnly} onChange={setEWomenOnly} />
+              <EditToggle label="初心者歓迎" on={eBeginnerOk} onChange={setEBeginnerOk} />
+              {updateAwase.isError && (
+                <div style={{ fontSize: 12, color: "#C0453F" }}>保存に失敗しました。時間をおいて再度お試しください。</div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              <button
+                onClick={() => setEditing(false)}
+                style={{ flex: 1, border: `1px solid ${colors.border}`, background: colors.white, color: colors.textSecondary, fontFamily: "inherit", fontSize: 13, fontWeight: 600, padding: "12px 0", borderRadius: 12, cursor: "pointer" }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={!eTitle.trim() || !eDate.trim() || !eRegion || updateAwase.isPending}
+                style={{
+                  flex: 2,
+                  border: "none",
+                  background: colors.primary,
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  opacity: eTitle.trim() && eDate.trim() && eRegion && !updateAwase.isPending ? 1 : 0.5,
+                }}
+              >
+                {updateAwase.isPending ? "保存中…" : "保存する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const editInput: CSSProperties = {
+  width: "100%",
+  marginTop: 6,
+  border: "1px solid #E4DFEF",
+  borderRadius: 12,
+  padding: "11px 13px",
+  fontSize: 13.5,
+  fontFamily: "inherit",
+  color: "#26222F",
+  background: "#fff",
+  outline: "none",
+};
+
+function Field({ label, children, flex }: { label: string; children: ReactNode; flex?: boolean }) {
+  return (
+    <div style={flex ? { flex: 1, minWidth: 0 } : undefined}>
+      <label style={{ fontSize: 12, fontWeight: 700, color: colors.textSecondary }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function EditToggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!on)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        border: `1px solid ${colors.borderSoft}`,
+        borderRadius: 12,
+        padding: "11px 14px",
+        background: colors.primaryBg5,
+        cursor: "pointer",
+        fontFamily: "inherit",
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 600, color: colors.textPrimary }}>{label}</span>
+      <span
+        style={{
+          width: 40,
+          height: 24,
+          borderRadius: 999,
+          background: on ? colors.primary : "#D8D2E6",
+          position: "relative",
+          transition: "background .15s",
+          flex: "0 0 auto",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: 3,
+            left: on ? 19 : 3,
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            background: "#fff",
+            transition: "left .15s",
+          }}
+        />
+      </span>
+    </button>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  body,
+  confirmLabel,
+  danger,
+  disabled,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  body?: string;
+  confirmLabel: string;
+  danger?: boolean;
+  disabled?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        background: "rgba(20,14,28,.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 320, background: colors.white, borderRadius: 18, padding: "20px 20px 16px" }}
+      >
+        <div style={{ fontSize: 15, fontWeight: 700, color: colors.textPrimary, textAlign: "center" }}>{title}</div>
+        {body && (
+          <p style={{ margin: "9px 0 0", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.7, textAlign: "center" }}>
+            {body}
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <button
+            onClick={onCancel}
+            style={{ flex: 1, border: `1px solid ${colors.border}`, background: colors.white, color: colors.textSecondary, fontFamily: "inherit", fontSize: 13, fontWeight: 600, padding: "11px 0", borderRadius: 12, cursor: "pointer" }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={disabled}
+            style={{
+              flex: 1,
+              border: "none",
+              background: danger ? "#C0453F" : colors.primary,
+              color: colors.white,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "11px 0",
+              borderRadius: 12,
+              cursor: disabled ? "default" : "pointer",
+              opacity: disabled ? 0.6 : 1,
+            }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );
