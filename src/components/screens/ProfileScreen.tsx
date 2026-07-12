@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -8,7 +8,7 @@ import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadge, VerifiedBadgeGhost } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage } from "@/lib/queries/profile";
+import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
 import { useCreatePost, usePosts } from "@/lib/queries/posts";
 import { useReviewsReceived } from "@/lib/queries/reviews";
@@ -53,7 +53,11 @@ export function ProfileScreen() {
   const reviewsReceived = useReviewsReceived(targetId);
   const postsQuery = usePosts(targetId);
   const updateImage = useUpdateProfileImage();
+  const updateText = useUpdateProfileText();
   const uploadImage = useUploadImage();
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [bioInput, setBioInput] = useState("");
   const createPost = useCreatePost();
   const getOrCreateConversation = useGetOrCreateConversation();
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +113,19 @@ export function ProfileScreen() {
     } else {
       nav("chat");
     }
+  };
+
+  const openEdit = () => {
+    setNameInput(real?.display_name ?? "");
+    setBioInput(real?.bio ?? "");
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    if (!user || !nameInput.trim()) return;
+    updateText.mutate(
+      { userId: user.id, displayName: nameInput.trim(), bio: bioInput.trim() },
+      { onSuccess: () => setEditing(false) },
+    );
   };
 
   return (
@@ -300,34 +317,13 @@ export function ProfileScreen() {
           ))}
         </div>
 
-        {/* action buttons */}
-        <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
+        {/* action buttons — own profile can edit; others can message / invite */}
+        {canEdit ? (
           <button
-            onClick={handleMessage}
+            onClick={openEdit}
             style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              border: "none",
-              background: colors.primary,
-              color: colors.white,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              padding: "12px 0",
-              borderRadius: 13,
-              cursor: "pointer",
-            }}
-          >
-            <MessageIcon size={16} color={colors.white} />
-            メッセージ
-          </button>
-          <button
-            onClick={() => nav("create")}
-            style={{
-              flex: 1,
+              width: "100%",
+              marginTop: 14,
               border: `1px solid ${colors.border}`,
               background: colors.white,
               color: colors.primary,
@@ -339,9 +335,152 @@ export function ProfileScreen() {
               cursor: "pointer",
             }}
           >
-            併せに誘う
+            プロフィールを編集
           </button>
-        </div>
+        ) : (
+          <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
+            <button
+              onClick={handleMessage}
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "12px 0",
+                borderRadius: 13,
+                cursor: "pointer",
+              }}
+            >
+              <MessageIcon size={16} color={colors.white} />
+              メッセージ
+            </button>
+            <button
+              onClick={() => nav("create")}
+              style={{
+                flex: 1,
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                color: colors.primary,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "12px 0",
+                borderRadius: 13,
+                cursor: "pointer",
+              }}
+            >
+              併せに誘う
+            </button>
+          </div>
+        )}
+
+        {/* inline profile editor (own profile) */}
+        {editing && (
+          <div
+            style={{
+              marginTop: 14,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 16,
+              padding: 15,
+              background: colors.primaryBg5,
+              display: "flex",
+              flexDirection: "column",
+              gap: 11,
+            }}
+          >
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>表示名</label>
+              <input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                maxLength={30}
+                placeholder="ニックネーム"
+                style={{
+                  width: "100%",
+                  marginTop: 6,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 12,
+                  padding: "11px 13px",
+                  fontSize: 13.5,
+                  fontFamily: "inherit",
+                  outline: "none",
+                  background: colors.white,
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>自己紹介</label>
+              <textarea
+                value={bioInput}
+                onChange={(e) => setBioInput(e.target.value)}
+                maxLength={300}
+                rows={4}
+                placeholder="好きな作品・活動ジャンル・併せへの想いなど"
+                style={{
+                  width: "100%",
+                  marginTop: 6,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 12,
+                  padding: "11px 13px",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  fontFamily: "inherit",
+                  outline: "none",
+                  resize: "none",
+                  background: colors.white,
+                }}
+              />
+            </div>
+            {updateText.isError && (
+              <div style={{ fontSize: 11.5, color: "#C0453F" }}>保存に失敗しました。時間をおいて再度お試しください。</div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setEditing(false)}
+                style={{
+                  flex: 1,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.white,
+                  color: colors.textSecondary,
+                  fontFamily: "inherit",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  padding: "11px 0",
+                  borderRadius: 11,
+                  cursor: "pointer",
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={!nameInput.trim() || updateText.isPending}
+                style={{
+                  flex: 2,
+                  border: "none",
+                  background: colors.primary,
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  padding: "11px 0",
+                  borderRadius: 11,
+                  cursor: "pointer",
+                  opacity: nameInput.trim() && !updateText.isPending ? 1 : 0.5,
+                }}
+              >
+                {updateText.isPending ? "保存中…" : "保存する"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* support links (age-gated, external only) */}
