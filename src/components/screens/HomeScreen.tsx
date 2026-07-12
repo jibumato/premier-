@@ -337,7 +337,7 @@ export function HomeScreen() {
               }}
             >
               <div style={{ flex: "0 0 84px", height: 84 }}>
-                <ImageSlot radius={13} />
+                <ImageSlot radius={13} src={a.coverUrl ?? undefined} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div

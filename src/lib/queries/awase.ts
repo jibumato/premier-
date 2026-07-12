@@ -6,7 +6,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { deleteUploadedKey } from "@/lib/queries/upload";
 import type { AwaseCard, DetailRole, SearchResult } from "@/lib/types";
 
-/** Row shape returned by the awase list queries below (embeds work name). */
+/** Build a public R2 URL from a stored object key (null if R2 isn't configured). */
+function r2PublicUrl(key: string | null | undefined): string | null {
+  if (!key) return null;
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/+$/, "");
+  return base ? `${base}/${key}` : null;
+}
+
+/** Row shape returned by the awase list queries below (embeds work name + images). */
 type AwaseRow = {
   id: string;
   host_id: string;
@@ -19,10 +26,11 @@ type AwaseRow = {
   beginner_ok: boolean;
   capacity: number | null;
   works: { name: string } | null;
+  awase_images: { storage_path: string }[] | null;
 };
 
 const AWASE_LIST_SELECT =
-  "id, host_id, title, event_date, place, region, world_tags, women_only, beginner_ok, capacity, works(name)";
+  "id, host_id, title, event_date, place, region, world_tags, women_only, beginner_ok, capacity, works(name), awase_images(storage_path)";
 
 /** Blocked hosts + auto-hidden 併せ to keep out of the feeds (Phase 5). */
 export interface AwaseFeedFilter {
@@ -53,6 +61,7 @@ function toAwaseCard(row: AwaseRow): AwaseCard {
     date: row.event_date,
     place: row.place ?? "",
     members: row.capacity ? `定員${row.capacity}名` : "参加者募集中",
+    coverUrl: r2PublicUrl(row.awase_images?.[0]?.storage_path),
   };
 }
 
@@ -66,6 +75,7 @@ function toSearchResult(row: AwaseRow): SearchResult {
     date: row.event_date,
     members: row.capacity ? `定員${row.capacity}名` : "募集中",
     womenOnly: row.women_only,
+    coverUrl: r2PublicUrl(row.awase_images?.[0]?.storage_path),
   };
 }
 
@@ -318,6 +328,71 @@ export function useApply() {
         .from("awase_applications")
         .insert({ awase_id: awaseId, applicant_id: applicantId });
       if (error) throw error;
+    },
+  });
+}
+
+export interface AwaseImage {
+  id: string;
+  storagePath: string;
+  url: string | null;
+}
+
+/** Images attached to an awase, in display order (detail hero + edit). */
+export function useAwaseImages(awaseId: string | null) {
+  return useQuery({
+    queryKey: ["awase_images", awaseId],
+    enabled: isSupabaseConfigured() && Boolean(awaseId),
+    queryFn: async (): Promise<AwaseImage[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase_images")
+        .select("id, storage_path, sort")
+        .eq("awase_id", awaseId!)
+        .order("sort", { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as { id: string; storage_path: string; sort: number }[]).map((r) => ({
+        id: r.id,
+        storagePath: r.storage_path,
+        url: r2PublicUrl(r.storage_path),
+      }));
+    },
+  });
+}
+
+/** Attach an already-uploaded image (R2 key) to an awase (host only). */
+export function useAddAwaseImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ awaseId, storagePath, sort }: { awaseId: string; storagePath: string; sort: number }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("awase_images")
+        .insert({ awase_id: awaseId, storage_path: storagePath, sort });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_images", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
+    },
+  });
+}
+
+/** Remove an awase image (host only) — deletes the DB row and its R2 file. */
+export function useRemoveAwaseImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, storagePath }: { awaseId: string; id: string; storagePath: string }) => {
+      await deleteUploadedKey(storagePath);
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("awase_images").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_images", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
     },
   });
 }

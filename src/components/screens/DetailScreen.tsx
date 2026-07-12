@@ -1,15 +1,25 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { colors } from "@/lib/tokens";
 import { detailRoles, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading, PrimaryButton } from "../ui";
-import { ChevronLeftIcon, FlagIcon, ShareIcon } from "../icons";
+import { ChevronLeftIcon, FlagIcon, PlusIcon, ShareIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useApply, useAwase, useAwaseRoles, useDeleteAwase, useUpdateAwase } from "@/lib/queries/awase";
+import {
+  useAddAwaseImage,
+  useApply,
+  useAwase,
+  useAwaseImages,
+  useAwaseRoles,
+  useDeleteAwase,
+  useRemoveAwaseImage,
+  useUpdateAwase,
+} from "@/lib/queries/awase";
 import { useAwaseAchievementCount } from "@/lib/queries/profile";
+import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const EDIT_WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
@@ -32,10 +42,31 @@ export function DetailScreen() {
   const apply = useApply();
   const updateAwase = useUpdateAwase();
   const deleteAwase = useDeleteAwase();
+  const imagesQuery = useAwaseImages(selectedAwaseId);
+  const addImage = useAddAwaseImage();
+  const removeImage = useRemoveAwaseImage();
+  const uploadImage = useUploadImage();
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
   const roles = real ? (rolesQuery.data ?? []) : detailRoles;
   const isHost = Boolean(real && user && real.host_id === user.id);
+  const images = real ? (imagesQuery.data ?? []) : [];
+  const [heroIndex, setHeroIndex] = useState(0);
+  const heroUrl = images[heroIndex]?.url ?? images[0]?.url ?? undefined;
+
+  const handleAddImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !real) return;
+    const result = await uploadImage.mutateAsync({ file, kind: "awase" });
+    addImage.mutate({ awaseId: real.id, storagePath: result.key, sort: images.length });
+  };
+  const handleRemoveImage = (id: string, storagePath: string) => {
+    if (!real) return;
+    removeImage.mutate({ awaseId: real.id, id, storagePath });
+    setHeroIndex(0);
+  };
 
   const [confirmApply, setConfirmApply] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -190,7 +221,7 @@ export function DetailScreen() {
       {/* hero */}
       <div style={{ position: "relative", padding: "6px 22px 0" }}>
         <div style={{ height: 194 }}>
-          <ImageSlot radius={18} />
+          <ImageSlot radius={18} src={heroUrl} />
         </div>
         <span
           style={{
@@ -207,22 +238,50 @@ export function DetailScreen() {
         >
           募集中
         </span>
-        <span
-          style={{
-            position: "absolute",
-            right: 34,
-            top: 18,
-            fontSize: 11,
-            fontWeight: 600,
-            color: colors.pinkText,
-            background: "rgba(255,255,255,.92)",
-            padding: "6px 12px",
-            borderRadius: 999,
-          }}
-        >
-          女性限定
-        </span>
+        {(real ? real.women_only : true) && (
+          <span
+            style={{
+              position: "absolute",
+              right: 34,
+              top: 18,
+              fontSize: 11,
+              fontWeight: 600,
+              color: colors.pinkText,
+              background: "rgba(255,255,255,.92)",
+              padding: "6px 12px",
+              borderRadius: 999,
+            }}
+          >
+            女性限定
+          </span>
+        )}
       </div>
+
+      {/* thumbnails (when the awase has more than one image) */}
+      {images.length > 1 && (
+        <div className="noscroll" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 22px 0" }}>
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              onClick={() => setHeroIndex(i)}
+              aria-label={`画像 ${i + 1}`}
+              style={{
+                flex: "0 0 auto",
+                width: 56,
+                height: 56,
+                padding: 0,
+                border: i === heroIndex ? `2px solid ${colors.primary}` : "2px solid transparent",
+                borderRadius: 12,
+                overflow: "hidden",
+                cursor: "pointer",
+                background: "none",
+              }}
+            >
+              <ImageSlot radius={10} src={img.url ?? undefined} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* title + tags */}
       <div style={{ padding: "18px 22px 0" }}>
@@ -496,6 +555,60 @@ export function DetailScreen() {
               募集を編集
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+              <Field label="画像">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+                  {images.map((img) => (
+                    <div key={img.id} style={{ position: "relative", width: 76, height: 76 }}>
+                      <ImageSlot radius={12} src={img.url ?? undefined} />
+                      <button
+                        onClick={() => handleRemoveImage(img.id, img.storagePath)}
+                        aria-label="画像を削除"
+                        style={{
+                          position: "absolute",
+                          right: 3,
+                          top: 3,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          border: "none",
+                          background: "rgba(30,20,40,.65)",
+                          color: colors.white,
+                          fontSize: 14,
+                          lineHeight: 1,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 4 && (
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadImage.isPending || addImage.isPending}
+                      aria-label="画像を追加"
+                      style={{
+                        width: 76,
+                        height: 76,
+                        border: "1.5px dashed #D8D2E6",
+                        borderRadius: 12,
+                        background: colors.primaryBg5,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: uploadImage.isPending ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <PlusIcon size={20} color={colors.textMutedAlt} />
+                    </button>
+                  )}
+                </div>
+                <input ref={imageInputRef} type="file" accept="image/*" onChange={handleAddImage} style={{ display: "none" }} />
+              </Field>
               <Field label="タイトル *">
                 <input value={eTitle} onChange={(e) => setETitle(e.target.value)} style={editInput} placeholder="タイトル" />
               </Field>

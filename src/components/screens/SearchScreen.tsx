@@ -232,7 +232,7 @@ export function SearchScreen() {
             }}
           >
             <div style={{ flex: "0 0 92px", height: 92, position: "relative" }}>
-              <ImageSlot radius={14} />
+              <ImageSlot radius={14} src={res.coverUrl ?? undefined} />
               {res.womenOnly && (
                 <span
                   style={{
