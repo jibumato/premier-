@@ -1,7 +1,7 @@
 "use client";
 
 import { colors } from "@/lib/tokens";
-import { homeAwase, homePosts, popularWorks } from "@/lib/data";
+import { homeAwase, homePosts, popularWorks, siteTagline } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
@@ -55,20 +55,27 @@ export function HomeScreen() {
           <img
             src="/logo.png"
             alt=""
-            width={30}
-            height={30}
-            style={{ width: 30, height: 30, borderRadius: "50%", display: "block" }}
+            width={32}
+            height={32}
+            style={{ width: 32, height: 32, borderRadius: "50%", display: "block", flex: "0 0 auto" }}
           />
-          <span
-            style={{
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: ".06em",
-              color: colors.textPrimaryAlt,
-            }}
-          >
-            プルミエ<span style={{ color: colors.pink }}>！</span>
-          </span>
+          <div>
+            <span
+              style={{
+                display: "block",
+                fontSize: 20,
+                fontWeight: 700,
+                letterSpacing: ".06em",
+                color: colors.textPrimaryAlt,
+                lineHeight: 1.05,
+              }}
+            >
+              プルミエ<span style={{ color: colors.pink }}>！</span>
+            </span>
+            <span style={{ display: "block", fontSize: 9.5, color: colors.textMutedAlt, marginTop: 2, letterSpacing: ".01em" }}>
+              {siteTagline}
+            </span>
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button

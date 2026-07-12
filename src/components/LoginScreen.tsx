@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { siteTagline } from "@/lib/data";
 import { PrimaryButton } from "./ui";
 import { TermsContent } from "./TermsContent";
 import { PrivacyContent } from "./PrivacyContent";
@@ -80,7 +81,10 @@ export function LoginScreen() {
             boxShadow: "0 10px 26px -12px rgba(80,60,120,.5)",
           }}
         />
-        <h2 style={{ margin: "22px 0 0", fontSize: 23, lineHeight: 1.5, fontWeight: 700, color: colors.textPrimary }}>
+        <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: colors.primary, letterSpacing: ".02em" }}>
+          {siteTagline}
+        </div>
+        <h2 style={{ margin: "10px 0 0", fontSize: 23, lineHeight: 1.5, fontWeight: 700, color: colors.textPrimary }}>
           {mode === "signIn" ? "おかえりなさい" : "はじめまして"}
         </h2>
         <p style={{ margin: "12px 0 0", fontSize: 13, color: colors.textMuted, lineHeight: 1.8 }}>

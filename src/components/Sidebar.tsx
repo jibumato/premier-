@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { colors, shadow } from "@/lib/tokens";
+import { siteTagline } from "@/lib/data";
 import { useRouter } from "./AppRouter";
 import { BellIcon, CalendarIcon, HelpIcon, HomeIcon, PlusIcon, SearchIcon, UserIcon } from "./icons";
 import type { Screen, Tab } from "@/lib/types";
@@ -92,18 +93,25 @@ export function Sidebar() {
           alt=""
           width={34}
           height={34}
-          style={{ width: 34, height: 34, borderRadius: "50%", display: "block" }}
+          style={{ width: 34, height: 34, borderRadius: "50%", display: "block", flex: "0 0 auto" }}
         />
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: colors.textPrimary,
-            fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
-          }}
-        >
-          プルミエ<span style={{ color: colors.primary }}>！</span>
-        </span>
+        <div style={{ minWidth: 0 }}>
+          <span
+            style={{
+              display: "block",
+              fontSize: 22,
+              fontWeight: 700,
+              color: colors.textPrimary,
+              fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
+              lineHeight: 1.1,
+            }}
+          >
+            プルミエ<span style={{ color: colors.primary }}>！</span>
+          </span>
+          <span style={{ display: "block", fontSize: 10.5, color: colors.textMutedAlt, marginTop: 3 }}>
+            {siteTagline}
+          </span>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

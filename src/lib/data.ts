@@ -19,6 +19,9 @@ import type {
  * In production these come from the API.
  */
 
+/** サービスの理念を表す一行コピー（ロゴ横／下に添える）。 */
+export const siteTagline = "“好き”で、つながる。";
+
 /** Popular works — home chips + onboarding follow list. */
 export const popularWorks = [
   "葬送のフリーレン",
