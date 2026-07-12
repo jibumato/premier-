@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { onboardWorks as mockWorks, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -8,7 +8,7 @@ import { PrimaryButton, Toggle } from "../ui";
 import { PlusIcon } from "../icons";
 import { ImageSlot } from "../ImageSlot";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useCreateAwase } from "@/lib/queries/awase";
+import { useAwase, useCreateAwase } from "@/lib/queries/awase";
 import { useWorks } from "@/lib/queries/works";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -37,11 +37,12 @@ const creatableRegions = regions.filter((r) => r !== "すべて");
 const WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
 
 export function CreateScreen() {
-  const { nav } = useRouter();
+  const { nav, duplicateAwaseId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
   const worksQuery = useWorks();
+  const duplicateSource = useAwase(duplicateAwaseId);
   const createAwase = useCreateAwase();
   const uploadImage = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,26 @@ export function CreateScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // 募集の複製: 既存併せの内容をフォームに一度だけ差し込む（画像は引き継がない）。
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current || !duplicateAwaseId) return;
+    const src = duplicateSource.data;
+    if (!src) return;
+    prefilledRef.current = true;
+    setTitle(src.title);
+    setWorkId(src.work_id ?? "");
+    setEventDate(src.event_date);
+    setRegion(src.region);
+    setWomenOnly(src.women_only);
+    setBeginnerOk(src.beginner_ok);
+    setWorldTags(src.world_tags ?? []);
+    setPlace(src.place ?? "");
+    setFeeText(src.fee_text ?? "");
+    setCapacity(src.capacity != null ? String(src.capacity) : "");
+    setBody(src.body ?? "");
+  }, [duplicateAwaseId, duplicateSource.data]);
 
   const handlePickImage = () => {
     if (!configured) return; // uploads need R2 + a signed-in host; no-op in pure prototype mode
@@ -144,10 +165,20 @@ export function CreateScreen() {
         >
           キャンセル
         </button>
-        <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimaryAlt }}>併せ募集を作成</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimaryAlt }}>
+          {duplicateAwaseId ? "併せ募集を複製" : "併せ募集を作成"}
+        </div>
         {/* spacer keeps the title centered (the old 下書き/進捗表示は未実装のため撤去) */}
         <span style={{ width: 52 }} />
       </div>
+
+      {duplicateAwaseId && (
+        <div style={{ padding: "14px 22px 0" }}>
+          <div style={{ fontSize: 12, color: colors.primary, background: colors.primaryBg1, borderRadius: 12, padding: "11px 14px", lineHeight: 1.6 }}>
+            前回の募集内容をコピーしました。日程や内容を編集して、新しい募集として公開できます（画像は引き継がれません）。
+          </div>
+        </div>
+      )}
 
       {/* reference images */}
       <div style={{ padding: "22px 22px 0" }}>

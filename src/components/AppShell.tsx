@@ -10,6 +10,7 @@ import { DetailScreen } from "./screens/DetailScreen";
 import { AppliedScreen } from "./screens/AppliedScreen";
 import { CreateScreen } from "./screens/CreateScreen";
 import { CreatedScreen } from "./screens/CreatedScreen";
+import { HostApplicantsScreen } from "./screens/HostApplicantsScreen";
 import { NotifyScreen } from "./screens/NotifyScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { MessagesScreen } from "./screens/MessagesScreen";
@@ -41,6 +42,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   applied: AppliedScreen,
   create: CreateScreen,
   created: CreatedScreen,
+  hostApplicants: HostApplicantsScreen,
   notify: NotifyScreen,
   profile: ProfileScreen,
   messages: MessagesScreen,

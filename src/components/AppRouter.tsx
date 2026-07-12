@@ -38,6 +38,8 @@ interface RouterState {
   selectedEventId: string | null;
   /** market_item.id backing the current `marketDetail` screen, once a backend is connected. */
   selectedMarketItemId: string | null;
+  /** awase.id whose fields prefill the `create` screen (募集の複製); null for a blank form. */
+  duplicateAwaseId: string | null;
   /** what the `report` screen is reporting; null when reached without a target. */
   reportTarget: ReportTarget | null;
 }
@@ -62,6 +64,8 @@ interface RouterApi extends RouterState {
   openEvent: (eventId: string) => void;
   /** navigate to `marketDetail` for a specific real listing row */
   openMarketItem: (itemId: string) => void;
+  /** navigate to `create` prefilled from an existing awase (募集の複製) */
+  openCreateFromDuplicate: (awaseId: string) => void;
   /** navigate to `report` for a specific real target (user/awase/market/qa) */
   openReport: (target: ReportTarget) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
@@ -87,6 +91,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     selectedQaQuestionId: null,
     selectedEventId: null,
     selectedMarketItemId: null,
+    duplicateAwaseId: null,
     reportTarget: null,
   });
   const historyRef = useRef<Screen[]>([]);
@@ -105,6 +110,8 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
           screen,
           tab: tab ?? s.tab,
           selectedProfileId: screen === "profile" ? null : s.selectedProfileId,
+          // reaching the create form any other way (e.g. sidebar) means a blank form
+          duplicateAwaseId: screen === "create" ? null : s.duplicateAwaseId,
           reportTarget: screen === "report" ? null : s.reportTarget,
         };
       });
@@ -199,6 +206,17 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     [resetScroll]
   );
 
+  const openCreateFromDuplicate = useCallback(
+    (awaseId: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "create", duplicateAwaseId: awaseId };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
+
   const openReport = useCallback(
     (target: ReportTarget) => {
       setState((s) => {
@@ -222,6 +240,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openQaQuestion,
       openEvent,
       openMarketItem,
+      openCreateFromDuplicate,
       openReport,
       scrollRef,
     }),
@@ -236,6 +255,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openQaQuestion,
       openEvent,
       openMarketItem,
+      openCreateFromDuplicate,
       openReport,
     ]
   );

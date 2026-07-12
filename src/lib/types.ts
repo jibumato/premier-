@@ -11,6 +11,7 @@ export type Screen =
   | "applied"
   | "create"
   | "created"
+  | "hostApplicants"
   | "notify"
   | "profile"
   // newly designed features
