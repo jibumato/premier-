@@ -90,15 +90,29 @@ export function useAwaseFeed(filter?: AwaseFeedFilter) {
   });
 }
 
-/** Open 併せ filtered by region ("すべて" = no filter), for the search screen. */
-export function useAwaseSearch(region: string, filter?: AwaseFeedFilter) {
+/** Filters for the search screen: region ("すべて" = all), a free-text keyword
+ * (matched against the 併せ title), and a women-only toggle. */
+export interface AwaseSearchOptions {
+  region: string;
+  keyword?: string;
+  womenOnly?: boolean;
+}
+
+/** Open 併せ filtered by region / keyword / women-only, for the search screen. */
+export function useAwaseSearch(opts: AwaseSearchOptions, filter?: AwaseFeedFilter) {
+  const { region, keyword, womenOnly } = opts;
+  const kw = keyword?.trim() ?? "";
   return useQuery({
-    queryKey: ["awase_search", region, filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
+    queryKey: ["awase_search", region, kw, Boolean(womenOnly), filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
     enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<SearchResult[]> => {
       const supabase = getSupabaseBrowserClient();
       let query = supabase.from("awase").select(AWASE_LIST_SELECT).eq("status", "open");
       if (region !== "すべて") query = query.eq("region", region);
+      if (womenOnly) query = query.eq("women_only", true);
+      // Keyword matches the 併せ title (case-insensitive). Titles usually carry
+      // the work/character name, so this covers the "作品・キャラで探す" flow.
+      if (kw) query = query.ilike("title", `%${kw}%`);
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toSearchResult);

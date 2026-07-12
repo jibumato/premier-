@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { regions, searchResults } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
-import { ChevronLeftIcon, PinIcon, SearchIcon, SlidersIcon } from "../icons";
+import { ChevronLeftIcon, PinIcon, SearchIcon } from "../icons";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -14,13 +15,20 @@ export function SearchScreen() {
   const { back, nav, openAwase, region, setRegion } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
+  const [keyword, setKeyword] = useState("");
+  const [womenOnly, setWomenOnly] = useState(false);
   const moderation = useModerationFilter(user?.id);
-  const results = useAwaseSearch(region, moderation.data);
+  const results = useAwaseSearch({ region, keyword, womenOnly }, moderation.data);
 
-  const mockFiltered =
-    region === "すべて" ? searchResults : searchResults.filter((r) => r.region === region);
-  // Real, already-filtered results once connected and loaded; the mock list
-  // (client-filtered) otherwise — same SearchResult shape either way.
+  // Mock mode filters the sample list client-side so the same controls work
+  // without a backend; configured mode gets already-filtered rows from the query.
+  const kw = keyword.trim().toLowerCase();
+  const mockFiltered = searchResults.filter(
+    (r) =>
+      (region === "すべて" || r.region === region) &&
+      (!womenOnly || r.womenOnly) &&
+      (!kw || r.title.toLowerCase().includes(kw) || r.work.toLowerCase().includes(kw)),
+  );
   const filtered = configured && results.data ? results.data : mockFiltered;
   const isEmpty = filtered.length === 0;
 
@@ -48,34 +56,48 @@ export function SearchScreen() {
           }}
         >
           <SearchIcon size={16} color={colors.textMuted} />
-          <span style={{ fontSize: 13, color: colors.textPrimary, fontWeight: 500 }}>
-            葬送のフリーレン
-          </span>
+          <input
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="作品・キャラ・募集タイトルで探す"
+            aria-label="キーワード検索"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 500,
+              color: colors.textPrimary,
+            }}
+          />
+          {keyword && (
+            <button
+              onClick={() => setKeyword("")}
+              aria-label="クリア"
+              style={{
+                border: "none",
+                background: "none",
+                padding: 0,
+                cursor: "pointer",
+                color: colors.textMutedAlt,
+                fontSize: 16,
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
       </div>
 
-      {/* filter chips */}
+      {/* filter chips — region (single-select) + women-only toggle */}
       <div
         className="noscroll"
         style={{ display: "flex", gap: 8, overflowX: "auto", padding: "14px 18px 0" }}
       >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 12,
-            fontWeight: 600,
-            color: colors.white,
-            background: colors.primary,
-            padding: "8px 13px",
-            borderRadius: 999,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <SlidersIcon />
-          絞り込み
-        </span>
         {regions.map((r) => {
           const active = r === region;
           return (
@@ -99,57 +121,32 @@ export function SearchScreen() {
             </button>
           );
         })}
-        <span
+        <button
+          onClick={() => setWomenOnly((v) => !v)}
+          aria-pressed={womenOnly}
           style={{
             fontSize: 12,
-            color: colors.pinkText,
-            background: colors.pinkBg1,
+            color: womenOnly ? colors.white : colors.pinkText,
+            background: womenOnly ? colors.pink : colors.pinkBg1,
+            border: `1px solid ${womenOnly ? colors.pink : colors.pinkBg1}`,
             padding: "8px 13px",
             borderRadius: 999,
             whiteSpace: "nowrap",
             fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
           }}
         >
           女性限定
-        </span>
+        </button>
       </div>
 
-      {/* tabs */}
-      <div style={{ display: "flex", padding: "16px 18px 0" }}>
-        <div
-          style={{
-            flex: 1,
-            textAlign: "center",
-            paddingBottom: 11,
-            borderBottom: `2px solid ${colors.primary}`,
-          }}
-        >
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: colors.primary }}>
-            併せ募集 {filtered.length}
-          </span>
-        </div>
-        <div
-          style={{
-            flex: 1,
-            textAlign: "center",
-            paddingBottom: 11,
-            borderBottom: "2px solid #EEEAF6",
-          }}
-        >
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: colors.textMutedAlt }}>
-            レイヤー 58
-          </span>
-        </div>
-        <div
-          style={{
-            flex: 1,
-            textAlign: "center",
-            paddingBottom: 11,
-            borderBottom: "2px solid #EEEAF6",
-          }}
-        >
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: colors.textMutedAlt }}>投稿</span>
-        </div>
+      {/* result count */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "18px 20px 0" }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>併せ募集</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: colors.primary }}>
+          {filtered.length}件
+        </span>
       </div>
 
       {/* results / empty state */}
