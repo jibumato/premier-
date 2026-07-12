@@ -22,13 +22,19 @@ import type {
 /** サービスの理念を表す一行コピー（ロゴ横／下に添える）。 */
 export const siteTagline = "“好き”で、つながる。";
 
-/** Popular works — home chips + onboarding follow list. */
+/** Popular works — home cards / search suggestions. Order = display order. */
 export const popularWorks = [
   "葬送のフリーレン",
+  "ダンダダン",
+  "薬屋のひとりごと",
+  "【推しの子】",
   "鬼滅の刃",
-  "SPY×FAMILY",
   "呪術廻戦",
+  "SPY×FAMILY",
+  "チェンソーマン",
   "原神",
+  "ゼンレスゾーンゼロ",
+  "勝利の女神：NIKKE",
   "ブルーアーカイブ",
 ];
 
@@ -303,6 +309,12 @@ export const onboardWorks = [
   { key: "ow4", name: "呪術廻戦" },
   { key: "ow5", name: "原神" },
   { key: "ow6", name: "ブルーアーカイブ" },
+  { key: "ow7", name: "ダンダダン" },
+  { key: "ow8", name: "薬屋のひとりごと" },
+  { key: "ow9", name: "【推しの子】" },
+  { key: "ow10", name: "チェンソーマン" },
+  { key: "ow11", name: "ゼンレスゾーンゼロ" },
+  { key: "ow12", name: "勝利の女神：NIKKE" },
 ];
 
 // --- photographer profile ---
