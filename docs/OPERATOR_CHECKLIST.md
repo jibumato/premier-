@@ -14,14 +14,23 @@
 
 ```sql
 select
-  to_regclass('public.announcements')                 as announcements_table, -- null → 0012 未適用
-  (select count(*) from events where name like '%2026%') as events_2026,       -- 0 → 0013 未適用
-  (select count(*) from qa_questions)                  as qa_count;            -- 0 → 知恵袋 未投入
+  to_regclass('public.announcements')                    as announcements_table, -- null → 0012 未適用
+  (select count(*) from events where name like '%2026%') as events_2026,          -- 0 → 0013 未適用
+  (select count(*) from events where name like '%2027%') as events_2027,          -- 0 → 0014 未適用
+  (select exists(select 1 from information_schema.columns
+     where table_name='posts' and column_name='sort'))  as posts_sort_col,       -- false → 0015 未適用
+  (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
-- `announcements_table` が `null` → **ステップ 1** を実行
-- `events_2026` が `0` → **ステップ 2** を実行
-- `qa_count` が `0` → **ステップ 3** を実行
+- `announcements_table` が `null` → **ステップ 1**（0012）
+- `events_2026` が `0` → **ステップ 2**（0013）
+- `events_2027` が `0` → **ステップ 2b**（0014）
+- `posts_sort_col` が `false` → **ステップ 2c**（0015）
+- `qa_count` が `0` → **ステップ 3**（知恵袋）
+
+> 2026-07 時点では **0012〜0015 はすべて適用済み**です。以下の各手順は、新しい
+> 環境の構築や、未適用が判明したときのための参照用として残しています。適用済みの
+> ステップはスキップして構いません（各マイグレーションは冪等・再実行安全）。
 
 ---
 
@@ -50,6 +59,30 @@ select
 → 旧サンプル4件が削除され、2026年の実在イベント5件（コスサミ／夏コミ／
 Ultra acosta!／池ハロ／冬コミ）に置き換わります。開催前に各公式で日程の
 最終確認を。
+
+---
+
+## ☐ ステップ 2b: 2027年のイベント（マイグレーション 0014）
+
+`events_2027` が `0` のときだけ実行します。
+
+1. リポジトリの **`supabase/migrations/0014_events_2027.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 発表済みの2027年イベント2件（コスブー2nd／世界コスプレサミット2027）が
+追加されます（2026年イベントは残ります）。追加のみ・冪等。
+
+---
+
+## ☐ ステップ 2c: ギャラリー並び替え対応（マイグレーション 0015）
+
+`posts_sort_col` が `false` のときだけ実行します。
+
+1. リポジトリの **`supabase/migrations/0015_posts_sort.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ `posts` に並び順の列 `sort` と本人向けの更新ポリシーが追加され、マイページの
+ギャラリーで並び替えができるようになります。冪等・再実行安全。
 
 ---
 
@@ -132,7 +165,7 @@ select
   (select count(*) from qa_answers where is_best)         as qa_best_answers; -- 5
 ```
 
-想定値: お知らせ 3、イベント 5、質問 5、ベストアンサー 5。
+想定値: お知らせ 3、イベント **7**（2026: 5 ＋ 2027: 2）、質問 5、ベストアンサー 5。
 アプリの「お知らせ」「イベント」「知恵袋」を開いて表示を確認してください。
 
 ---
@@ -145,5 +178,6 @@ select
 | 本人確認の承認・却下 | `docs/VERIFICATION_REVIEW.md` |
 | 知恵袋にFAQを追記 | `docs/SEED_QA.md` |
 
-> マイグレーション 0001〜0011 は既に適用済みの前提です（バックエンド接続が
-> できている＝適用済み）。未適用のものは 0012・0013 の2本だけです。
+> 2026-07 時点で **マイグレーション 0001〜0015 はすべて適用済み**です。今後
+> 新しいマイグレーション（0016 以降）が追加されたら、同じ要領で SQL Editor から
+> 適用してください。
