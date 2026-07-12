@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { deleteUploadedImage } from "@/lib/queries/upload";
 import type { Tables } from "@/lib/database.types";
 
 /** A user's post gallery (profile screen), in manual order (sort desc). */
@@ -46,11 +47,14 @@ export function useCreatePost() {
   });
 }
 
-/** Delete one of the current user's posts. */
+/** Delete one of the current user's posts (and its underlying R2 image file). */
 export function useDeletePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id }: { id: string; authorId: string }) => {
+    mutationFn: async ({ id, imageUrl }: { id: string; authorId: string; imageUrl?: string | null }) => {
+      // Remove the underlying file first so a "delete" truly deletes the image,
+      // not just the DB reference. Best-effort — never blocks the row delete.
+      await deleteUploadedImage(imageUrl);
       const supabase = getSupabaseBrowserClient();
       const { error } = await supabase.from("posts").delete().eq("id", id);
       if (error) throw error;

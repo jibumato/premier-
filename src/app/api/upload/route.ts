@@ -22,6 +22,7 @@ interface R2BucketLike {
     value: ArrayBuffer,
     options?: { httpMetadata?: { contentType?: string } },
   ): Promise<unknown>;
+  delete(key: string): Promise<void>;
 }
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB
@@ -79,4 +80,40 @@ export async function POST(request: Request) {
   const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/+$/, "");
   const url = publicBase ? `${publicBase}/${key}` : null;
   return NextResponse.json({ key, url });
+}
+
+/**
+ * Delete an image object from R2. Object keys are `<kind>/<ownerId>/<uuid>.<ext>`,
+ * so ownership is enforced by requiring the key's owner segment to equal the
+ * verified session's user id — a caller can only delete their own uploads.
+ * Called when a post is removed (or an avatar/cover replaced) so a "delete"
+ * actually removes the underlying file, not just the DB reference.
+ */
+export async function DELETE(request: Request) {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  }
+
+  const key = new URL(request.url).searchParams.get("key") ?? "";
+  const parts = key.split("/");
+  // key must be "<kind>/<ownerId>/<file>"; only the owner may delete a known kind.
+  if (parts.length < 3 || !KINDS.has(parts[0]) || parts[1] !== user.id) {
+    return NextResponse.json({ error: "削除できません" }, { status: 403 });
+  }
+
+  const { env } = await getCloudflareContext({ async: true });
+  const bucket = (env as unknown as { MEDIA?: R2BucketLike }).MEDIA;
+  if (!bucket) {
+    return NextResponse.json(
+      { error: "画像アップロード基盤が未設定です（R2 バケット未接続）" },
+      { status: 501 },
+    );
+  }
+
+  await bucket.delete(key);
+  return NextResponse.json({ ok: true });
 }
