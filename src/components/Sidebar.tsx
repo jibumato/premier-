@@ -79,12 +79,20 @@ export function Sidebar() {
         background: colors.white,
       }}
     >
-      <div
+      <button
+        onClick={() => nav("home", "home")}
+        aria-label="ホーム"
         style={{
           display: "flex",
           alignItems: "center",
           gap: 10,
           padding: "0 12px 22px",
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          textAlign: "left",
+          width: "100%",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -112,7 +120,7 @@ export function Sidebar() {
             {siteTagline}
           </span>
         </div>
-      </div>
+      </button>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {primary.map((it) => (
