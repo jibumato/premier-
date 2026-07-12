@@ -144,6 +144,8 @@ export interface AwaseDetail {
   capacity: number | null;
   world_tags: string[];
   host_id: string;
+  work_id: string | null;
+  status: "open" | "closed";
   works: { name: string } | null;
   profiles: { display_name: string; is_verified: boolean } | null;
 }
@@ -158,7 +160,7 @@ export function useAwase(awaseId: string | null) {
       const { data, error } = await supabase
         .from("awase")
         .select(
-          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, works(name), profiles(display_name, is_verified)",
+          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, works(name), profiles(display_name, is_verified)",
         )
         .eq("id", awaseId!)
         .single();
@@ -328,6 +330,116 @@ export function useApply() {
         .from("awase_applications")
         .insert({ awase_id: awaseId, applicant_id: applicantId });
       if (error) throw error;
+    },
+  });
+}
+
+export type ApplicationStatus = "applied" | "accepted" | "rejected" | "done";
+
+export interface Applicant {
+  /** application row id */
+  id: string;
+  applicantId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+  message: string;
+  status: ApplicationStatus;
+  createdAt: string;
+}
+
+/** Applicants to an awase, newest first — for the host's 応募者管理 screen
+ * (readable by the host per the applications_select RLS policy). */
+export function useAwaseApplicants(awaseId: string | null) {
+  return useQuery({
+    queryKey: ["awase_applicants", awaseId],
+    enabled: isSupabaseConfigured() && Boolean(awaseId),
+    queryFn: async (): Promise<Applicant[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase_applications")
+        .select("id, applicant_id, message, status, created_at, profiles(display_name, avatar_url, is_verified)")
+        .eq("awase_id", awaseId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      type Row = {
+        id: string;
+        applicant_id: string;
+        message: string | null;
+        status: ApplicationStatus;
+        created_at: string;
+        profiles: { display_name: string; avatar_url: string | null; is_verified: boolean } | null;
+      };
+      return ((data ?? []) as unknown as Row[]).map((r) => ({
+        id: r.id,
+        applicantId: r.applicant_id,
+        displayName: r.profiles?.display_name ?? "ゲスト",
+        avatarUrl: r.profiles?.avatar_url ?? null,
+        isVerified: r.profiles?.is_verified ?? false,
+        message: r.message ?? "",
+        status: r.status,
+        createdAt: r.created_at,
+      }));
+    },
+  });
+}
+
+/** Total + accepted application counts for an awase (host controls / 満員判定). */
+export function useAwaseApplicantCount(awaseId: string | null) {
+  return useQuery({
+    queryKey: ["awase_applicant_count", awaseId],
+    enabled: isSupabaseConfigured() && Boolean(awaseId),
+    queryFn: async (): Promise<{ total: number; accepted: number }> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase_applications")
+        .select("status")
+        .eq("awase_id", awaseId!);
+      if (error) throw error;
+      const rows = (data ?? []) as { status: ApplicationStatus }[];
+      return {
+        total: rows.length,
+        accepted: rows.filter((r) => r.status === "accepted").length,
+      };
+    },
+  });
+}
+
+/** Accept/reject an application (host only — applications_update RLS). The DB
+ * trigger auto-closes the awase when accepted reaches capacity, so we refetch
+ * the awase too. */
+export function useUpdateApplicationStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; awaseId: string; status: ApplicationStatus }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("awase_applications").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_applicants", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_applicant_count", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
+    },
+  });
+}
+
+/** Open/close an awase's recruitment (host only). Lets a host re-open after an
+ * auto-close, or close early. */
+export function useSetAwaseStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ awaseId, status }: { awaseId: string; status: "open" | "closed" }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("awase").update({ status }).eq("id", awaseId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId }) => {
+      qc.invalidateQueries({ queryKey: ["awase", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
     },
   });
 }

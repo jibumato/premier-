@@ -12,6 +12,7 @@ import {
   useAddAwaseImage,
   useApply,
   useAwase,
+  useAwaseApplicantCount,
   useAwaseImages,
   useAwaseRoles,
   useDeleteAwase,
@@ -33,7 +34,7 @@ const mockInfoGrid = [
 ];
 
 export function DetailScreen() {
-  const { back, nav, openProfile, openReport, selectedAwaseId } = useRouter();
+  const { back, nav, openProfile, openReport, openCreateFromDuplicate, selectedAwaseId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -51,6 +52,9 @@ export function DetailScreen() {
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
   const roles = real ? (rolesQuery.data ?? []) : detailRoles;
   const isHost = Boolean(real && user && real.host_id === user.id);
+  const applicantCount = useAwaseApplicantCount(isHost ? selectedAwaseId : null);
+  const applicantTotal = applicantCount.data?.total ?? 0;
+  const isClosed = real ? real.status === "closed" : false;
   const images = real ? (imagesQuery.data ?? []) : [];
   const [heroIndex, setHeroIndex] = useState(0);
   const heroUrl = images[heroIndex]?.url ?? images[0]?.url ?? undefined;
@@ -231,12 +235,12 @@ export function DetailScreen() {
             fontSize: 11,
             fontWeight: 600,
             color: colors.white,
-            background: "rgba(109,93,171,.92)",
+            background: isClosed ? "rgba(120,110,140,.92)" : "rgba(109,93,171,.92)",
             padding: "6px 12px",
             borderRadius: 999,
           }}
         >
-          募集中
+          {isClosed ? "募集終了" : "募集中"}
         </span>
         {(real ? real.women_only : true) && (
           <span
@@ -430,28 +434,64 @@ export function DetailScreen() {
           })}
         </div>
         {isHost ? (
-          <div style={{ display: "flex", gap: 9, marginTop: 22 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 22 }}>
             <button
-              onClick={openEdit}
+              onClick={() => nav("hostApplicants")}
               style={{
-                flex: 1,
-                border: `1px solid ${colors.border}`,
-                background: colors.white,
-                color: colors.primary,
+                width: "100%",
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
                 fontFamily: "inherit",
-                fontSize: 13,
+                fontSize: 13.5,
                 fontWeight: 700,
-                padding: "13px 0",
+                padding: "14px 0",
                 borderRadius: 13,
                 cursor: "pointer",
               }}
             >
-              編集する
+              応募者を見る{applicantTotal > 0 ? `（${applicantTotal}名）` : ""}
             </button>
+            <div style={{ display: "flex", gap: 9 }}>
+              <button
+                onClick={openEdit}
+                style={{
+                  flex: 1,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.white,
+                  color: colors.primary,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "13px 0",
+                  borderRadius: 13,
+                  cursor: "pointer",
+                }}
+              >
+                編集する
+              </button>
+              <button
+                onClick={() => real && openCreateFromDuplicate(real.id)}
+                style={{
+                  flex: 1,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.white,
+                  color: colors.textSecondary,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "13px 0",
+                  borderRadius: 13,
+                  cursor: "pointer",
+                }}
+              >
+                複製する
+              </button>
+            </div>
             <button
               onClick={() => setConfirmDelete(true)}
               style={{
-                flex: 1,
+                width: "100%",
                 border: "1px solid #E7C6C4",
                 background: colors.white,
                 color: "#C0453F",
