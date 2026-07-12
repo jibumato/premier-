@@ -79,6 +79,30 @@ export function useAwaseAchievementCount(userId: string | undefined) {
   });
 }
 
+/** Update the editable profile text fields (display name / bio). */
+export function useUpdateProfileText() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      displayName,
+      bio,
+    }: {
+      userId: string;
+      displayName: string;
+      bio: string;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ display_name: displayName, bio })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, { userId }) => qc.invalidateQueries({ queryKey: ["profile", userId] }),
+  });
+}
+
 /** Persist a newly uploaded avatar/cover image onto the profile. */
 export function useUpdateProfileImage() {
   const qc = useQueryClient();

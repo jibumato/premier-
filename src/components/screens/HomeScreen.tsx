@@ -50,7 +50,21 @@ export function HomeScreen() {
           padding: "12px 22px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <button
+          onClick={() => nav("home", "home")}
+          aria-label="ホーム"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            border: "none",
+            background: "none",
+            padding: 0,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            textAlign: "left",
+          }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
@@ -76,7 +90,7 @@ export function HomeScreen() {
               {siteTagline}
             </span>
           </div>
-        </div>
+        </button>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button
             onClick={() => nav("messages")}
