@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -10,7 +10,7 @@ import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, Settings
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
-import { useCreatePost, usePosts } from "@/lib/queries/posts";
+import { useCreatePost, useDeletePost, usePosts, useReorderPosts } from "@/lib/queries/posts";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -31,6 +31,25 @@ const supportLinks = [
 //  - gift: アプリ内課金（コイン）が未実装
 // 実装が入ったら true に戻すだけで復活する。
 const LAUNCH_FLAGS = { supportLinks: false, gift: false };
+
+/** Small translucent ←/→ button used for reordering gallery thumbnails. */
+function moveBtnStyle(disabled: boolean): CSSProperties {
+  return {
+    width: 30,
+    height: 24,
+    borderRadius: 8,
+    border: "none",
+    background: "rgba(30,20,40,.6)",
+    color: "#fff",
+    fontSize: 14,
+    lineHeight: 1,
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.35 : 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+}
 
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, selectedProfileId } = useRouter();
@@ -59,6 +78,10 @@ export function ProfileScreen() {
   const [nameInput, setNameInput] = useState("");
   const [bioInput, setBioInput] = useState("");
   const createPost = useCreatePost();
+  const deletePost = useDeletePost();
+  const reorderPosts = useReorderPosts();
+  const [galleryEditing, setGalleryEditing] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const getOrCreateConversation = useGetOrCreateConversation();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +149,19 @@ export function ProfileScreen() {
       { userId: user.id, displayName: nameInput.trim(), bio: bioInput.trim() },
       { onSuccess: () => setEditing(false) },
     );
+  };
+
+  const handleDeletePost = (id: string) => {
+    if (!user) return;
+    deletePost.mutate({ id, authorId: user.id });
+  };
+  const handleMovePost = (index: number, dir: -1 | 1) => {
+    if (!user || !posts) return;
+    const target = index + dir;
+    if (target < 0 || target >= posts.length) return;
+    const ids = posts.map((p) => p.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    reorderPosts.mutate({ authorId: user.id, orderedIds: ids });
   };
 
   return (
@@ -632,7 +668,22 @@ export function ProfileScreen() {
 
       {/* gallery */}
       <div style={{ padding: "26px 22px 30px" }}>
-        <SectionHeading size={15}>ギャラリー</SectionHeading>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <SectionHeading size={15}>ギャラリー</SectionHeading>
+          {canEdit && posts && posts.length > 0 && (
+            <button
+              onClick={() => setGalleryEditing((v) => !v)}
+              style={{ border: "none", background: "none", padding: 0, color: colors.primary, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+            >
+              {galleryEditing ? "完了" : "編集"}
+            </button>
+          )}
+        </div>
+        {galleryEditing && (
+          <p style={{ margin: "8px 0 0", fontSize: 11, color: colors.textMutedAlt, lineHeight: 1.6 }}>
+            ← → で並び替え、× で削除できます。
+          </p>
+        )}
         <div
           style={{
             display: "grid",
@@ -643,7 +694,7 @@ export function ProfileScreen() {
         >
           {posts ? (
             <>
-              {canEdit && (
+              {canEdit && !galleryEditing && (
                 <button
                   onClick={() => postInputRef.current?.click()}
                   style={{
@@ -661,9 +712,62 @@ export function ProfileScreen() {
                   <PlusIcon size={22} color={colors.textMutedAlt} />
                 </button>
               )}
-              {posts.map((p) => (
-                <div key={p.id} style={{ height: 108 }}>
-                  <ImageSlot radius={12} src={p.image_url} />
+              {posts.map((p, i) => (
+                <div key={p.id} style={{ position: "relative", height: 108 }}>
+                  {galleryEditing ? (
+                    <>
+                      <ImageSlot radius={12} src={p.image_url} />
+                      <button
+                        onClick={() => handleDeletePost(p.id)}
+                        aria-label="削除"
+                        style={{
+                          position: "absolute",
+                          right: 4,
+                          top: 4,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          border: "none",
+                          background: "rgba(30,20,40,.65)",
+                          color: colors.white,
+                          fontSize: 14,
+                          lineHeight: 1,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        ×
+                      </button>
+                      <div style={{ position: "absolute", left: 4, right: 4, bottom: 4, display: "flex", justifyContent: "space-between" }}>
+                        <button
+                          onClick={() => handleMovePost(i, -1)}
+                          disabled={i === 0}
+                          aria-label="左へ"
+                          style={moveBtnStyle(i === 0)}
+                        >
+                          ←
+                        </button>
+                        <button
+                          onClick={() => handleMovePost(i, 1)}
+                          disabled={i === posts.length - 1}
+                          aria-label="右へ"
+                          style={moveBtnStyle(i === posts.length - 1)}
+                        >
+                          →
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => p.image_url && setLightboxUrl(p.image_url)}
+                      aria-label="拡大表示"
+                      style={{ width: "100%", height: "100%", padding: 0, border: "none", background: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
+                    >
+                      <ImageSlot radius={12} src={p.image_url} />
+                    </button>
+                  )}
                 </div>
               ))}
               {posts.length === 0 && !canEdit && (
@@ -709,6 +813,51 @@ export function ProfileScreen() {
           このユーザーを通報・ブロック
         </button>
       </div>
+
+      {/* lightbox: tap a gallery thumbnail to view it large */}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(20,14,28,.92)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            aria-label="閉じる"
+            style={{
+              position: "absolute",
+              right: 16,
+              top: 16,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              border: "none",
+              background: "rgba(255,255,255,.16)",
+              color: colors.white,
+              fontSize: 20,
+              lineHeight: 1,
+              cursor: "pointer",
+            }}
+          >
+            ×
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }}
+          />
+        </div>
+      )}
     </div>
   );
 }

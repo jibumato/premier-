@@ -228,6 +228,7 @@ export interface Database {
           author_id: string;
           image_url: string;
           caption: string | null;
+          sort: number;
           created_at: string;
         };
         Insert: {
@@ -235,6 +236,7 @@ export interface Database {
           author_id: string;
           image_url: string;
           caption?: string | null;
+          sort?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>;
