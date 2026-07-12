@@ -57,8 +57,18 @@
 cp .env.example .env
 # NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY を記入
 ```
-本番は同じ値を **Cloudflare Pages のプロジェクト環境変数**に設定。
-`SUPABASE_SERVICE_ROLE_KEY` はサーバー専用（クライアントへ出さない）。
+**本番（Cloudflare Workers Builds）では、`NEXT_PUBLIC_*` はビルド時にコードへ焼き込まれる**ため、
+Worker 設定の **「ビルド」→「変数とシークレット」（＝ビルド変数）** に設定する。
+ランタイムの「変数とシークレット」に入れても**効かない**ので注意。設定後は**再ビルド（新しいデプロイ）**
+が必要。値の未設定時は `isSupabaseConfigured()` が false になり、アプリはモック（プレビュー）動作になる。
+
+必要な3つ（いずれも公開されても安全な値）:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_R2_PUBLIC_URL`（R2 の公開URL。画像表示に使用）
+
+（アプリコードは `SUPABASE_SERVICE_ROLE_KEY` を使用しない。本人確認の承認等は Supabase ダッシュボードの
+SQL で運用する。将来サーバー処理で必要になった場合はランタイムのシークレットとして設定する。）
 
 ### 4. ローカル起動 / プレビュー
 ```bash
