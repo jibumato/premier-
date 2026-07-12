@@ -215,6 +215,20 @@ export function DetailScreen() {
     }
   };
 
+  // X（旧Twitter）へワンボタン投稿。募集中なら「募集告知」、締切後は「募集終了」の
+  // 定型文を自動で出し分ける。深いリンクは未実装のため URL はアプリのトップを付与。
+  const shareToX = () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    const date = real?.event_date ?? "7/26(日) 13:00〜";
+    const place = real?.place ?? real?.region ?? "都内スタジオ";
+    const text = isClosed
+      ? `【募集終了】${title}（${workName}）\nたくさんのご応募ありがとうございました！\n#プルミエ #コスプレ`
+      : `【併せ募集】${title}\n作品：${workName}\n📅 ${date}\n📍 ${place}\n一緒に併せしませんか？🙌\n#プルミエ #コスプレ #併せ #コスプレ好きさんと繋がりたい`;
+    const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(intent, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div>
       {/* app bar */}
@@ -602,6 +616,39 @@ export function DetailScreen() {
             </button>
           </>
         )}
+      </div>
+
+      {/* X（旧Twitter）へワンボタン告知／募集終了投稿 */}
+      <div style={{ padding: "0 22px 30px" }}>
+        <button
+          onClick={shareToX}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            border: "none",
+            background: "#000",
+            color: "#fff",
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 700,
+            padding: "13px 0",
+            borderRadius: 13,
+            cursor: "pointer",
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden>
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          {isClosed ? "Xで募集終了を投稿" : "Xで募集を告知する"}
+        </button>
+        <p style={{ margin: "8px 4px 0", fontSize: 10.5, color: colors.textMutedAlt, lineHeight: 1.6, textAlign: "center" }}>
+          {isClosed
+            ? "募集終了のお礼をXにワンボタンで投稿できます。"
+            : "併せの概要つきの募集告知をXにワンボタンで投稿できます。"}
+        </p>
       </div>
 
       {/* apply confirmation — avoids accidental taps */}
