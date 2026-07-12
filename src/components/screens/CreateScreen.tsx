@@ -8,7 +8,14 @@ import { PrimaryButton, Toggle } from "../ui";
 import { PlusIcon } from "../icons";
 import { ImageSlot } from "../ImageSlot";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useAwase, useCreateAwase } from "@/lib/queries/awase";
+import {
+  useAwase,
+  useAwaseTemplates,
+  useCreateAwase,
+  useDeleteAwaseTemplate,
+  useSaveAwaseTemplate,
+  type AwaseTemplate,
+} from "@/lib/queries/awase";
 import { useWorks } from "@/lib/queries/works";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -36,6 +43,13 @@ const label: React.CSSProperties = {
 const creatableRegions = regions.filter((r) => r !== "すべて");
 const WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
 
+/** datetime-local ("YYYY-MM-DDTHH:mm", ローカル時刻) → ISO文字列。空なら null。 */
+function localToIso(v: string): string | null {
+  if (!v.trim()) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 export function CreateScreen() {
   const { nav, duplicateAwaseId } = useRouter();
   const { user } = useAuth();
@@ -44,6 +58,9 @@ export function CreateScreen() {
   const worksQuery = useWorks();
   const duplicateSource = useAwase(duplicateAwaseId);
   const createAwase = useCreateAwase();
+  const templatesQuery = useAwaseTemplates(user?.id);
+  const saveTemplate = useSaveAwaseTemplate();
+  const deleteTemplate = useDeleteAwaseTemplate();
   const uploadImage = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Real works (id/name) once connected; the handoff's mock list otherwise.
@@ -62,6 +79,9 @@ export function CreateScreen() {
   const [feeText, setFeeText] = useState("");
   const [capacity, setCapacity] = useState("");
   const [body, setBody] = useState("");
+  const [publishAt, setPublishAt] = useState("");
+  const [applicationDeadline, setApplicationDeadline] = useState("");
+  const [templateName, setTemplateName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
@@ -87,6 +107,40 @@ export function CreateScreen() {
     setBody(src.body ?? "");
   }, [duplicateAwaseId, duplicateSource.data]);
 
+  const applyTemplate = (t: AwaseTemplate) => {
+    setTitle(t.title);
+    setWorkId(t.workId ?? "");
+    setRegion(t.region);
+    setPlace(t.place ?? "");
+    setFeeText(t.feeText ?? "");
+    setBody(t.body ?? "");
+    setCapacity(t.capacity != null ? String(t.capacity) : "");
+    setWomenOnly(t.womenOnly);
+    setBeginnerOk(t.beginnerOk);
+    setWorldTags(t.worldTags);
+  };
+
+  const handleSaveTemplate = () => {
+    if (!user || !templateName.trim()) return;
+    saveTemplate.mutate(
+      {
+        hostId: user.id,
+        name: templateName.trim(),
+        title: title.trim(),
+        workId: workId || null,
+        region,
+        place: place.trim() || null,
+        feeText: feeText.trim() || null,
+        body: body.trim() || null,
+        capacity: capacity.trim() ? Number(capacity) : null,
+        womenOnly,
+        beginnerOk,
+        worldTags,
+      },
+      { onSuccess: () => setTemplateName("") },
+    );
+  };
+
   const handlePickImage = () => {
     if (!configured) return; // uploads need R2 + a signed-in host; no-op in pure prototype mode
     fileInputRef.current?.click();
@@ -111,6 +165,12 @@ export function CreateScreen() {
       setError("タイトル・作品・日程・地域は必須です");
       return;
     }
+    const pubIso = localToIso(publishAt);
+    const deadIso = localToIso(applicationDeadline);
+    if (pubIso && deadIso && deadIso <= pubIso) {
+      setError("応募締切は公開日時より後にしてください");
+      return;
+    }
     if (configured && user) {
       setSubmitting(true);
       try {
@@ -128,6 +188,8 @@ export function CreateScreen() {
           feeText: feeText.trim() || null,
           body: body.trim() || null,
           capacity: cap != null && Number.isFinite(cap) && cap > 0 ? cap : null,
+          publishAt: localToIso(publishAt),
+          applicationDeadline: localToIso(applicationDeadline),
           imageKeys: images.map((img) => img.key),
         });
         nav("created");
@@ -176,6 +238,78 @@ export function CreateScreen() {
         <div style={{ padding: "14px 22px 0" }}>
           <div style={{ fontSize: 12, color: colors.primary, background: colors.primaryBg1, borderRadius: 12, padding: "11px 14px", lineHeight: 1.6 }}>
             前回の募集内容をコピーしました。日程や内容を編集して、新しい募集として公開できます（画像は引き継がれません）。
+          </div>
+        </div>
+      )}
+
+      {/* saved templates (host tool; needs a backend + signed-in host) */}
+      {configured && user && (
+        <div style={{ padding: "18px 22px 0" }}>
+          <label style={label}>テンプレート</label>
+          {(templatesQuery.data ?? []).length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+              {(templatesQuery.data ?? []).map((t) => (
+                <span
+                  key={t.id}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 999,
+                    padding: "6px 6px 6px 12px",
+                    background: colors.white,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(t)}
+                    style={{ border: "none", background: "none", color: colors.primary, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+                  >
+                    {t.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => user && deleteTemplate.mutate({ id: t.id, hostId: user.id })}
+                    aria-label={`${t.name}を削除`}
+                    style={{ border: "none", background: "#F1EEF6", color: colors.textMutedAlt, width: 18, height: 18, borderRadius: "50%", fontSize: 12, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: "8px 0 0", fontSize: 11.5, color: colors.textMutedAlt, lineHeight: 1.6 }}>
+              よく使う募集内容を保存しておくと、次回から一発で呼び出せます。
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <input
+              style={{ ...inputBox, marginTop: 0, flex: 1, fontSize: 12.5, padding: "10px 12px" }}
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="このフォームをテンプレ保存（名前）"
+            />
+            <button
+              type="button"
+              onClick={handleSaveTemplate}
+              disabled={!templateName.trim() || saveTemplate.isPending}
+              style={{
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                color: templateName.trim() ? colors.primary : colors.textMutedAlt,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                fontWeight: 700,
+                padding: "0 16px",
+                borderRadius: 12,
+                cursor: templateName.trim() ? "pointer" : "default",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {saveTemplate.isPending ? "保存中…" : "保存"}
+            </button>
           </div>
         </div>
       )}
@@ -319,6 +453,30 @@ export function CreateScreen() {
             onChange={(e) => setBody(e.target.value)}
             placeholder="どんな併せか、集合・進行・雰囲気、参加条件など"
           />
+        </div>
+
+        {/* scheduled publish + application deadline (both optional) */}
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={label}>公開日時（予約）</label>
+            <input
+              type="datetime-local"
+              style={{ ...inputBox, fontSize: 12.5, padding: "12px 12px" }}
+              value={publishAt}
+              onChange={(e) => setPublishAt(e.target.value)}
+            />
+            <div style={{ marginTop: 5, fontSize: 10.5, color: colors.textMutedAlt }}>空欄で今すぐ公開</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={label}>応募締切</label>
+            <input
+              type="datetime-local"
+              style={{ ...inputBox, fontSize: 12.5, padding: "12px 12px" }}
+              value={applicationDeadline}
+              onChange={(e) => setApplicationDeadline(e.target.value)}
+            />
+            <div style={{ marginTop: 5, fontSize: 10.5, color: colors.textMutedAlt }}>空欄で締切なし</div>
+          </div>
         </div>
 
         {/* world tags — tap to select (saved with the 併せ) */}

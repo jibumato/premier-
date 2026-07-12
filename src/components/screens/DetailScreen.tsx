@@ -26,6 +26,27 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 const EDIT_WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
 const editableRegions = regions.filter((r) => r !== "すべて");
 
+/** datetime-local ("YYYY-MM-DDTHH:mm", ローカル時刻) → ISO文字列。空なら null。 */
+function localToIso(v: string): string | null {
+  if (!v.trim()) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+/** ISO文字列 → datetime-local の value（ローカル時刻）。null は空文字。 */
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+/** 併せ詳細の予約/締切表示用の短い日時ラベル。 */
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 const mockInfoGrid = [
   { label: "日程", value: "7/26(日) 13:00〜" },
   { label: "場所", value: "都内スタジオ" },
@@ -55,6 +76,9 @@ export function DetailScreen() {
   const applicantCount = useAwaseApplicantCount(isHost ? selectedAwaseId : null);
   const applicantTotal = applicantCount.data?.total ?? 0;
   const isClosed = real ? real.status === "closed" : false;
+  const now = Date.now();
+  const isScheduled = Boolean(real?.publish_at && new Date(real.publish_at).getTime() > now);
+  const isDeadlinePassed = Boolean(real?.application_deadline && new Date(real.application_deadline).getTime() < now);
   const images = real ? (imagesQuery.data ?? []) : [];
   const [heroIndex, setHeroIndex] = useState(0);
   const heroUrl = images[heroIndex]?.url ?? images[0]?.url ?? undefined;
@@ -85,6 +109,8 @@ export function DetailScreen() {
   const [eWomenOnly, setEWomenOnly] = useState(false);
   const [eBeginnerOk, setEBeginnerOk] = useState(false);
   const [eTags, setETags] = useState<string[]>([]);
+  const [ePublishAt, setEPublishAt] = useState("");
+  const [eDeadline, setEDeadline] = useState("");
 
   const title = real?.title ?? "魔法学園シリーズ 生徒会併せ";
   const workName = real?.works?.name ?? "葬送のフリーレン";
@@ -99,6 +125,12 @@ export function DetailScreen() {
         { label: "場所", value: real.place ?? "未定" },
         { label: "募集人数", value: real.capacity ? `定員${real.capacity}名` : "募集中" },
         { label: "費用", value: real.fee_text ?? "応相談" },
+        ...(real.application_deadline
+          ? [{ label: "応募締切", value: formatDateTime(real.application_deadline) + (isDeadlinePassed ? "（締切済）" : "まで") }]
+          : []),
+        ...(isScheduled && real.publish_at
+          ? [{ label: "公開予約", value: formatDateTime(real.publish_at) + " に公開" }]
+          : []),
       ]
     : mockInfoGrid;
   const bodyText =
@@ -125,11 +157,16 @@ export function DetailScreen() {
     setEWomenOnly(real.women_only);
     setEBeginnerOk(real.beginner_ok);
     setETags(real.world_tags ?? []);
+    setEPublishAt(isoToLocalInput(real.publish_at));
+    setEDeadline(isoToLocalInput(real.application_deadline));
     setEditing(true);
   };
   const saveEdit = () => {
     if (!real || !eTitle.trim() || !eDate.trim() || !eRegion) return;
     const cap = eCapacity.trim() ? Number(eCapacity) : null;
+    const pubIso = localToIso(ePublishAt);
+    const deadIso = localToIso(eDeadline);
+    if (pubIso && deadIso && deadIso <= pubIso) return;
     updateAwase.mutate(
       {
         awaseId: real.id,
@@ -143,6 +180,8 @@ export function DetailScreen() {
         womenOnly: eWomenOnly,
         beginnerOk: eBeginnerOk,
         worldTags: eTags,
+        publishAt: pubIso,
+        applicationDeadline: deadIso,
       },
       { onSuccess: () => setEditing(false) },
     );
@@ -235,12 +274,16 @@ export function DetailScreen() {
             fontSize: 11,
             fontWeight: 600,
             color: colors.white,
-            background: isClosed ? "rgba(120,110,140,.92)" : "rgba(109,93,171,.92)",
+            background: isScheduled
+              ? "rgba(199,146,79,.95)"
+              : isClosed
+                ? "rgba(120,110,140,.92)"
+                : "rgba(109,93,171,.92)",
             padding: "6px 12px",
             borderRadius: 999,
           }}
         >
-          {isClosed ? "募集終了" : "募集中"}
+          {isScheduled ? "公開予約" : isClosed ? "募集終了" : "募集中"}
         </span>
         {(real ? real.women_only : true) && (
           <span
@@ -508,9 +551,27 @@ export function DetailScreen() {
           </div>
         ) : (
           <>
-            <PrimaryButton onClick={() => setConfirmApply(true)} style={{ marginTop: 22 }}>
-              この併せに応募する
-            </PrimaryButton>
+            {isDeadlinePassed ? (
+              <div
+                style={{
+                  marginTop: 22,
+                  textAlign: "center",
+                  border: `1px solid ${colors.borderSoft}`,
+                  background: colors.primaryBg5,
+                  color: colors.textMutedAlt,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "15px 0",
+                  borderRadius: 14,
+                }}
+              >
+                応募は締め切りました
+              </div>
+            ) : (
+              <PrimaryButton onClick={() => setConfirmApply(true)} style={{ marginTop: 22 }}>
+                この併せに応募する
+              </PrimaryButton>
+            )}
             <button
               onClick={() =>
                 real
@@ -679,6 +740,14 @@ export function DetailScreen() {
               <Field label="費用">
                 <input value={eFee} onChange={(e) => setEFee(e.target.value)} style={editInput} placeholder="例：スタジオ代 割り勘" />
               </Field>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Field label="公開日時（予約）" flex>
+                  <input type="datetime-local" value={ePublishAt} onChange={(e) => setEPublishAt(e.target.value)} style={{ ...editInput, fontSize: 12.5 }} />
+                </Field>
+                <Field label="応募締切" flex>
+                  <input type="datetime-local" value={eDeadline} onChange={(e) => setEDeadline(e.target.value)} style={{ ...editInput, fontSize: 12.5 }} />
+                </Field>
+              </div>
               <Field label="世界観タグ">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {EDIT_WORLD_TAGS.map((t) => {
