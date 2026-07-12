@@ -243,6 +243,9 @@ export const events: EventItem[] = [
   { key: "e3", name: "Ultra acosta! 2026", date: "9/4(金)〜6(日)", venue: "池袋サンシャインシティ", region: "東京", going: 0, tag: "撮影イベント" },
   { key: "e4", name: "池袋ハロウィンコスプレフェス2026", date: "10/30(金)〜11/1(日)", venue: "池袋エリア", region: "東京", going: 0, tag: "ハロウィン" },
   { key: "e5", name: "コミックマーケット109（冬コミ）", date: "12/29(火)〜31(木)", venue: "東京ビッグサイト", region: "東京", going: 0, tag: "大型" },
+  // 2027年（2026-07時点で日程発表済みのもの）
+  { key: "e6", name: "コスブー2nd（東京）", date: "2027/1/24(日)", venue: "TFTホール（東京・浜松町）", region: "東京", going: 0, tag: "撮影イベント" },
+  { key: "e7", name: "世界コスプレサミット2027", date: "2027/11/12(金)〜14(日)", venue: "名古屋市内（会場は後日発表）", region: "名古屋", going: 0, tag: "世界大会" },
 ];
 
 export const qaItems: QaItem[] = [
