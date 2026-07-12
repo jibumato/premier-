@@ -235,11 +235,14 @@ export const marketItems: MarketItem[] = [
   { key: "mk6", title: "ロングウィッグ 銀髪", work: "共通", price: "¥4,800", size: "F", condition: "美品" },
 ];
 
+// 2026年の実在イベント（出典確認済み）。本番は events テーブル（migration
+// 0013）から取得し、これはプロトタイプ表示用のフォールバック。
 export const events: EventItem[] = [
-  { key: "e1", name: "ホロサマ 2025", date: "8/17(日)", venue: "東京ビッグサイト", region: "東京", going: 1240, tag: "大型" },
-  { key: "e2", name: "acosta! @池袋", date: "8/24(日)", venue: "池袋エリア", region: "東京", going: 860, tag: "撮影イベント" },
-  { key: "e3", name: "インテックス大阪 コスプレ", date: "9/6(土)", venue: "インテックス大阪", region: "大阪", going: 540, tag: "大型" },
-  { key: "e4", name: "ポートメッセなごや", date: "9/14(日)", venue: "ポートメッセなごや", region: "名古屋", going: 320, tag: "併せ多数" },
+  { key: "e1", name: "世界コスプレサミット2026", date: "7/31(金)〜8/2(日)", venue: "OASIS 21 ほか名古屋市内各所", region: "名古屋", going: 0, tag: "世界大会" },
+  { key: "e2", name: "コミックマーケット108（夏コミ）", date: "8/15(土)〜16(日)", venue: "東京ビッグサイト", region: "東京", going: 0, tag: "大型" },
+  { key: "e3", name: "Ultra acosta! 2026", date: "9/4(金)〜6(日)", venue: "池袋サンシャインシティ", region: "東京", going: 0, tag: "撮影イベント" },
+  { key: "e4", name: "池袋ハロウィンコスプレフェス2026", date: "10/30(金)〜11/1(日)", venue: "池袋エリア", region: "東京", going: 0, tag: "ハロウィン" },
+  { key: "e5", name: "コミックマーケット109（冬コミ）", date: "12/29(火)〜31(木)", venue: "東京ビッグサイト", region: "東京", going: 0, tag: "大型" },
 ];
 
 export const qaItems: QaItem[] = [
