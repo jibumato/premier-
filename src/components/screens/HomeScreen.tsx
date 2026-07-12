@@ -5,7 +5,7 @@ import { homeAwase, homePosts, popularWorks } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { BagIcon, BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
+import { BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
 import { useAwaseFeed } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -14,7 +14,9 @@ import { EmptyState } from "../EmptyState";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
-  { key: "market", label: "フリマ", icon: <BagIcon size={22} /> },
+  // フリマ（衣装売買）はローンチ時は非表示。画面・ルート・DB は残してあるので、
+  // 再開時は下行のコメントを外すだけで復活する。
+  // { key: "market", label: "フリマ", icon: <BagIcon size={22} /> },
   { key: "events", label: "イベント", icon: <CalendarIcon size={22} /> },
   { key: "qa", label: "知恵袋", icon: <HelpIcon size={22} /> },
 ];
