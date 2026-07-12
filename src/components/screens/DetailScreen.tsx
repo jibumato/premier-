@@ -108,6 +108,7 @@ export function DetailScreen() {
   const [eCapacity, setECapacity] = useState("");
   const [eWomenOnly, setEWomenOnly] = useState(false);
   const [eBeginnerOk, setEBeginnerOk] = useState(false);
+  const [eWaitlist, setEWaitlist] = useState(false);
   const [eTags, setETags] = useState<string[]>([]);
   const [ePublishAt, setEPublishAt] = useState("");
   const [eDeadline, setEDeadline] = useState("");
@@ -156,6 +157,7 @@ export function DetailScreen() {
     setECapacity(real.capacity != null ? String(real.capacity) : "");
     setEWomenOnly(real.women_only);
     setEBeginnerOk(real.beginner_ok);
+    setEWaitlist(real.accept_waitlist);
     setETags(real.world_tags ?? []);
     setEPublishAt(isoToLocalInput(real.publish_at));
     setEDeadline(isoToLocalInput(real.application_deadline));
@@ -182,6 +184,7 @@ export function DetailScreen() {
         worldTags: eTags,
         publishAt: pubIso,
         applicationDeadline: deadIso,
+        acceptWaitlist: eWaitlist,
       },
       { onSuccess: () => setEditing(false) },
     );
@@ -777,6 +780,7 @@ export function DetailScreen() {
               </Field>
               <EditToggle label="女性限定で募集" on={eWomenOnly} onChange={setEWomenOnly} />
               <EditToggle label="初心者歓迎" on={eBeginnerOk} onChange={setEBeginnerOk} />
+              <EditToggle label="満員後もキャンセル待ちを受付" on={eWaitlist} onChange={setEWaitlist} />
               {updateAwase.isError && (
                 <div style={{ fontSize: 12, color: "#C0453F" }}>保存に失敗しました。時間をおいて再度お試しください。</div>
               )}

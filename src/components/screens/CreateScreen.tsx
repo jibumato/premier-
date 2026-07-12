@@ -74,6 +74,7 @@ export function CreateScreen() {
   const [region, setRegion] = useState("");
   const [womenOnly, setWomenOnly] = useState(true);
   const [beginnerOk, setBeginnerOk] = useState(false);
+  const [acceptWaitlist, setAcceptWaitlist] = useState(false);
   const [worldTags, setWorldTags] = useState<string[]>([]);
   const [place, setPlace] = useState("");
   const [feeText, setFeeText] = useState("");
@@ -100,6 +101,7 @@ export function CreateScreen() {
     setRegion(src.region);
     setWomenOnly(src.women_only);
     setBeginnerOk(src.beginner_ok);
+    setAcceptWaitlist(src.accept_waitlist);
     setWorldTags(src.world_tags ?? []);
     setPlace(src.place ?? "");
     setFeeText(src.fee_text ?? "");
@@ -190,6 +192,7 @@ export function CreateScreen() {
           capacity: cap != null && Number.isFinite(cap) && cap > 0 ? cap : null,
           publishAt: localToIso(publishAt),
           applicationDeadline: localToIso(applicationDeadline),
+          acceptWaitlist,
           imageKeys: images.map((img) => img.key),
         });
         nav("created");
@@ -524,6 +527,12 @@ export function CreateScreen() {
           desc="コスプレ・併せが初めての方も歓迎"
           on={beginnerOk}
           onChange={setBeginnerOk}
+        />
+        <ToggleRow
+          title="満員後もキャンセル待ちを受付"
+          desc="定員に達しても自動締切せず、キャンセル待ちを受け付けます"
+          on={acceptWaitlist}
+          onChange={setAcceptWaitlist}
         />
 
         {error && (

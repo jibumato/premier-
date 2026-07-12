@@ -88,6 +88,7 @@ export interface Database {
           status: AwaseStatus;
           publish_at: string | null;
           application_deadline: string | null;
+          accept_waitlist: boolean;
           created_at: string;
         };
         Insert: {
@@ -107,6 +108,7 @@ export interface Database {
           status?: AwaseStatus;
           publish_at?: string | null;
           application_deadline?: string | null;
+          accept_waitlist?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["awase"]["Insert"]>;

@@ -148,6 +148,7 @@ export interface AwaseDetail {
   status: "open" | "closed";
   publish_at: string | null;
   application_deadline: string | null;
+  accept_waitlist: boolean;
   works: { name: string } | null;
   profiles: { display_name: string; is_verified: boolean } | null;
 }
@@ -162,7 +163,7 @@ export function useAwase(awaseId: string | null) {
       const { data, error } = await supabase
         .from("awase")
         .select(
-          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, publish_at, application_deadline, works(name), profiles(display_name, is_verified)",
+          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, publish_at, application_deadline, accept_waitlist, works(name), profiles(display_name, is_verified)",
         )
         .eq("id", awaseId!)
         .single();
@@ -188,6 +189,8 @@ interface UpdateAwaseInput {
   publishAt?: string | null;
   /** ISO timestamp or null (締切なし). */
   applicationDeadline?: string | null;
+  /** 満員後もキャンセル待ちとして応募を受け付ける. */
+  acceptWaitlist?: boolean;
 }
 
 /** Edit an existing 併せ (host only — enforced by the awase_update RLS policy). */
@@ -211,6 +214,7 @@ export function useUpdateAwase() {
           world_tags: input.worldTags,
           publish_at: input.publishAt ?? null,
           application_deadline: input.applicationDeadline ?? null,
+          accept_waitlist: input.acceptWaitlist ?? false,
         })
         .eq("id", input.awaseId);
       if (error) throw error;
@@ -289,6 +293,8 @@ interface CreateAwaseInput {
   publishAt?: string | null;
   /** ISO timestamp; applications are refused after this time (応募締切). */
   applicationDeadline?: string | null;
+  /** 満員後もキャンセル待ちとして応募を受け付ける. */
+  acceptWaitlist?: boolean;
   /** R2 object keys from useUploadImage, in display order. */
   imageKeys?: string[];
 }
@@ -316,6 +322,7 @@ export function useCreateAwase() {
           capacity: input.capacity ?? null,
           publish_at: input.publishAt ?? null,
           application_deadline: input.applicationDeadline ?? null,
+          accept_waitlist: input.acceptWaitlist ?? false,
         })
         .select("id")
         .single();
