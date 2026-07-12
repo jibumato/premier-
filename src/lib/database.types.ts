@@ -86,6 +86,8 @@ export interface Database {
           beginner_ok: boolean;
           capacity: number | null;
           status: AwaseStatus;
+          publish_at: string | null;
+          application_deadline: string | null;
           created_at: string;
         };
         Insert: {
@@ -103,9 +105,47 @@ export interface Database {
           beginner_ok?: boolean;
           capacity?: number | null;
           status?: AwaseStatus;
+          publish_at?: string | null;
+          application_deadline?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["awase"]["Insert"]>;
+        Relationships: [];
+      };
+      awase_templates: {
+        Row: {
+          id: string;
+          host_id: string;
+          name: string;
+          title: string;
+          work_id: string | null;
+          region: string;
+          place: string | null;
+          fee_text: string | null;
+          body: string | null;
+          capacity: number | null;
+          women_only: boolean;
+          beginner_ok: boolean;
+          world_tags: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          host_id: string;
+          name: string;
+          title?: string;
+          work_id?: string | null;
+          region?: string;
+          place?: string | null;
+          fee_text?: string | null;
+          body?: string | null;
+          capacity?: number | null;
+          women_only?: boolean;
+          beginner_ok?: boolean;
+          world_tags?: string[];
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["awase_templates"]["Insert"]>;
         Relationships: [];
       };
       awase_images: {

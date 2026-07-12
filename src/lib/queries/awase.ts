@@ -146,6 +146,8 @@ export interface AwaseDetail {
   host_id: string;
   work_id: string | null;
   status: "open" | "closed";
+  publish_at: string | null;
+  application_deadline: string | null;
   works: { name: string } | null;
   profiles: { display_name: string; is_verified: boolean } | null;
 }
@@ -160,7 +162,7 @@ export function useAwase(awaseId: string | null) {
       const { data, error } = await supabase
         .from("awase")
         .select(
-          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, works(name), profiles(display_name, is_verified)",
+          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, publish_at, application_deadline, works(name), profiles(display_name, is_verified)",
         )
         .eq("id", awaseId!)
         .single();
@@ -182,6 +184,10 @@ interface UpdateAwaseInput {
   womenOnly: boolean;
   beginnerOk: boolean;
   worldTags: string[];
+  /** ISO timestamp or null (即時公開). */
+  publishAt?: string | null;
+  /** ISO timestamp or null (締切なし). */
+  applicationDeadline?: string | null;
 }
 
 /** Edit an existing 併せ (host only — enforced by the awase_update RLS policy). */
@@ -203,6 +209,8 @@ export function useUpdateAwase() {
           women_only: input.womenOnly,
           beginner_ok: input.beginnerOk,
           world_tags: input.worldTags,
+          publish_at: input.publishAt ?? null,
+          application_deadline: input.applicationDeadline ?? null,
         })
         .eq("id", input.awaseId);
       if (error) throw error;
@@ -277,6 +285,10 @@ interface CreateAwaseInput {
   feeText?: string | null;
   body?: string | null;
   capacity?: number | null;
+  /** ISO timestamp; when in the future the 併せ is hidden until then (公開予約). */
+  publishAt?: string | null;
+  /** ISO timestamp; applications are refused after this time (応募締切). */
+  applicationDeadline?: string | null;
   /** R2 object keys from useUploadImage, in display order. */
   imageKeys?: string[];
 }
@@ -302,6 +314,8 @@ export function useCreateAwase() {
           fee_text: input.feeText ?? null,
           body: input.body ?? null,
           capacity: input.capacity ?? null,
+          publish_at: input.publishAt ?? null,
+          application_deadline: input.applicationDeadline ?? null,
         })
         .select("id")
         .single();
@@ -487,6 +501,129 @@ export function useAddAwaseImage() {
       qc.invalidateQueries({ queryKey: ["awase_images", awaseId] });
       qc.invalidateQueries({ queryKey: ["awase_feed"] });
       qc.invalidateQueries({ queryKey: ["awase_search"] });
+    },
+  });
+}
+
+export interface AwaseTemplate {
+  id: string;
+  name: string;
+  title: string;
+  workId: string | null;
+  region: string;
+  place: string | null;
+  feeText: string | null;
+  body: string | null;
+  capacity: number | null;
+  womenOnly: boolean;
+  beginnerOk: boolean;
+  worldTags: string[];
+}
+
+type TemplateRow = {
+  id: string;
+  name: string;
+  title: string;
+  work_id: string | null;
+  region: string;
+  place: string | null;
+  fee_text: string | null;
+  body: string | null;
+  capacity: number | null;
+  women_only: boolean;
+  beginner_ok: boolean;
+  world_tags: string[];
+};
+
+function toTemplate(r: TemplateRow): AwaseTemplate {
+  return {
+    id: r.id,
+    name: r.name,
+    title: r.title,
+    workId: r.work_id,
+    region: r.region,
+    place: r.place,
+    feeText: r.fee_text,
+    body: r.body,
+    capacity: r.capacity,
+    womenOnly: r.women_only,
+    beginnerOk: r.beginner_ok,
+    worldTags: r.world_tags ?? [],
+  };
+}
+
+/** A host's saved 募集テンプレート, newest first (create form's テンプレから選ぶ). */
+export function useAwaseTemplates(hostId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["awase_templates", hostId],
+    enabled: isSupabaseConfigured() && Boolean(hostId),
+    queryFn: async (): Promise<AwaseTemplate[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase_templates")
+        .select("id, name, title, work_id, region, place, fee_text, body, capacity, women_only, beginner_ok, world_tags")
+        .eq("host_id", hostId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return ((data ?? []) as unknown as TemplateRow[]).map(toTemplate);
+    },
+  });
+}
+
+export interface SaveTemplateInput {
+  hostId: string;
+  name: string;
+  title: string;
+  workId: string | null;
+  region: string;
+  place: string | null;
+  feeText: string | null;
+  body: string | null;
+  capacity: number | null;
+  womenOnly: boolean;
+  beginnerOk: boolean;
+  worldTags: string[];
+}
+
+/** Save the current create-form contents as a reusable template (host only). */
+export function useSaveAwaseTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SaveTemplateInput) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("awase_templates").insert({
+        host_id: input.hostId,
+        name: input.name,
+        title: input.title,
+        work_id: input.workId,
+        region: input.region,
+        place: input.place,
+        fee_text: input.feeText,
+        body: input.body,
+        capacity: input.capacity,
+        women_only: input.womenOnly,
+        beginner_ok: input.beginnerOk,
+        world_tags: input.worldTags,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { hostId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_templates", hostId] });
+    },
+  });
+}
+
+/** Delete a saved template (host only). */
+export function useDeleteAwaseTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; hostId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("awase_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { hostId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_templates", hostId] });
     },
   });
 }
