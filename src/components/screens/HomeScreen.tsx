@@ -8,8 +8,11 @@ import { SectionHeading } from "../ui";
 import { BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, SearchIcon } from "../icons";
 import { useAwaseFeed } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
+import { useAnnouncements } from "@/lib/queries/announcements";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { formatRelativeTime } from "@/lib/format";
+import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
 import type { Screen } from "@/lib/types";
 
@@ -31,6 +34,9 @@ export function HomeScreen() {
   // same AwaseCard shape, so the card markup below never branches.
   const awaseList = configured && feed.data ? feed.data : homeAwase;
   const feedEmpty = configured && feed.data?.length === 0;
+  const announcementsQuery = useAnnouncements();
+  const announcementList = configured && announcementsQuery.data ? announcementsQuery.data : mockAnnouncements;
+  const latestAnnouncement = announcementList[0];
 
   return (
     <div>
@@ -92,6 +98,59 @@ export function HomeScreen() {
           <span style={{ fontSize: 14, color: "#AFAABB" }}>作品・キャラで仲間を探す</span>
         </button>
       </div>
+
+      {/* latest announcement strip — conveys the service is actively operated */}
+      {latestAnnouncement && (
+        <div style={{ padding: "12px 22px 0" }}>
+          <button
+            onClick={() => nav("announcements")}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 13,
+              padding: "11px 13px",
+              background: colors.primaryBg5,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              textAlign: "left",
+            }}
+          >
+            <span
+              style={{
+                flex: "0 0 auto",
+                fontSize: 9.5,
+                fontWeight: 700,
+                color: colors.primary,
+                background: colors.primaryBg1,
+                padding: "4px 9px",
+                borderRadius: 999,
+              }}
+            >
+              お知らせ
+            </span>
+            <span
+              style={{
+                flex: 1,
+                minWidth: 0,
+                fontSize: 12,
+                fontWeight: 600,
+                color: colors.textPrimary,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {latestAnnouncement.title}
+            </span>
+            <span style={{ flex: "0 0 auto", fontSize: 10.5, color: colors.textMutedAlt }}>
+              {formatRelativeTime(latestAnnouncement.publishedAt)}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* feature shortcuts */}
       <div style={{ display: "flex", gap: 10, padding: "16px 22px 0" }}>

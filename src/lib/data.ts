@@ -1,4 +1,5 @@
 import type {
+  Announcement,
   AwaseCard,
   ChatMessage,
   Conversation,
@@ -246,6 +247,33 @@ export const qaItems: QaItem[] = [
   { key: "q2", title: "ウィッグのセット崩れを防ぐコツはありますか？", excerpt: "移動中にどうしても崩れてしまいます。おすすめのスプレーや固定方法が知りたいです。", tag: "ウィッグ", answers: 12, solved: false },
   { key: "q3", title: "スタジオ代の割り勘、当日精算のスマートなやり方は？", excerpt: "主催をすることになりました。集金でもめないコツを教えてほしいです。", tag: "主催", answers: 5, solved: false },
   { key: "q4", title: "自然光ロケでレフ板は必要ですか？", excerpt: "屋外併せで撮影クオリティを上げたいです。カメラマンさん目線の意見が聞きたいです。", tag: "撮影", answers: 9, solved: true },
+];
+
+// --- 運営お知らせ / 更新履歴（プロトタイプ時のフォールバック） ---
+// 本番は Supabase の announcements テーブルから取得する。相対時刻は描画時に
+// formatRelativeTime で算出するため、ここでは固定の ISO 文字列を置いておく。
+export const announcements: Announcement[] = [
+  {
+    key: "a1",
+    category: "update",
+    title: "本人確認バッジを導入しました",
+    body: "本人確認（任意）を行うと、プロフィールに確認済みバッジが表示されるようになりました。設定 →「本人確認」からお手続きいただけます。",
+    publishedAt: "2026-07-11T09:00:00+09:00",
+  },
+  {
+    key: "a2",
+    category: "update",
+    title: "PC（パソコン）表示に対応しました",
+    body: "パソコンのブラウザでも見やすいレイアウトに対応しました。スマートフォンと同じアカウントで、どちらからでもご利用いただけます。",
+    publishedAt: "2026-07-10T12:00:00+09:00",
+  },
+  {
+    key: "a3",
+    category: "news",
+    title: "プルミエ！を公開しました🎉",
+    body: "コスプレの「併せ（合わせ）」を安心してつくれるサービス、プルミエ！を公開しました。作品・キャラクターから仲間を探して、募集・応募・メッセージのやり取りができます。",
+    publishedAt: "2026-07-09T18:00:00+09:00",
+  },
 ];
 
 export const reportReasons = [

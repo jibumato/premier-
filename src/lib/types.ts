@@ -29,6 +29,7 @@ export type Screen =
   | "verify"
   | "terms"
   | "privacy"
+  | "announcements"
   // designed in the canvas set (screens_all_options), newly implemented
   | "onboardRole"
   | "onboardWorks"
@@ -71,6 +72,17 @@ export interface Notification {
   text: string;
   time: string;
   unread: boolean;
+}
+
+export type AnnouncementCategory = "update" | "news" | "maintenance";
+
+export interface Announcement {
+  key: string;
+  category: AnnouncementCategory;
+  title: string;
+  body: string;
+  /** ISO 8601 timestamp; the list formats it as a relative label. */
+  publishedAt: string;
 }
 
 export interface GiftTier {
