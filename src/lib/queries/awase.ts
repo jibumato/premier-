@@ -101,6 +101,43 @@ export function useAwaseFeed(filter?: AwaseFeedFilter) {
   });
 }
 
+/** Latest 初心者歓迎(beginner_ok) の open 併せ — ホームの「はじめてさん歓迎」レーン用。 */
+export function useBeginnerAwase(filter?: AwaseFeedFilter) {
+  return useQuery({
+    queryKey: ["awase_beginner", filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
+    enabled: isSupabaseConfigured(),
+    queryFn: async (): Promise<AwaseCard[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase")
+        .select(AWASE_LIST_SELECT)
+        .eq("status", "open")
+        .eq("beginner_ok", true)
+        .order("created_at", { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toAwaseCard);
+    },
+  });
+}
+
+/** How many awase the user has applied to — home「はじめてガイド」の③判定用。 */
+export function useMyApplicationCount(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["my_application_count", userId],
+    enabled: isSupabaseConfigured() && Boolean(userId),
+    queryFn: async (): Promise<number> => {
+      const supabase = getSupabaseBrowserClient();
+      const { count, error } = await supabase
+        .from("awase_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("applicant_id", userId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
 /** Filters for the search screen: region ("すべて" = all), a free-text keyword
  * (matched against the 併せ title), and a women-only toggle. */
 export interface AwaseSearchOptions {
