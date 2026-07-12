@@ -122,6 +122,7 @@ export function Sidebar() {
         onClick={() => nav("create")}
         style={{
           marginTop: 18,
+          width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -132,7 +133,7 @@ export function Sidebar() {
           fontFamily: "inherit",
           fontSize: 14,
           fontWeight: 700,
-          padding: "12px 0",
+          padding: "13px 0",
           borderRadius: 14,
           cursor: "pointer",
           boxShadow: shadow.fab,
