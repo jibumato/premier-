@@ -65,10 +65,21 @@ export function LoginScreen() {
 
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
-      <div style={{ padding: "70px 26px 0" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: ".06em", color: colors.textPrimary }}>
-          プルミエ<span style={{ color: colors.pink }}>！</span>
-        </div>
+      <div style={{ padding: "58px 26px 0" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt="プルミエ！"
+          width={92}
+          height={92}
+          style={{
+            width: 92,
+            height: 92,
+            borderRadius: "50%",
+            display: "block",
+            boxShadow: "0 10px 26px -12px rgba(80,60,120,.5)",
+          }}
+        />
         <h2 style={{ margin: "22px 0 0", fontSize: 23, lineHeight: 1.5, fontWeight: 700, color: colors.textPrimary }}>
           {mode === "signIn" ? "おかえりなさい" : "はじめまして"}
         </h2>

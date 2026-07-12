@@ -80,14 +80,30 @@ export function Sidebar() {
     >
       <div
         style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: colors.textPrimary,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
           padding: "0 12px 22px",
-          fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
         }}
       >
-        プルミエ<span style={{ color: colors.primary }}>！</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt=""
+          width={34}
+          height={34}
+          style={{ width: 34, height: 34, borderRadius: "50%", display: "block" }}
+        />
+        <span
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: colors.textPrimary,
+            fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
+          }}
+        >
+          プルミエ<span style={{ color: colors.primary }}>！</span>
+        </span>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

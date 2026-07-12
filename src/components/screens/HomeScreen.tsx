@@ -49,15 +49,25 @@ export function HomeScreen() {
           padding: "12px 22px",
         }}
       >
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            letterSpacing: ".06em",
-            color: colors.textPrimaryAlt,
-          }}
-        >
-          プルミエ<span style={{ color: colors.pink }}>！</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt=""
+            width={30}
+            height={30}
+            style={{ width: 30, height: 30, borderRadius: "50%", display: "block" }}
+          />
+          <span
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              letterSpacing: ".06em",
+              color: colors.textPrimaryAlt,
+            }}
+          >
+            プルミエ<span style={{ color: colors.pink }}>！</span>
+          </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button
