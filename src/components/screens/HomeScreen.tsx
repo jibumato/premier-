@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
 import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
+import { WelcomeBanner } from "../WelcomeBanner";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
@@ -87,8 +88,11 @@ export function HomeScreen() {
         </div>
       </div>
 
+      {/* welcome banner — first-visit greeting, dismissible */}
+      <WelcomeBanner />
+
       {/* search entry */}
-      <div style={{ padding: "0 22px" }}>
+      <div style={{ padding: "12px 22px 0" }}>
         <button
           onClick={() => nav("search", "search")}
           style={{
