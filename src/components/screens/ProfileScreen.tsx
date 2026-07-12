@@ -6,7 +6,7 @@ import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadge } from "../icons";
+import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadge, VerifiedBadgeGhost } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
@@ -194,8 +194,54 @@ export function ProfileScreen() {
       <div style={{ padding: "46px 22px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{displayName}</h2>
-          {isVerified && <VerifiedBadge />}
+          {isVerified ? (
+            <VerifiedBadge />
+          ) : isOwnProfile ? (
+            // Not yet verified: show the empty badge slot (dashed) so the owner
+            // can see where the 本人確認 badge will appear, and tap to start it.
+            <button
+              onClick={() => nav("verify")}
+              title="本人確認をするとバッジが表示されます"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "3px 10px 3px 8px",
+                borderRadius: 999,
+                border: `1.5px dashed ${colors.border}`,
+                background: "transparent",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              <VerifiedBadgeGhost size={14} />
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: colors.textMutedAlt }}>
+                本人確認バッジ
+              </span>
+            </button>
+          ) : null}
         </div>
+        {!isVerified && isOwnProfile && (
+          <p style={{ margin: "7px 0 0", fontSize: 11, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+            本人確認をすると、お名前の横に確認済みバッジが表示されます。{" "}
+            <button
+              onClick={() => nav("verify")}
+              style={{
+                border: "none",
+                background: "none",
+                padding: 0,
+                margin: 0,
+                color: colors.primary,
+                fontWeight: 700,
+                fontSize: 11,
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              本人確認をする →
+            </button>
+          </p>
+        )}
         {meisterTitle && (
           <div
             style={{
