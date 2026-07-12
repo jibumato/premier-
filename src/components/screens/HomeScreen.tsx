@@ -16,6 +16,7 @@ import { formatRelativeTime } from "@/lib/format";
 import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
 import { WelcomeBanner } from "../WelcomeBanner";
+import { WorkCover } from "../WorkCover";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
@@ -239,7 +240,7 @@ export function HomeScreen() {
         </div>
         <div
           className="noscroll"
-          style={{ display: "flex", gap: 8, overflowX: "auto", padding: "12px 22px 0" }}
+          style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 22px 0" }}
         >
           {popularWorks.map((w) => (
             <button
@@ -247,18 +248,16 @@ export function HomeScreen() {
               onClick={() => nav("search", "search")}
               style={{
                 flex: "0 0 auto",
-                fontSize: 12.5,
-                color: "#4A4458",
-                border: `1px solid ${colors.border}`,
-                background: colors.white,
-                padding: "8px 14px",
-                borderRadius: 999,
+                width: 128,
+                height: 76,
+                padding: 0,
+                border: "none",
+                background: "none",
                 cursor: "pointer",
                 fontFamily: "inherit",
-                whiteSpace: "nowrap",
               }}
             >
-              {w}
+              <WorkCover name={w} radius={14} />
             </button>
           ))}
         </div>

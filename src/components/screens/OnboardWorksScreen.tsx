@@ -6,7 +6,7 @@ import { onboardWorks as mockWorks } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { PrimaryButton } from "../ui";
 import { OnboardProgress } from "./onboardProgress";
-import { ImageSlot } from "../ImageSlot";
+import { WorkCover } from "../WorkCover";
 import { SearchIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useFollowedWorks, useFollowWorks, useWorks } from "@/lib/queries/works";
@@ -111,12 +111,12 @@ export function OnboardWorksScreen() {
                   fontFamily: "inherit",
                 }}
               >
-                <ImageSlot radius={0} />
+                <WorkCover name={w.name} radius={0} showName={false} />
                 <span
                   style={{
                     position: "absolute",
                     inset: 0,
-                    background: "linear-gradient(to top,rgba(38,34,47,.72),transparent 60%)",
+                    background: "linear-gradient(to top,rgba(38,34,47,.6),transparent 55%)",
                   }}
                 />
                 <span
