@@ -4,11 +4,9 @@ import { colors } from "@/lib/tokens";
 export function StatusBar() {
   return (
     <div
+      className="pt-statusbar"
       style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
+        flex: "0 0 44px",
         height: 44,
         zIndex: 20,
         display: "flex",

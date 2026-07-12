@@ -46,11 +46,9 @@ export function BottomNav() {
 
   return (
     <div
+      className="pt-bottomnav"
       style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
+        flex: "0 0 72px",
         height: 72,
         background: "rgba(255,255,255,.96)",
         backdropFilter: "blur(10px)",

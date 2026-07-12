@@ -7,8 +7,8 @@ import { OnboardProgress } from "./onboardProgress";
 import { CheckIcon, ShieldIcon } from "../icons";
 
 const benefits = [
-  "なりすまし・トラブルを防止",
-  "確認済バッジがプロフィールに付く",
+  "プロフィールに「確認済バッジ」が付く",
+  "なりすまし対策になり、相手も安心",
   "年齢確認で応援リンクも利用可",
 ];
 
@@ -35,12 +35,12 @@ export function OnboardVerifyScreen() {
           <ShieldIcon size={38} />
         </div>
         <h2 style={{ margin: "22px 0 0", fontSize: 23, lineHeight: 1.5, fontWeight: 700, color: colors.textPrimary }}>
-          本人確認をして
+          確認済バッジで
           <br />
           安心してつながろう
         </h2>
         <p style={{ margin: "13px 0 0", fontSize: 12.5, color: colors.textMuted, lineHeight: 1.85 }}>
-          身分証で確認した人だけが、女性限定募集や併せに参加できます。情報は暗号化して安全に扱われます。
+          本人確認は<strong>任意</strong>です。確認すると「確認済バッジ」がプロフィールに付き、相手に安心感を伝えられます。確認しなくても通常どおりご利用いただけます。
         </p>
       </div>
 
