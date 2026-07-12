@@ -73,7 +73,10 @@ export async function POST(request: Request) {
   const key = `${kind}/${ownerId}/${crypto.randomUUID()}.${ext}`;
   await bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
 
-  const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+  // Strip any trailing slash(es) from the configured base so a value like
+  // "https://pub-xxx.r2.dev/" doesn't produce a double slash ("…r2.dev//avatar/…"),
+  // which R2 treats as a different key and returns 404 for.
+  const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/+$/, "");
   const url = publicBase ? `${publicBase}/${key}` : null;
   return NextResponse.json({ key, url });
 }
