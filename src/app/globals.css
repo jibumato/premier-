@@ -94,9 +94,8 @@ a:hover {
   }
 }
 
-/* Sidebar shows on desktop only; status bar + bottom nav on mobile only. */
+/* Sidebar shows on desktop only; the bottom nav shows on mobile only. */
 @media (min-width: 641px) {
-  .pt-statusbar,
   .pt-bottomnav {
     display: none !important;
   }

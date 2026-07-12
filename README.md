@@ -108,8 +108,7 @@ src/
   components/
     AppRouter.tsx     # クライアント側ルーター（screen/tab/history/region）
     AppShell.tsx      # 画面スイッチャ
-    PhoneFrame.tsx    # 390px フレーム＋ステータスバー＋下部ナビ
-    StatusBar.tsx
+    PhoneFrame.tsx    # レスポンシブ枠（PCサイドバー／モバイル下部ナビ）
     BottomNav.tsx
     ImageSlot.tsx     # 画像プレースホルダ（本番は Image + オブジェクトストレージ）
     icons.tsx         # インライン SVG アイコン
