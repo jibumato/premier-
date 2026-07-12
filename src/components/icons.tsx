@@ -157,6 +157,30 @@ export function VerifiedBadge({ size = 16, style }: { size?: number; style?: CSS
   );
 }
 
+/** Dashed "ghost" of the verified badge — the empty slot shown before a user
+ * has completed identity verification (tap → 本人確認). */
+export function VerifiedBadgeGhost({ size = 15, color = "#B4AEC0", style }: { size?: number; color?: string; style?: CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <path
+        d="M12 2l2.4 1.8 3-.3 1 2.8 2.6 1.5-.8 2.9.8 2.9-2.6 1.5-1 2.8-3-.3L12 22l-2.4-1.8-3 .3-1-2.8L3 16.4l.8-2.9L3 10.6l2.6-1.5 1-2.8 3 .3z"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.4"
+        strokeDasharray="2.4 2"
+      />
+      <path
+        d="M9 12l2 2 4-4"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Crown/meister emblem (filled). */
 export function MeisterIcon({ size = 12, color = "#B063A0", style }: IconProps) {
   return (
