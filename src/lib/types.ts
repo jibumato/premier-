@@ -47,6 +47,8 @@ export interface AwaseCard {
   date: string;
   place: string;
   members: string;
+  /** cover image URL (real data); undefined in the mock/prototype list. */
+  coverUrl?: string | null;
 }
 
 export interface SearchResult {
@@ -58,6 +60,8 @@ export interface SearchResult {
   date: string;
   members: string;
   womenOnly: boolean;
+  /** cover image URL (real data); undefined in the mock/prototype list. */
+  coverUrl?: string | null;
 }
 
 export interface DetailRole {
