@@ -424,6 +424,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["verification_requests"]["Insert"]>;
         Relationships: [];
       };
+      announcements: {
+        Row: {
+          id: string;
+          category: string;
+          title: string;
+          body: string;
+          published_at: string;
+        };
+        Insert: {
+          id?: string;
+          category?: string;
+          title: string;
+          body?: string;
+          published_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["announcements"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
