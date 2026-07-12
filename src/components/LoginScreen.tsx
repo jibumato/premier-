@@ -44,7 +44,15 @@ export function LoginScreen() {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
       } else {
-        const { error: err } = await supabase.auth.signUp({ email, password });
+        // Send the email-confirmation link back to whatever origin the user
+        // signed up on (localhost in dev, the production domain in prod) rather
+        // than relying solely on Supabase's fixed "Site URL". The target must
+        // also be allowlisted in Supabase → Authentication → Redirect URLs.
+        const { error: err } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
         if (err) throw err;
         setSignedUpNotice(true);
       }
