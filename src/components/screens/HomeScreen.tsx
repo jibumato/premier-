@@ -215,11 +215,9 @@ export function HomeScreen() {
         )}
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
             padding: "15px 22px 0",
           }}
+          className="pt-grid"
         >
           {awaseList.map((a) => (
             <button

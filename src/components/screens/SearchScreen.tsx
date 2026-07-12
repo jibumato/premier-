@@ -153,14 +153,7 @@ export function SearchScreen() {
       </div>
 
       {/* results / empty state */}
-      <div
-        style={{
-          padding: "16px 18px 30px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
+      <div style={{ padding: "16px 18px 30px" }} className="pt-grid">
         {filtered.map((res) => (
           <button
             key={res.key}

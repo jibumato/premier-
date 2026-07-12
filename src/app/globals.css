@@ -75,6 +75,25 @@ a:hover {
   overflow-y: auto;
 }
 
+/*
+ * List grid: a single column on mobile (unchanged from the phone design), two
+ * columns on the wider desktop content area so lists fill the space instead of
+ * stretching one card across the full width. Card children stay width:100% and
+ * simply fill each cell.
+ */
+.pt-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 641px) {
+  .pt-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
 /* Sidebar shows on desktop only; status bar + bottom nav on mobile only. */
 @media (min-width: 641px) {
   .pt-statusbar,
