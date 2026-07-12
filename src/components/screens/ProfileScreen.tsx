@@ -26,6 +26,12 @@ const supportLinks = [
   { key: "skeb", name: "Skeb", handle: "@mio" },
 ];
 
+// ローンチ時は非表示（いずれも現状は非機能のため）。
+//  - supportLinks: プロフィールに紐づく実URLがまだ無く、リンクが開かない
+//  - gift: アプリ内課金（コイン）が未実装
+// 実装が入ったら true に戻すだけで復活する。
+const LAUNCH_FLAGS = { supportLinks: false, gift: false };
+
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, selectedProfileId } = useRouter();
   const { user } = useAuth();
@@ -339,7 +345,7 @@ export function ProfileScreen() {
       </div>
 
       {/* support links (age-gated, external only) */}
-      {ageVerified && (
+      {LAUNCH_FLAGS.supportLinks && ageVerified && (
         <div style={{ padding: "26px 22px 0" }}>
           <SectionHeading accent={colors.pink} size={15}>
             応援・支援リンク
@@ -378,7 +384,8 @@ export function ProfileScreen() {
       )}
 
       {/* tip / gift (future-feature placeholder — no in-app payment yet) */}
-      <div style={{ padding: "26px 22px 0" }}>
+      {LAUNCH_FLAGS.gift && (
+        <div style={{ padding: "26px 22px 0" }}>
         <SectionHeading accent={colors.pink} size={15}>
           応援ギフトを贈る
         </SectionHeading>
@@ -420,7 +427,8 @@ export function ProfileScreen() {
         >
           コインで応援する
         </button>
-      </div>
+        </div>
+      )}
 
       {/* reviews received */}
       {real && reviewsReceived.data && reviewsReceived.data.count > 0 && (

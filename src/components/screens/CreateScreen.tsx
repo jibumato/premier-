@@ -34,6 +34,7 @@ const label: React.CSSProperties = {
 };
 
 const creatableRegions = regions.filter((r) => r !== "すべて");
+const WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
 
 export function CreateScreen() {
   const { nav } = useRouter();
@@ -55,6 +56,7 @@ export function CreateScreen() {
   const [region, setRegion] = useState("");
   const [womenOnly, setWomenOnly] = useState(true);
   const [beginnerOk, setBeginnerOk] = useState(false);
+  const [worldTags, setWorldTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
@@ -95,6 +97,7 @@ export function CreateScreen() {
           region,
           womenOnly,
           beginnerOk,
+          worldTags,
           imageKeys: images.map((img) => img.key),
         });
         nav("created");
@@ -133,19 +136,8 @@ export function CreateScreen() {
           キャンセル
         </button>
         <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimaryAlt }}>併せ募集を作成</div>
-        <span style={{ fontSize: 13.5, color: "#C6C0D2" }}>下書き</span>
-      </div>
-
-      {/* progress */}
-      <div style={{ padding: "8px 22px 0" }}>
-        <div style={{ height: 4, borderRadius: 99, background: "#EEEAF6", overflow: "hidden" }}>
-          <div
-            style={{ width: "60%", height: "100%", background: "linear-gradient(90deg,#8B79C4,#6D5DAB)" }}
-          />
-        </div>
-        <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 7 }}>
-          ステップ 2 / 3 · 基本情報
-        </div>
+        {/* spacer keeps the title centered (the old 下書き/進捗表示は未実装のため撤去) */}
+        <span style={{ width: 52 }} />
       </div>
 
       {/* reference images */}
@@ -246,36 +238,36 @@ export function CreateScreen() {
           </div>
         </div>
 
-        {/* world tags */}
+        {/* world tags — tap to select (saved with the 併せ) */}
         <div>
           <label style={label}>世界観タグ</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-            {["透明感", "ファンタジー"].map((t) => (
-              <span
-                key={t}
-                style={{
-                  fontSize: 12,
-                  color: colors.white,
-                  background: colors.primary,
-                  padding: "7px 13px",
-                  borderRadius: 999,
-                  fontWeight: 500,
-                }}
-              >
-                {t}
-              </span>
-            ))}
-            <span
-              style={{
-                fontSize: 12,
-                color: "#A79FC0",
-                border: "1px dashed #D8D2E6",
-                padding: "7px 13px",
-                borderRadius: 999,
-              }}
-            >
-              ＋ 追加
-            </span>
+            {WORLD_TAGS.map((t) => {
+              const on = worldTags.includes(t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() =>
+                    setWorldTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
+                  }
+                  aria-pressed={on}
+                  style={{
+                    fontSize: 12,
+                    color: on ? colors.white : "#4A4458",
+                    background: on ? colors.primary : colors.white,
+                    border: `1px solid ${on ? colors.primary : colors.border}`,
+                    padding: "7px 13px",
+                    borderRadius: 999,
+                    fontWeight: on ? 600 : 500,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
         </div>
 
