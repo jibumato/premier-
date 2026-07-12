@@ -211,7 +211,7 @@ export function QaScreen() {
           }
         />
       )}
-      <div style={{ padding: "10px 22px 30px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ padding: "10px 22px 30px" }} className="pt-grid">
         {questions.map((q) => (
           <button
             key={q.key}

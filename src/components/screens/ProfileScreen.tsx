@@ -57,13 +57,16 @@ export function ProfileScreen() {
   const real = configured && targetId ? profileQuery.data : undefined;
   const canEdit = configured && isOwnProfile;
   const posts = real ? (postsQuery.data ?? []) : undefined;
-  const displayName = real?.display_name ?? "澪 / mio";
-  const bio = real?.bio || "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
+  // Real users see their own (possibly empty) fields; only the prototype/mock
+  // mode falls back to the demo placeholder text. This prevents a brand-new
+  // account from showing another persona's sample bio/name/title.
+  const displayName = real ? real.display_name : "澪 / mio";
+  const bio = real ? (real.bio ?? "") : "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
   const isVerified = real?.is_verified ?? true;
   // Zoning: show external support links only to an age-verified viewer. When
   // unconfigured (prototype) it stays visible, matching the original behavior.
   const ageVerified = configured ? Boolean(viewerProfileQuery.data?.is_age_verified) : true;
-  const meisterTitle = real?.meister_title ?? "併せマイスター";
+  const meisterTitle = real ? real.meister_title : "併せマイスター";
   const stats = [
     { n: posts ? String(posts.length) : "128", l: "投稿" },
     { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
@@ -210,7 +213,13 @@ export function ProfileScreen() {
             <span style={{ fontSize: 11, fontWeight: 700, color: "#8A4E86" }}>{meisterTitle}</span>
           </div>
         )}
-        <p style={{ margin: "13px 0 0", fontSize: 13, lineHeight: 1.85, color: colors.textSecondary }}>{bio}</p>
+        {bio ? (
+          <p style={{ margin: "13px 0 0", fontSize: 13, lineHeight: 1.85, color: colors.textSecondary }}>{bio}</p>
+        ) : canEdit ? (
+          <p style={{ margin: "13px 0 0", fontSize: 12.5, lineHeight: 1.85, color: colors.textMutedSoft }}>
+            自己紹介はまだ設定されていません。
+          </p>
+        ) : null}
 
         {/* stats */}
         <div

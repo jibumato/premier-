@@ -28,7 +28,7 @@ export function EventsScreen() {
     <div>
       <AppBar title="イベントカレンダー" onBack={back} />
 
-      <div style={{ padding: "10px 22px 30px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ padding: "10px 22px 30px" }} className="pt-grid">
         {events.map((ev) => (
           <button
             key={ev.key}
