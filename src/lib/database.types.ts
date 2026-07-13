@@ -563,6 +563,14 @@ export interface Database {
         Args: Record<string, never>;
         Returns: undefined;
       };
+      is_conversation_member: {
+        Args: { p_conversation: string; p_user: string };
+        Returns: boolean;
+      };
+      create_direct_conversation: {
+        Args: { p_other: string; p_awase?: string | null };
+        Returns: string;
+      };
     };
     Enums: {
       user_role: UserRole;
