@@ -34,6 +34,8 @@ select
   (select to_regprocedure('public.is_admin()') is not null) as admin_verify_fn,   -- false → 0023 未適用
   (select to_regprocedure('public.delete_my_account()') is not null)
                                                          as delete_account_fn,    -- false → 0024 未適用
+  (select to_regprocedure('public.is_conversation_member(uuid,uuid)') is not null)
+                                                         as msg_rls_fix,          -- false → 0025 未適用（メッセージ不具合）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -50,6 +52,7 @@ select
 - `awase_views` が `false` → **ステップ 2j**（0022）
 - `admin_verify_fn` が `false` → **ステップ 2k**（0023）
 - `delete_account_fn` が `false` → **ステップ 2l**（0024）
+- `msg_rls_fix` が `false` → **ステップ 2m**（0025・メッセージ不具合の修正／要適用）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0012〜0015 はすべて適用済み**です。以下の各手順は、新しい
@@ -235,6 +238,20 @@ DM・レビュー等）が cascade で削除されます。**取り消し不可*
 > R2 の画像（本人確認書類・併せカバー・投稿画像）は DB のカスケードでは
 > 消えません。本人確認書類は従来どおり審査後に削除、その他は必要に応じて
 > ストレージ側で孤児オブジェクトを掃除してください。
+
+---
+
+## ☐ ステップ 2m: メッセージ不具合の修正（マイグレーション 0025）【要適用】
+
+`msg_rls_fix` が `false` のときは**必ず**実行してください。これが未適用だと
+**メッセージ機能（会話作成・一覧取得）が動きません**（「メッセージ」ボタンが無反応）。
+
+1. リポジトリの **`supabase/migrations/0025_fix_messaging_rls_recursion.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ `conversation_members` / `messages` の RLS が自己参照で無限再帰していたのを、
+SECURITY DEFINER 関数 `is_conversation_member()` 経由に置き換えて解消します。
+適用後、プロフィールの「メッセージ」から DM を開始できるようになります。冪等・再実行安全。
 
 ---
 

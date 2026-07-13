@@ -134,9 +134,14 @@ export function ProfileScreen() {
 
   const handleMessage = () => {
     if (real && user && targetId && !isOwnProfile) {
+      if (getOrCreateConversation.isPending) return; // 二重タップ防止
       getOrCreateConversation.mutate(
         { userId: user.id, otherUserId: targetId },
-        { onSuccess: (conversationId) => openChat(conversationId) },
+        {
+          onSuccess: (conversationId) => openChat(conversationId),
+          onError: () =>
+            alert("メッセージを開けませんでした。通信環境を確認して、もう一度お試しください。"),
+        },
       );
     } else {
       nav("chat");
@@ -385,6 +390,7 @@ export function ProfileScreen() {
           <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
             <button
               onClick={handleMessage}
+              disabled={getOrCreateConversation.isPending}
               style={{
                 flex: 1,
                 display: "flex",
@@ -399,11 +405,12 @@ export function ProfileScreen() {
                 fontWeight: 700,
                 padding: "12px 0",
                 borderRadius: 13,
-                cursor: "pointer",
+                cursor: getOrCreateConversation.isPending ? "default" : "pointer",
+                opacity: getOrCreateConversation.isPending ? 0.6 : 1,
               }}
             >
               <MessageIcon size={16} color={colors.white} />
-              メッセージ
+              {getOrCreateConversation.isPending ? "開いています…" : "メッセージ"}
             </button>
             <button
               onClick={() => nav("create")}
