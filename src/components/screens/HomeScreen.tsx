@@ -5,7 +5,7 @@ import { events as mockEvents, homeAwase, homePosts, popularWorks, siteTagline }
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { BellIcon, CalendarIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, SearchIcon } from "../icons";
+import { BellIcon, CalendarIcon, CameraIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, SearchIcon } from "../icons";
 import { useAwaseFeed, useBeginnerAwase } from "@/lib/queries/awase";
 import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
@@ -26,6 +26,7 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
   // 再開時は下行のコメントを外すだけで復活する。
   // { key: "market", label: "フリマ", icon: <BagIcon size={22} /> },
   { key: "events", label: "イベント", icon: <CalendarIcon size={22} /> },
+  { key: "studios", label: "スタジオ", icon: <CameraIcon size={22} color="#6D5DAB" /> },
   { key: "qa", label: "知恵袋", icon: <HelpIcon size={22} /> },
 ];
 

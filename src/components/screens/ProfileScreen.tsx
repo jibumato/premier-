@@ -10,7 +10,8 @@ import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, Settings
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
-import { useCreatePost, useDeletePost, usePosts, useReorderPosts } from "@/lib/queries/posts";
+import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostVisibility } from "@/lib/queries/posts";
+import { useAwaseHistory } from "@/lib/queries/awase";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -80,6 +81,10 @@ export function ProfileScreen() {
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
   const reorderPosts = useReorderPosts();
+  const updateVisibility = useUpdatePostVisibility();
+  // コス活ログ（応募行のRLSにより本人のみ取得可能 → 自分のマイページ限定）
+  const historyQuery = useAwaseHistory(isOwnProfile ? user?.id : undefined);
+  const history = configured && isOwnProfile ? (historyQuery.data ?? []) : [];
   const [galleryEditing, setGalleryEditing] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const getOrCreateConversation = useGetOrCreateConversation();
@@ -666,6 +671,49 @@ export function ProfileScreen() {
         </div>
       )}
 
+      {/* コス活のあゆみ（本人のみ）— 主催・参加した併せのライフログ */}
+      {isOwnProfile && (configured ? history.length > 0 : true) && (
+        <div style={{ padding: "26px 22px 0" }}>
+          <SectionHeading size={15}>コス活のあゆみ</SectionHeading>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
+            {(configured
+              ? history.slice(0, 8)
+              : [
+                  { key: "d1", title: "魔法学園シリーズ 生徒会併せ", work: "葬送のフリーレン", date: "7/26(日)", role: "主催" as const },
+                  { key: "d2", title: "夏祭り浴衣あわせ", work: "ぼっち・ざ・ろっく！", date: "6/14(土)", role: "参加" as const },
+                ]
+            ).map((h) => (
+              <div
+                key={h.key}
+                style={{ display: "flex", alignItems: "center", gap: 11, border: `1px solid ${colors.borderSoft}`, borderRadius: 14, padding: "11px 13px", background: colors.white }}
+              >
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: h.role === "主催" ? colors.primary : colors.pinkText,
+                    background: h.role === "主催" ? colors.primaryBg1 : colors.pinkBg1,
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                  }}
+                >
+                  {h.role}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {h.title}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2 }}>
+                    {h.work} ・ {h.date}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* gallery */}
       <div style={{ padding: "26px 22px 30px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -681,7 +729,7 @@ export function ProfileScreen() {
         </div>
         {galleryEditing && (
           <p style={{ margin: "8px 0 0", fontSize: 11, color: colors.textMutedAlt, lineHeight: 1.6 }}>
-            ← → で並び替え、× で削除できます。
+            ← → で並び替え、× で削除。左上のボタンで公開範囲（🌐 全体公開 / 🔒 併せ仲間のみ）を切り替えられます。
           </p>
         )}
         <div
@@ -717,6 +765,35 @@ export function ProfileScreen() {
                   {galleryEditing ? (
                     <>
                       <ImageSlot radius={12} src={p.image_url} />
+                      <button
+                        onClick={() =>
+                          user &&
+                          updateVisibility.mutate({
+                            id: p.id,
+                            authorId: user.id,
+                            visibility: p.visibility === "awase" ? "public" : "awase",
+                          })
+                        }
+                        aria-label={p.visibility === "awase" ? "併せ仲間のみ（タップで全体公開へ）" : "全体公開（タップで併せ仲間のみへ）"}
+                        style={{
+                          position: "absolute",
+                          left: 4,
+                          top: 4,
+                          height: 22,
+                          borderRadius: 999,
+                          border: "none",
+                          background: "rgba(30,20,40,.65)",
+                          color: colors.white,
+                          fontSize: 11,
+                          lineHeight: 1,
+                          cursor: "pointer",
+                          padding: "0 8px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {p.visibility === "awase" ? "🔒" : "🌐"}
+                      </button>
                       <button
                         onClick={() => handleDeletePost(p.id, p.image_url)}
                         aria-label="削除"
@@ -760,13 +837,23 @@ export function ProfileScreen() {
                       </div>
                     </>
                   ) : (
-                    <button
-                      onClick={() => p.image_url && setLightboxUrl(p.image_url)}
-                      aria-label="拡大表示"
-                      style={{ width: "100%", height: "100%", padding: 0, border: "none", background: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
-                    >
-                      <ImageSlot radius={12} src={p.image_url} />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => p.image_url && setLightboxUrl(p.image_url)}
+                        aria-label="拡大表示"
+                        style={{ width: "100%", height: "100%", padding: 0, border: "none", background: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
+                      >
+                        <ImageSlot radius={12} src={p.image_url} />
+                      </button>
+                      {canEdit && p.visibility === "awase" && (
+                        <span
+                          aria-label="併せ仲間のみ公開"
+                          style={{ position: "absolute", left: 4, top: 4, fontSize: 11, background: "rgba(30,20,40,.65)", color: colors.white, borderRadius: 999, padding: "3px 7px", lineHeight: 1 }}
+                        >
+                          🔒
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               ))}

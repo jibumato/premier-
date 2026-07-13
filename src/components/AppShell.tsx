@@ -20,6 +20,7 @@ import { MarketScreen } from "./screens/MarketScreen";
 import { MarketDetailScreen } from "./screens/MarketDetailScreen";
 import { EventsScreen } from "./screens/EventsScreen";
 import { EventDetailScreen } from "./screens/EventDetailScreen";
+import { StudiosScreen } from "./screens/StudiosScreen";
 import { QaScreen } from "./screens/QaScreen";
 import { QaDetailScreen } from "./screens/QaDetailScreen";
 import { ReportScreen } from "./screens/ReportScreen";
@@ -52,6 +53,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   marketDetail: MarketDetailScreen,
   events: EventsScreen,
   eventDetail: EventDetailScreen,
+  studios: StudiosScreen,
   qa: QaScreen,
   qaDetail: QaDetailScreen,
   report: ReportScreen,

@@ -138,6 +138,65 @@ export function useMyApplicationCount(userId: string | undefined) {
   });
 }
 
+export interface AwaseHistoryItem {
+  key: string;
+  title: string;
+  work: string;
+  date: string;
+  role: "主催" | "参加";
+  createdAt: string;
+}
+
+/** 自分のコス活ログ（主催した併せ＋accepted/doneで参加した併せ）。新しい順。
+ * 応募行のRLSは本人のみ閲覧可のため、本人のマイページ専用。 */
+export function useAwaseHistory(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["awase_history", userId],
+    enabled: isSupabaseConfigured() && Boolean(userId),
+    queryFn: async (): Promise<AwaseHistoryItem[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const [hosted, applied] = await Promise.all([
+        supabase
+          .from("awase")
+          .select("id, title, event_date, created_at, works(name)")
+          .eq("host_id", userId!)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("awase_applications")
+          .select("id, created_at, awase(id, title, event_date, works(name))")
+          .eq("applicant_id", userId!)
+          .in("status", ["accepted", "done"])
+          .order("created_at", { ascending: false }),
+      ]);
+      if (hosted.error) throw hosted.error;
+      if (applied.error) throw applied.error;
+      type HostRow = { id: string; title: string; event_date: string; created_at: string; works: { name: string } | null };
+      type AppRow = { id: string; created_at: string; awase: { id: string; title: string; event_date: string; works: { name: string } | null } | null };
+      const items: AwaseHistoryItem[] = [
+        ...((hosted.data ?? []) as unknown as HostRow[]).map((r) => ({
+          key: `h-${r.id}`,
+          title: r.title,
+          work: r.works?.name ?? "オリジナル",
+          date: r.event_date,
+          role: "主催" as const,
+          createdAt: r.created_at,
+        })),
+        ...((applied.data ?? []) as unknown as AppRow[])
+          .filter((r) => r.awase)
+          .map((r) => ({
+            key: `a-${r.id}`,
+            title: r.awase!.title,
+            work: r.awase!.works?.name ?? "オリジナル",
+            date: r.awase!.event_date,
+            role: "参加" as const,
+            createdAt: r.created_at,
+          })),
+      ];
+      return items.sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1));
+    },
+  });
+}
+
 /** Filters for the search screen: region ("すべて" = all), a free-text keyword
  * (matched against the 併せ title), and a women-only toggle. */
 export interface AwaseSearchOptions {
@@ -186,6 +245,7 @@ export interface AwaseDetail {
   publish_at: string | null;
   application_deadline: string | null;
   accept_waitlist: boolean;
+  view_count: number;
   works: { name: string } | null;
   profiles: { display_name: string; is_verified: boolean } | null;
 }
@@ -200,7 +260,7 @@ export function useAwase(awaseId: string | null) {
       const { data, error } = await supabase
         .from("awase")
         .select(
-          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, publish_at, application_deadline, accept_waitlist, works(name), profiles(display_name, is_verified)",
+          "id, title, body, event_date, place, region, fee_text, women_only, beginner_ok, capacity, world_tags, host_id, work_id, status, publish_at, application_deadline, accept_waitlist, view_count, works(name), profiles(display_name, is_verified)",
         )
         .eq("id", awaseId!)
         .single();

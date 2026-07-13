@@ -332,3 +332,23 @@ export const photoReviews = [
   { key: "rv1", from: "澪 / mio", stars: "★★★★★", text: "世界観の作り込みがすごい！仕上がりの写真に感動しました。併せでもまたお願いしたいです。" },
   { key: "rv2", from: "かな", stars: "★★★★★", text: "当日はとても丁寧にリードしてくださって、初めてでも安心でした。レタッチも早かったです◎" },
 ];
+
+// --- 撮影スタジオ（studios のモック。実データは migration 0020 でシード） ---
+
+export interface StudioItem {
+  key: string;
+  name: string;
+  region: string;
+  area: string;
+  tags: string[];
+  price: string;
+  url: string | null;
+  description: string;
+}
+
+export const mockStudios: StudioItem[] = [
+  { key: "st1", name: "ハコスタジアム東京 池袋", region: "関東", area: "東京・池袋", tags: ["シェア型", "多シチュエーション", "白ホリ"], price: "時間制（公式サイト参照）", url: "https://hacostadium.com/", description: "シェア型のコスプレ撮影スタジアム。多彩なセットを1施設で回れる定番スポット。" },
+  { key: "st2", name: "ハコスタジアム大阪", region: "関西", area: "大阪・弁天町", tags: ["シェア型", "50種以上のセット"], price: "時間制（公式サイト参照）", url: "https://hacostadium.com/osaka/", description: "50種以上のシチュエーションから選べる大型シェアスタジオ。" },
+  { key: "st3", name: "LUZZ STUDIO", region: "関西", area: "大阪", tags: ["貸切", "ベッドあり", "商用可"], price: "1時間単位（公式サイト参照）", url: "https://luzz-studio.com/", description: "商用・個人とも同一料金の時間貸しレンタルスタジオ。" },
+  { key: "st4", name: "HACOSTUDIO LUX", region: "関西", area: "大阪・弁天町", tags: ["貸切", "洋風", "ゴージャス"], price: "貸切・時間制", url: "https://hacostudio.com/", description: "貸切型。洋風のラグジュアリーなセットが中心。" },
+];

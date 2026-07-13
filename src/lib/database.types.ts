@@ -89,6 +89,7 @@ export interface Database {
           publish_at: string | null;
           application_deadline: string | null;
           accept_waitlist: boolean;
+          view_count: number;
           created_at: string;
         };
         Insert: {
@@ -148,6 +149,32 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["awase_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      studios: {
+        Row: {
+          id: string;
+          name: string;
+          region: string;
+          area_text: string;
+          tags: string[];
+          price_text: string | null;
+          url: string | null;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          region: string;
+          area_text?: string;
+          tags?: string[];
+          price_text?: string | null;
+          url?: string | null;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["studios"]["Insert"]>;
         Relationships: [];
       };
       awase_images: {
@@ -271,6 +298,7 @@ export interface Database {
           image_url: string;
           caption: string | null;
           sort: number;
+          visibility: "public" | "awase";
           created_at: string;
         };
         Insert: {
@@ -279,6 +307,7 @@ export interface Database {
           image_url: string;
           caption?: string | null;
           sort?: number;
+          visibility?: "public" | "awase";
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>;
@@ -499,6 +528,10 @@ export interface Database {
       };
       mark_best_answer: {
         Args: { p_answer_id: string };
+        Returns: undefined;
+      };
+      increment_awase_view: {
+        Args: { target: string };
         Returns: undefined;
       };
     };
