@@ -27,6 +27,7 @@ export function ChatScreen() {
 
   const real = configured && selectedConversationId ? realMessages.data : undefined;
   const realInfo = configured && selectedConversationId ? convInfo.data : undefined;
+  const loading = configured && Boolean(selectedConversationId) && realMessages.isPending && !realMessages.data;
   const partnerName = realInfo?.otherName ?? "かな";
   const partnerContext = realInfo?.awaseTitle ?? "魔法学園 生徒会併せ";
   const messages: ChatMessage[] = real
@@ -36,7 +37,9 @@ export function ChatScreen() {
         text: m.body,
         time: formatRelativeTime(m.created_at),
       }))
-    : mockMessages;
+    : configured && selectedConversationId
+      ? []
+      : mockMessages;
 
   const send = () => {
     const text = draft.trim();
@@ -48,6 +51,31 @@ export function ChatScreen() {
     }
     setDraft("");
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 16px 10px",
+            borderBottom: `1px solid ${colors.borderSofter}`,
+          }}
+        >
+          <button
+            onClick={back}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            aria-label="戻る"
+          >
+            <ChevronLeftIcon size={24} />
+          </button>
+        </div>
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>

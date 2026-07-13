@@ -48,6 +48,7 @@ export function HostApplicantsScreen() {
   const sendMessage = useSendMessage();
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
+  const loading = configured && Boolean(selectedAwaseId) && awaseQuery.isPending && !awaseQuery.data;
   const applicants = real ? (applicantsQuery.data ?? []) : mockApplicants;
 
   const title = real?.title ?? "魔法学園シリーズ 生徒会併せ";
@@ -113,6 +114,20 @@ export function HostApplicantsScreen() {
     setBroadcastOpen(false);
     setBroadcastDone(null);
   };
+
+  if (loading) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px 8px" }}>
+          <button onClick={back} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} aria-label="戻る">
+            <ChevronLeftIcon size={24} />
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimaryAlt }}>応募者管理</div>
+        </div>
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      </div>
+    );
+  }
 
   return (
     <div>

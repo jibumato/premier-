@@ -18,6 +18,7 @@ export function AppliedScreen() {
   const getOrCreateConversation = useGetOrCreateConversation();
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
+  const loading = configured && Boolean(selectedAwaseId) && awaseQuery.isPending && !awaseQuery.data;
   const hostName = real?.profiles?.display_name ?? "澪";
 
   const handleMessage = async () => {
@@ -32,6 +33,12 @@ export function AppliedScreen() {
     }
     nav("chat");
   };
+
+  if (loading) {
+    return (
+      <div style={{ padding: "70px 30px 0", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+    );
+  }
 
   return (
     <div style={{ padding: "70px 30px 0", textAlign: "center" }}>

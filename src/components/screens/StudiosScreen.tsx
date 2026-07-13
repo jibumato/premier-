@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { colors } from "@/lib/tokens";
-import { mockStudios } from "@/lib/data";
+import { mockStudios, type StudioItem } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { EmptyState } from "../EmptyState";
 import { ChevronLeftIcon, PinIcon } from "../icons";
 import { useStudios } from "@/lib/queries/studios";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+/** 読込中の安定した空配列参照（useMemo の依存が毎回変わるのを防ぐ）。 */
+const EMPTY_STUDIOS: StudioItem[] = [];
 
 /**
  * 撮影スタジオ検索。老舗コスプレSNSで最後まで使われ続けた「スタジオDB」を
@@ -18,7 +21,8 @@ export function StudiosScreen() {
   const { back } = useRouter();
   const configured = isSupabaseConfigured();
   const studiosQuery = useStudios();
-  const studios = configured && studiosQuery.data ? studiosQuery.data : mockStudios;
+  const studios = configured ? (studiosQuery.data ?? EMPTY_STUDIOS) : mockStudios;
+  const loading = configured && studiosQuery.isPending && !studiosQuery.data;
 
   const [region, setRegion] = useState("すべて");
   const [tag, setTag] = useState<string | null>(null);
@@ -103,7 +107,10 @@ export function StudiosScreen() {
 
       {/* list */}
       <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: "16px 22px 30px" }}>
-        {shown.length === 0 && (
+        {loading && (
+          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        )}
+        {!loading && shown.length === 0 && (
           <EmptyState icon="📷" title="条件に合うスタジオがありません" body="絞り込みを変えてみてください。" />
         )}
         {shown.map((s) => (

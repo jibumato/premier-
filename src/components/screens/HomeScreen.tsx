@@ -38,21 +38,28 @@ export function HomeScreen() {
   const feed = useAwaseFeed(moderation.data);
   // Real feed once connected and loaded; the handoff's mock list otherwise —
   // same AwaseCard shape, so the card markup below never branches.
-  const awaseList = configured && feed.data ? feed.data : homeAwase;
+  // In configured mode never fall back to mock while loading: show real data
+  // (or an empty/loading section) so prototype content never flashes.
+  const awaseList = configured ? (feed.data ?? []) : homeAwase;
   const feedEmpty = configured && feed.data?.length === 0;
+  const feedLoading = configured && feed.isPending && !feed.data;
   const announcementsQuery = useAnnouncements();
-  const announcementList = configured && announcementsQuery.data ? announcementsQuery.data : mockAnnouncements;
+  const announcementList = configured ? (announcementsQuery.data ?? []) : mockAnnouncements;
   const latestAnnouncement = announcementList[0];
   // Nearest events (curated calendar is stored in chronological order). Show a
   // few on the home top so upcoming events are visible at a glance.
   const eventsQuery = useEvents();
-  const eventsReal = configured && eventsQuery.data ? eventsQuery.data : undefined;
-  const homeEvents = (eventsReal ?? mockEvents).slice(0, 3);
+  const eventsReal = configured ? eventsQuery.data : undefined;
+  const homeEvents = (configured ? (eventsQuery.data ?? []) : mockEvents).slice(0, 3);
   // 「はじめてさん歓迎」= 初心者歓迎(beginner_ok)の併せ。未接続時はモックから代替。
   const beginnerQuery = useBeginnerAwase(moderation.data);
-  const beginnerReal = configured && beginnerQuery.data ? beginnerQuery.data : undefined;
+  const beginnerReal = configured ? beginnerQuery.data : undefined;
   const beginnerFromMock = homeAwase.filter((a) => a.tag.includes("初心者"));
-  const beginnerList = beginnerReal ?? (beginnerFromMock.length ? beginnerFromMock : homeAwase.slice(0, 4));
+  const beginnerList = configured
+    ? (beginnerQuery.data ?? [])
+    : beginnerFromMock.length
+      ? beginnerFromMock
+      : homeAwase.slice(0, 4);
 
   return (
     <div>
@@ -353,6 +360,9 @@ export function HomeScreen() {
             併せ・合わせ募集
           </SectionHeading>
         </div>
+        {feedLoading && (
+          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        )}
         {feedEmpty && (
           <EmptyState
             icon="🎬"
