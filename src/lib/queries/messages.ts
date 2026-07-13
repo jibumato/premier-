@@ -193,3 +193,46 @@ export function useMarkConversationRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
   });
 }
+
+/** The other participant's `last_read_at` for a 1:1 conversation, kept live via
+ * Realtime. Used to show a LINE-style 「既読」 marker on the current user's
+ * messages that the other person has already seen. Returns null until read. */
+export function useOtherReadAt(conversationId: string | null, userId: string | undefined) {
+  const qc = useQueryClient();
+  const channelId = useId();
+  const query = useQuery({
+    queryKey: ["conv_read", conversationId, userId],
+    enabled: isSupabaseConfigured() && Boolean(conversationId) && Boolean(userId),
+    queryFn: async (): Promise<string | null> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("conversation_members")
+        .select("last_read_at")
+        .eq("conversation_id", conversationId!)
+        .neq("user_id", userId!)
+        .order("last_read_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.last_read_at as string | undefined) ?? null;
+    },
+  });
+
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !conversationId || !userId) return;
+    const supabase = getSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`conv_read:${conversationId}:${channelId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversation_members", filter: `conversation_id=eq.${conversationId}` },
+        () => qc.invalidateQueries({ queryKey: ["conv_read", conversationId, userId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, userId, qc, channelId]);
+
+  return query;
+}

@@ -7,7 +7,7 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, SendIcon, StarIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useMessages, useSendMessage, useMarkConversationRead } from "@/lib/queries/messages";
+import { useMessages, useSendMessage, useMarkConversationRead, useOtherReadAt } from "@/lib/queries/messages";
 import { useConversationInfo } from "@/lib/queries/reviews";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
@@ -22,6 +22,7 @@ export function ChatScreen() {
   const convInfo = useConversationInfo(selectedConversationId, user?.id);
   const sendMessage = useSendMessage();
   const { mutate: markConversationRead } = useMarkConversationRead();
+  const otherReadAt = useOtherReadAt(selectedConversationId, user?.id);
 
   // 会話を開いた時点、および開いている間に新着が届いた時点で既読にする。
   // これでメッセージ一覧の未読バッジが消える（従来は呼ばれておらず残っていた）。
@@ -49,6 +50,18 @@ export function ChatScreen() {
     : configured && selectedConversationId
       ? []
       : mockMessages;
+
+  // 「既読」表示: 相手の last_read_at 以前に送った自分のメッセージのうち、
+  // 最新の1件のキーを求める（LINE風に、既読になった一番下の自分の吹き出しに付ける）。
+  const otherReadMs = otherReadAt.data ? new Date(otherReadAt.data).getTime() : 0;
+  let lastReadMineKey: string | null = null;
+  if (real && otherReadMs) {
+    for (const m of real) {
+      if (m.sender_id === user?.id && new Date(m.created_at).getTime() <= otherReadMs) {
+        lastReadMineKey = m.id;
+      }
+    }
+  }
 
   const send = () => {
     const text = draft.trim();
@@ -171,7 +184,21 @@ export function ChatScreen() {
               >
                 {m.text}
               </div>
-              <span style={{ fontSize: 9.5, color: colors.textMutedSoft, marginBottom: 2, whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  color: colors.textMutedSoft,
+                  marginBottom: 2,
+                  whiteSpace: "nowrap",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  gap: 1,
+                }}
+              >
+                {mine && m.key === lastReadMineKey && (
+                  <span style={{ color: colors.primary, fontWeight: 700 }}>既読</span>
+                )}
                 {m.time}
               </span>
             </div>
