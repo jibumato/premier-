@@ -46,11 +46,16 @@ export function HomeScreen() {
   const announcementsQuery = useAnnouncements();
   const announcementList = configured ? (announcementsQuery.data ?? []) : mockAnnouncements;
   const latestAnnouncement = announcementList[0];
-  // Nearest events (curated calendar is stored in chronological order). Show a
-  // few on the home top so upcoming events are visible at a glance.
+  // Nearest upcoming events. The query returns them ordered by start date
+  // (starts_on asc), so after dropping ones already past we can take the first
+  // few — that's the "近日開催" list. Mock events (no startsOn) are kept as-is.
   const eventsQuery = useEvents();
   const eventsReal = configured ? eventsQuery.data : undefined;
-  const homeEvents = (configured ? (eventsQuery.data ?? []) : mockEvents).slice(0, 3);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const homeEvents = (configured ? (eventsQuery.data ?? []) : mockEvents)
+    .filter((e) => !e.startsOn || new Date(e.startsOn) >= todayStart)
+    .slice(0, 3);
   // 「はじめてさん歓迎」= 初心者歓迎(beginner_ok)の併せ。未接続時はモックから代替。
   const beginnerQuery = useBeginnerAwase(moderation.data);
   const beginnerReal = configured ? beginnerQuery.data : undefined;

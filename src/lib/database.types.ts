@@ -357,6 +357,7 @@ export interface Database {
           tag: string;
           fee_text: string | null;
           body: string | null;
+          starts_on: string | null;
           created_at: string;
         };
         Insert: {
@@ -368,6 +369,7 @@ export interface Database {
           tag?: string;
           fee_text?: string | null;
           body?: string | null;
+          starts_on?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
