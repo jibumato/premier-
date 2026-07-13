@@ -97,29 +97,34 @@ export function useQaQuestion(questionId: string | null) {
     enabled: isSupabaseConfigured() && Boolean(questionId),
     queryFn: async (): Promise<QaQuestionDetail | null> => {
       const supabase = getSupabaseBrowserClient();
+      // profiles は埋め込みJOINせず別取得（inner join で質問ごと落ちるのを防ぐ）。
       const { data, error } = await supabase
         .from("qa_questions")
-        .select("id, author_id, title, body, tag, created_at, profiles(display_name)")
+        .select("id, author_id, title, body, tag, created_at")
         .eq("id", questionId!)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      const row = data as unknown as {
+      const row = data as {
         id: string;
         author_id: string;
         title: string;
         body: string;
         tag: string;
         created_at: string;
-        profiles: { display_name: string } | null;
       };
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", row.author_id)
+        .maybeSingle();
       return {
         id: row.id,
         authorId: row.author_id,
         title: row.title,
         body: row.body,
         tag: row.tag,
-        authorName: row.profiles?.display_name ?? "不明",
+        authorName: (prof as { display_name: string } | null)?.display_name ?? "不明",
         time: formatRelativeTime(row.created_at),
       };
     },
@@ -138,18 +143,20 @@ export function useQaAnswers(
     enabled: isSupabaseConfigured() && Boolean(questionId),
     queryFn: async (): Promise<QaAnswerRow[]> => {
       const supabase = getSupabaseBrowserClient();
+      // 回答本体を取得。投稿者名は profiles を埋め込みJOINせず別取得する
+      // （NOT NULL FK の埋め込みは PostgREST が inner join になり、投稿者の
+      // プロフィールが RLS で見えないと回答ごと落ちて 0 件になることがあるため）。
       const { data: answers, error } = await supabase
         .from("qa_answers")
-        .select("id, author_id, body, is_best, created_at, profiles(display_name)")
+        .select("id, author_id, body, is_best, created_at")
         .eq("question_id", questionId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      let rows = (answers ?? []) as unknown as {
+      let rows = (answers ?? []) as {
         id: string;
         author_id: string;
         body: string;
         is_best: boolean;
-        profiles: { display_name: string } | null;
       }[];
       if (blockedUserIds?.length) {
         const blocked = new Set(blockedUserIds);
@@ -158,14 +165,18 @@ export function useQaAnswers(
       const ids = rows.map((r) => r.id);
       if (ids.length === 0) return [];
 
-      const { data: likes, error: likesErr } = await supabase
-        .from("qa_answer_likes")
-        .select("answer_id, user_id")
-        .in("answer_id", ids);
-      if (likesErr) throw likesErr;
+      // 投稿者名・いいねは付帯情報。取得に失敗しても回答自体は表示する（best-effort）。
+      const authorIds = Array.from(new Set(rows.map((r) => r.author_id)));
+      const [profRes, likeRes] = await Promise.all([
+        supabase.from("profiles").select("id, display_name").in("id", authorIds),
+        supabase.from("qa_answer_likes").select("answer_id, user_id").in("answer_id", ids),
+      ]);
+      const nameById = new Map(
+        ((profRes.data ?? []) as { id: string; display_name: string }[]).map((p) => [p.id, p.display_name]),
+      );
       const likeCounts = new Map<string, number>();
       const likedByMe = new Set<string>();
-      for (const l of (likes ?? []) as { answer_id: string; user_id: string }[]) {
+      for (const l of (likeRes.data ?? []) as { answer_id: string; user_id: string }[]) {
         likeCounts.set(l.answer_id, (likeCounts.get(l.answer_id) ?? 0) + 1);
         if (l.user_id === currentUserId) likedByMe.add(l.answer_id);
       }
@@ -174,7 +185,7 @@ export function useQaAnswers(
         .map((r) => ({
           key: r.id,
           authorId: r.author_id,
-          name: r.profiles?.display_name ?? "不明",
+          name: nameById.get(r.author_id) ?? "不明",
           text: r.body,
           best: r.is_best,
           likes: likeCounts.get(r.id) ?? 0,
