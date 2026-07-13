@@ -33,6 +33,7 @@ export interface Database {
           is_verified: boolean;
           is_age_verified: boolean;
           is_private: boolean;
+          is_admin: boolean;
           created_at: string;
         };
         Insert: {
@@ -47,6 +48,7 @@ export interface Database {
           is_verified?: boolean;
           is_age_verified?: boolean;
           is_private?: boolean;
+          is_admin?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -532,6 +534,29 @@ export interface Database {
       };
       increment_awase_view: {
         Args: { target: string };
+        Returns: undefined;
+      };
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      admin_list_pending_verifications: {
+        Args: Record<string, never>;
+        Returns: {
+          request_id: string;
+          user_id: string;
+          display_name: string;
+          handle: string;
+          doc_url: string;
+          created_at: string;
+        }[];
+      };
+      admin_approve_verification: {
+        Args: { p_request_id: string; p_age_verified?: boolean };
+        Returns: undefined;
+      };
+      admin_reject_verification: {
+        Args: { p_request_id: string; p_note?: string | null };
         Returns: undefined;
       };
     };

@@ -20,7 +20,7 @@ import type {
  */
 
 /** サービスの理念を表す一行コピー（ロゴ横／下に添える）。 */
-export const siteTagline = "“好き”で、つながる。";
+export const siteTagline = "“好き”でつながる、コスプレイヤーマッチング交流サイト";
 
 /** Popular works — home cards / search suggestions. Order = display order. */
 export const popularWorks = [

@@ -141,9 +141,12 @@ export function HeartIcon({ size = 8, color = "#fff", style }: IconProps) {
 }
 
 /** Verified shield badge (filled). */
+// 極小の本人確認済アイコン（名前の右など）。エンブレム画像は情報量が多く小サイズで
+// つぶれるため、一覧・カードではこのアイコンを使う。配色はエンブレムのチェック（ティール）に
+// 合わせてある。
 export function VerifiedBadge({ size = 16, style }: { size?: number; style?: CSSProperties }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="#6D5DAB" style={style}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#17B3A0" style={style}>
       <path d="M12 2l2.4 1.8 3-.3 1 2.8 2.6 1.5-.8 2.9.8 2.9-2.6 1.5-1 2.8-3-.3L12 22l-2.4-1.8-3 .3-1-2.8L3 16.4l.8-2.9L3 10.6l2.6-1.5 1-2.8 3 .3z" />
       <path
         d="M9 12l2 2 4-4"
