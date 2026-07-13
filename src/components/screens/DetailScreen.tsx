@@ -216,7 +216,8 @@ export function DetailScreen() {
   };
 
   // X（旧Twitter）へワンボタン投稿。募集中なら「募集告知」、締切後は「募集終了」の
-  // 定型文を自動で出し分ける。深いリンクは未実装のため URL はアプリのトップを付与。
+  // 定型文を自動で出し分ける。URL は詳細表示中に AppRouter が `?awase=<id>` を同期
+  // しているため、そのままこの併せへのディープリンクになる。
   const shareToX = () => {
     if (typeof window === "undefined") return;
     const url = window.location.href;

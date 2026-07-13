@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -100,6 +101,31 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
   const resetScroll = useCallback(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
+
+  // ディープリンク: 初回マウント時に `?awase=<id>` があれば、その併せ詳細を開く。
+  // （共有URLから個別ページへ着地できるようにする。SSR では window が無いので effect で読む）
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const awaseId = new URLSearchParams(window.location.search).get("awase");
+    if (awaseId) {
+      setState((s) => ({ ...s, screen: "detail", selectedAwaseId: awaseId }));
+    }
+  }, []);
+
+  // 併せ詳細を見ているあいだは URL を `?awase=<id>` に同期する。これにより
+  // 詳細ページの共有/Xシェア（window.location.href 利用）がそのまま個別ページの
+  // ディープリンクになる。詳細以外の画面では素の URL に戻す。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const base = window.location.pathname + window.location.hash;
+    const next =
+      state.screen === "detail" && state.selectedAwaseId
+        ? `${window.location.pathname}?awase=${encodeURIComponent(state.selectedAwaseId)}${window.location.hash}`
+        : base;
+    if (window.location.pathname + window.location.search + window.location.hash !== next) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [state.screen, state.selectedAwaseId]);
 
   const nav = useCallback(
     (screen: Screen, tab?: Tab) => {
