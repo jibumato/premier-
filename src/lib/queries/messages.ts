@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -90,6 +90,10 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
  * alignment by the caller), kept live via Realtime. */
 export function useMessages(conversationId: string | null) {
   const qc = useQueryClient();
+  // Unique per hook instance so two mounts of the same conversation don't share
+  // a channel topic (which would throw "cannot add postgres_changes callbacks
+  // after subscribe()" on the second subscriber).
+  const channelId = useId();
   const query = useQuery({
     queryKey: ["messages", conversationId],
     enabled: isSupabaseConfigured() && Boolean(conversationId),
@@ -109,7 +113,7 @@ export function useMessages(conversationId: string | null) {
     if (!isSupabaseConfigured() || !conversationId) return;
     const supabase = getSupabaseBrowserClient();
     const channel = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`messages:${conversationId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
@@ -119,7 +123,7 @@ export function useMessages(conversationId: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, qc]);
+  }, [conversationId, qc, channelId]);
 
   return query;
 }

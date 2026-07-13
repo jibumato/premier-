@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -18,6 +18,11 @@ interface NotificationRow {
 /** The current user's notifications, kept live via Realtime. */
 export function useNotifications(userId: string | undefined) {
   const qc = useQueryClient();
+  // Unique per hook instance: the same user's notifications are subscribed from
+  // several places at once (bell badge in BottomNav + Sidebar, plus NotifyScreen).
+  // Supabase reuses a channel by topic name, so a shared name makes the 2nd+
+  // subscriber throw "cannot add postgres_changes callbacks after subscribe()".
+  const channelId = useId();
   const query = useQuery({
     queryKey: ["notifications", userId],
     enabled: isSupabaseConfigured() && Boolean(userId),
@@ -43,7 +48,7 @@ export function useNotifications(userId: string | undefined) {
     if (!isSupabaseConfigured() || !userId) return;
     const supabase = getSupabaseBrowserClient();
     const channel = supabase
-      .channel(`notifications:${userId}`)
+      .channel(`notifications:${userId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
@@ -53,7 +58,7 @@ export function useNotifications(userId: string | undefined) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, qc]);
+  }, [userId, qc, channelId]);
 
   return query;
 }
