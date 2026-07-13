@@ -6,7 +6,7 @@ import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost } from "../icons";
+import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
@@ -53,7 +53,7 @@ function moveBtnStyle(disabled: boolean): CSSProperties {
 }
 
 export function ProfileScreen() {
-  const { back, nav, openChat, openReport, selectedProfileId } = useRouter();
+  const { back, nav, openChat, openReport, openAwase, selectedProfileId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -689,37 +689,76 @@ export function ProfileScreen() {
             {(configured
               ? history.slice(0, 8)
               : [
-                  { key: "d1", title: "魔法学園シリーズ 生徒会併せ", work: "葬送のフリーレン", date: "7/26(日)", role: "主催" as const },
-                  { key: "d2", title: "夏祭り浴衣あわせ", work: "ぼっち・ざ・ろっく！", date: "6/14(土)", role: "参加" as const },
+                  { key: "d1", awaseId: "d1", title: "魔法学園シリーズ 生徒会併せ", work: "葬送のフリーレン", date: "7/26(日)", role: "主催" as const, status: "open" as const },
+                  { key: "d2", awaseId: "d2", title: "夏祭り浴衣あわせ", work: "ぼっち・ざ・ろっく！", date: "6/14(土)", role: "参加" as const, status: "closed" as const },
                 ]
-            ).map((h) => (
-              <div
-                key={h.key}
-                style={{ display: "flex", alignItems: "center", gap: 11, border: `1px solid ${colors.borderSoft}`, borderRadius: 14, padding: "11px 13px", background: colors.white }}
-              >
-                <span
-                  style={{
-                    flex: "0 0 auto",
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    color: h.role === "主催" ? colors.primary : colors.pinkText,
-                    background: h.role === "主催" ? colors.primaryBg1 : colors.pinkBg1,
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                  }}
-                >
-                  {h.role}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {h.title}
+            ).map((h) => {
+              // 募集中（open）の併せは詳細ページへ飛べるようにする。
+              const clickable = h.status === "open" && Boolean(h.awaseId);
+              const rowStyle: React.CSSProperties = {
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                border: `1px solid ${clickable ? colors.primary : colors.borderSoft}`,
+                borderRadius: 14,
+                padding: "11px 13px",
+                background: colors.white,
+                width: "100%",
+                textAlign: "left",
+                fontFamily: "inherit",
+              };
+              const inner = (
+                <>
+                  <span
+                    style={{
+                      flex: "0 0 auto",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: h.role === "主催" ? colors.primary : colors.pinkText,
+                      background: h.role === "主催" ? colors.primaryBg1 : colors.pinkBg1,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    {h.role}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {h.title}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2 }}>
+                      {h.work} ・ {h.date}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2 }}>
-                    {h.work} ・ {h.date}
-                  </div>
+                  {clickable && (
+                    <span style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: colors.white,
+                          background: colors.primary,
+                          padding: "3px 8px",
+                          borderRadius: 999,
+                        }}
+                      >
+                        募集中
+                      </span>
+                      <ChevronRightIcon />
+                    </span>
+                  )}
+                </>
+              );
+              return clickable ? (
+                <button key={h.key} onClick={() => openAwase(h.awaseId)} style={{ ...rowStyle, cursor: "pointer" }}>
+                  {inner}
+                </button>
+              ) : (
+                <div key={h.key} style={rowStyle}>
+                  {inner}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
