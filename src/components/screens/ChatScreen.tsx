@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { chatThread } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, SendIcon, StarIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useMessages, useSendMessage } from "@/lib/queries/messages";
+import { useMessages, useSendMessage, useMarkConversationRead } from "@/lib/queries/messages";
 import { useConversationInfo } from "@/lib/queries/reviews";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
@@ -21,6 +21,15 @@ export function ChatScreen() {
   const realMessages = useMessages(selectedConversationId);
   const convInfo = useConversationInfo(selectedConversationId, user?.id);
   const sendMessage = useSendMessage();
+  const { mutate: markConversationRead } = useMarkConversationRead();
+
+  // 会話を開いた時点、および開いている間に新着が届いた時点で既読にする。
+  // これでメッセージ一覧の未読バッジが消える（従来は呼ばれておらず残っていた）。
+  useEffect(() => {
+    if (configured && selectedConversationId && user?.id) {
+      markConversationRead({ conversationId: selectedConversationId, userId: user.id });
+    }
+  }, [configured, selectedConversationId, user?.id, realMessages.data, markConversationRead]);
 
   const [mockMessages, setMockMessages] = useState<ChatMessage[]>(chatThread);
   const [draft, setDraft] = useState("");
