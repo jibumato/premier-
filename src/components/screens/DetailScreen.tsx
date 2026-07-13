@@ -74,6 +74,9 @@ export function DetailScreen() {
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
+  // 本番（接続済）で募集がまだ読み込めていない間はローディング表示にして、
+  // プロトタイプ用のダミー内容がチラ見えするのを防ぐ。
+  const loading = configured && Boolean(selectedAwaseId) && !awaseQuery.data && awaseQuery.isPending;
   const roles = real ? (rolesQuery.data ?? []) : detailRoles;
   const isHost = Boolean(real && user && real.host_id === user.id);
   const applicantCount = useAwaseApplicantCount(isHost ? selectedAwaseId : null);
@@ -339,6 +342,21 @@ export function DetailScreen() {
       URL.revokeObjectURL(a.href);
     }, "image/png");
   };
+
+  if (loading) {
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 18px 8px" }}>
+          <button onClick={back} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} aria-label="戻る">
+            <ChevronLeftIcon size={24} />
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimaryAlt }}>募集の詳細</div>
+          <span style={{ width: 24 }} />
+        </div>
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      </div>
+    );
+  }
 
   return (
     <div>

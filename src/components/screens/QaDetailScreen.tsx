@@ -63,20 +63,26 @@ export function QaDetailScreen() {
   const [mockAnswers, setMockAnswers] = useState(initialAnswers);
   const [draft, setDraft] = useState("");
 
+  // モック（澪/かな等のダミー）は「プロトタイプ＝未接続」時だけ使う。本番（接続済）では
+  // 読み込み中にダミーを出さず、ローディング表示にする（実データ取得の一瞬にモックが
+  // チラ見えする不具合を防ぐ）。
   const real = configured && selectedQaQuestionId ? questionQuery.data : undefined;
   const answers = real ? (answersQuery.data ?? []) : undefined;
   const isQuestionAuthor = Boolean(real && user && real.authorId === user.id);
-  const solved = answers ? answers.some((a) => a.best) : true;
 
-  const title = real?.title ?? "併せ初心者です。当日の持ち物で必須なものは？";
+  // 接続済で質問がまだ読み込めていない間はローディング（モックを見せない）
+  const loading = configured && Boolean(selectedQaQuestionId) && !questionQuery.data && questionQuery.isPending;
+
+  const title = real?.title ?? (configured ? "" : "併せ初心者です。当日の持ち物で必須なものは？");
   const bodyText =
-    real?.body ?? "来月はじめて併せに参加します。衣装以外で持っていくと良いものを教えてください。会場は屋内スタジオです。";
-  const tag = real?.tag ?? "初心者";
-  const authorLine = real ? `${real.authorName} · ${real.time}` : "かな · 2日前";
+    real?.body ?? (configured ? "" : "来月はじめて併せに参加します。衣装以外で持っていくと良いものを教えてください。会場は屋内スタジオです。");
+  const tag = real?.tag ?? (configured ? "" : "初心者");
+  const authorLine = real ? `${real.authorName} · ${real.time}` : configured ? "" : "かな · 2日前";
   const displayAnswers = (
-    answers ?? mockAnswers.map((a) => ({ ...a, likedByMe: false }))
+    answers ?? (configured ? [] : mockAnswers.map((a) => ({ ...a, likedByMe: false })))
   ).map((a) => ({ key: a.key, name: a.name, text: a.text, best: a.best, likes: a.likes, likedByMe: a.likedByMe }));
   const answerCount = displayAnswers.length;
+  const solved = answers ? answers.some((a) => a.best) : !configured;
 
   const handleLike = (answerId: string, liked: boolean) => {
     if (real && selectedQaQuestionId && user) {
@@ -102,6 +108,17 @@ export function QaDetailScreen() {
     }
     setDraft("");
   };
+
+  if (loading) {
+    return (
+      <div>
+        <AppBar title="質問の詳細" onBack={back} />
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>
+          読み込み中…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
