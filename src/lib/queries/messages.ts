@@ -147,41 +147,28 @@ export function useSendMessage() {
   });
 }
 
-/** Finds the existing 1:1 conversation with `otherUserId`, or creates one. */
+/** Finds the existing 1:1 conversation with `otherUserId`, or creates one.
+ * The find-or-create runs entirely in a SECURITY DEFINER RPC (0026) so it is
+ * atomic and bypasses the row-by-row RLS check that made the old client-side
+ * two-row member insert fail. `userId` is accepted for call-site compatibility
+ * but is derived from auth.uid() server-side. */
 export function useGetOrCreateConversation() {
   return useMutation({
     mutationFn: async ({
-      userId,
       otherUserId,
       awaseId,
     }: {
-      userId: string;
+      userId?: string;
       otherUserId: string;
       awaseId?: string;
     }): Promise<string> => {
       const supabase = getSupabaseBrowserClient();
-      const { data: existing, error: findErr } = await supabase.rpc("find_direct_conversation", {
-        user_a: userId,
-        user_b: otherUserId,
+      const { data, error } = await supabase.rpc("create_direct_conversation", {
+        p_other: otherUserId,
+        p_awase: awaseId ?? null,
       });
-      if (findErr) throw findErr;
-      if (existing) return existing as string;
-
-      const { data: conv, error: convErr } = await supabase
-        .from("conversations")
-        .insert({ awase_id: awaseId ?? null })
-        .select("id")
-        .single();
-      if (convErr) throw convErr;
-
-      const { error: memErr } = await supabase
-        .from("conversation_members")
-        .insert([
-          { conversation_id: conv.id, user_id: userId },
-          { conversation_id: conv.id, user_id: otherUserId },
-        ]);
-      if (memErr) throw memErr;
-      return conv.id as string;
+      if (error) throw error;
+      return data as string;
     },
   });
 }

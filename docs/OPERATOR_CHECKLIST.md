@@ -36,6 +36,8 @@ select
                                                          as delete_account_fn,    -- false → 0024 未適用
   (select to_regprocedure('public.is_conversation_member(uuid,uuid)') is not null)
                                                          as msg_rls_fix,          -- false → 0025 未適用（メッセージ不具合）
+  (select to_regprocedure('public.create_direct_conversation(uuid,uuid)') is not null)
+                                                         as msg_create_fn,        -- false → 0026 未適用（メッセージ不具合）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -53,6 +55,7 @@ select
 - `admin_verify_fn` が `false` → **ステップ 2k**（0023）
 - `delete_account_fn` が `false` → **ステップ 2l**（0024）
 - `msg_rls_fix` が `false` → **ステップ 2m**（0025・メッセージ不具合の修正／要適用）
+- `msg_create_fn` が `false` → **ステップ 2n**（0026・メッセージ作成の修正／要適用）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0012〜0015 はすべて適用済み**です。以下の各手順は、新しい
@@ -250,8 +253,22 @@ DM・レビュー等）が cascade で削除されます。**取り消し不可*
 2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
 
 → `conversation_members` / `messages` の RLS が自己参照で無限再帰していたのを、
-SECURITY DEFINER 関数 `is_conversation_member()` 経由に置き換えて解消します。
-適用後、プロフィールの「メッセージ」から DM を開始できるようになります。冪等・再実行安全。
+SECURITY DEFINER 関数 `is_conversation_member()` 経由に置き換えて解消します。冪等・再実行安全。
+
+---
+
+## ☐ ステップ 2n: メッセージ作成の修正（マイグレーション 0026）【要適用】
+
+`msg_create_fn` が `false` のときは**必ず**実行してください。**0025 とセットで適用**します。
+0025 だけでは、会話作成時の2行 INSERT が RLS の行単位チェックで落ちる場合があり、
+「メッセージ」ボタンが無反応のままになります。
+
+1. リポジトリの **`supabase/migrations/0026_create_direct_conversation.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 1:1会話の find-or-create を SECURITY DEFINER 関数 `create_direct_conversation()` に
+一本化し、RLS を安全に迂回して原子的に作成します。適用後、プロフィールの
+「メッセージ」から確実に DM を開始できます。冪等・再実行安全。
 
 ---
 
