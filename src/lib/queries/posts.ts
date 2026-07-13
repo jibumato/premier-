@@ -81,3 +81,16 @@ export function useReorderPosts() {
     onSuccess: (_d, { authorId }) => qc.invalidateQueries({ queryKey: ["posts", authorId] }),
   });
 }
+
+/** 投稿単位の公開範囲を切替（本人のみ）。'awase' は併せ仲間だけが閲覧可（RLSで担保）。 */
+export function useUpdatePostVisibility() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, visibility }: { id: string; authorId: string; visibility: "public" | "awase" }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("posts").update({ visibility }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { authorId }) => qc.invalidateQueries({ queryKey: ["posts", authorId] }),
+  });
+}

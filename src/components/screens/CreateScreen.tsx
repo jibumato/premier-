@@ -417,7 +417,16 @@ export function CreateScreen() {
 
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <label style={label}>場所</label>
+            <label style={label}>
+              場所
+              <button
+                type="button"
+                onClick={() => nav("studios")}
+                style={{ marginLeft: 8, border: "none", background: "none", color: colors.primary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+              >
+                スタジオを探す →
+              </button>
+            </label>
             <input
               style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}
               value={place}

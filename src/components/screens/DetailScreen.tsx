@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { colors } from "@/lib/tokens";
 import { detailRoles, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -22,6 +22,9 @@ import {
 import { useAwaseAchievementCount } from "@/lib/queries/profile";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { workGradient } from "../WorkCover";
+import { siteTagline } from "@/lib/data";
 
 const EDIT_WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
 const editableRegions = regions.filter((r) => r !== "すべて");
@@ -79,6 +82,18 @@ export function DetailScreen() {
   const now = Date.now();
   const isScheduled = Boolean(real?.publish_at && new Date(real.publish_at).getTime() > now);
   const isDeadlinePassed = Boolean(real?.application_deadline && new Date(real.application_deadline).getTime() < now);
+
+  // 閲覧数の加算（主催者にだけ見せる手応え指標）。主催者自身の閲覧は数えない。
+  // 1回のマウントにつき1加算。失敗しても表示には影響させない（best-effort）。
+  const countedRef = useRef<string | null>(null);
+  const realId = real?.id ?? null;
+  const realHostId = real?.host_id ?? null;
+  useEffect(() => {
+    if (!configured || !realId || !user || user.id === realHostId) return;
+    if (countedRef.current === realId) return;
+    countedRef.current = realId;
+    getSupabaseBrowserClient().rpc("increment_awase_view", { target: realId }).then(() => {});
+  }, [configured, realId, realHostId, user]);
   const images = real ? (imagesQuery.data ?? []) : [];
   const [heroIndex, setHeroIndex] = useState(0);
   const heroUrl = images[heroIndex]?.url ?? images[0]?.url ?? undefined;
@@ -228,6 +243,101 @@ export function DetailScreen() {
       : `【併せ募集】${title}\n作品：${workName}\n📅 ${date}\n📍 ${place}\n一緒に併せしませんか？🙌\n#プルミエ #コスプレ #併せ #コスプレ好きさんと繋がりたい`;
     const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     window.open(intent, "_blank", "noopener,noreferrer");
+  };
+
+  // 告知画像（1200x675）を canvas で生成して PNG 保存。X の投稿に添付する用途。
+  // 作品名から WorkCover と同じ配色を使うので、告知もアプリ内と同じ「作品の色」になる。
+  const savePromoImage = () => {
+    if (typeof document === "undefined") return;
+    const W = 1200;
+    const H = 675;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const g = workGradient(workName);
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, g.from);
+    grad.addColorStop(1, g.to);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // 下部を暗くして文字を読みやすく
+    const shade = ctx.createLinearGradient(0, H * 0.35, 0, H);
+    shade.addColorStop(0, "rgba(30,20,50,0)");
+    shade.addColorStop(1, "rgba(30,20,50,.55)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, W, H);
+
+    // 作品の頭文字を透かしに（WorkCover と同じモチーフ）
+    ctx.fillStyle = "rgba(255,255,255,.18)";
+    ctx.font = "800 420px 'Zen Maru Gothic','Hiragino Sans',sans-serif";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(Array.from(workName.trim())[0] ?? "？", W - 400, H - 60);
+
+    const sans = "'Zen Kaku Gothic New','Hiragino Sans',sans-serif";
+
+    // バッジ（募集中 / 募集終了）
+    const badge = isClosed ? "募集終了" : "併せ募集";
+    ctx.font = `700 34px ${sans}`;
+    const bw = ctx.measureText(badge).width + 56;
+    ctx.fillStyle = isClosed ? "rgba(90,82,110,.95)" : "rgba(255,255,255,.95)";
+    ctx.beginPath();
+    ctx.roundRect(72, 72, bw, 64, 32);
+    ctx.fill();
+    ctx.fillStyle = isClosed ? "#fff" : "#6D5DAB";
+    ctx.fillText(badge, 72 + 28, 72 + 45);
+
+    // タイトル（2行まで折返し）
+    ctx.fillStyle = "#fff";
+    ctx.font = `800 76px ${sans}`;
+    ctx.shadowColor = "rgba(30,20,50,.35)";
+    ctx.shadowBlur = 14;
+    const maxW = W - 144;
+    const chars = Array.from(title);
+    const lines: string[] = [];
+    let line = "";
+    for (const ch of chars) {
+      if (ctx.measureText(line + ch).width > maxW) {
+        lines.push(line);
+        line = ch;
+        if (lines.length === 2) break;
+      } else {
+        line += ch;
+      }
+    }
+    if (lines.length < 2 && line) lines.push(line);
+    if (lines.length === 2 && line && lines[1] !== line) lines[1] = lines[1].slice(0, -1) + "…";
+    lines.forEach((l, i) => ctx.fillText(l, 72, 250 + i * 96));
+
+    // 作品・日程・場所
+    ctx.shadowBlur = 8;
+    ctx.font = `700 44px ${sans}`;
+    ctx.fillText(`作品：${workName}`, 72, 448);
+    const date = real?.event_date ?? "7/26(日) 13:00〜";
+    const place = real?.place ?? real?.region ?? "都内スタジオ";
+    ctx.font = `600 40px ${sans}`;
+    ctx.fillText(`📅 ${date}　📍 ${place}`, 72, 516);
+
+    // フッター（サービス名＋タグライン）
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,.95)";
+    ctx.font = `800 42px 'Zen Maru Gothic',${sans}`;
+    ctx.fillText("プルミエ！", 72, H - 64);
+    ctx.font = `500 30px ${sans}`;
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+    ctx.fillText(siteTagline, 72 + 230, H - 66);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `premier-awase-${real?.id ?? "demo"}.png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, "image/png");
   };
 
   return (
@@ -496,6 +606,9 @@ export function DetailScreen() {
         </div>
         {isHost ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 22 }}>
+            <div style={{ textAlign: "center", fontSize: 11.5, color: colors.textMutedAlt }}>
+              この募集はこれまで <b style={{ color: colors.primary }}>{real?.view_count ?? 0}回</b> 見られています（あなたにだけ表示）
+            </div>
             <button
               onClick={() => nav("hostApplicants")}
               style={{
@@ -645,10 +758,28 @@ export function DetailScreen() {
           </svg>
           {isClosed ? "Xで募集終了を投稿" : "Xで募集を告知する"}
         </button>
+        <button
+          onClick={savePromoImage}
+          style={{
+            width: "100%",
+            marginTop: 9,
+            border: `1px solid ${colors.border}`,
+            background: colors.white,
+            color: colors.textSecondary,
+            fontFamily: "inherit",
+            fontSize: 12.5,
+            fontWeight: 700,
+            padding: "12px 0",
+            borderRadius: 13,
+            cursor: "pointer",
+          }}
+        >
+          🖼 告知画像を保存（Xの投稿に添付）
+        </button>
         <p style={{ margin: "8px 4px 0", fontSize: 10.5, color: colors.textMutedAlt, lineHeight: 1.6, textAlign: "center" }}>
           {isClosed
             ? "募集終了のお礼をXにワンボタンで投稿できます。"
-            : "併せの概要つきの募集告知をXにワンボタンで投稿できます。"}
+            : "概要つきの告知文を投稿し、保存した画像を添付すると目に留まりやすくなります。"}
         </p>
       </div>
 
