@@ -29,8 +29,9 @@ export function SearchScreen() {
       (!womenOnly || r.womenOnly) &&
       (!kw || r.title.toLowerCase().includes(kw) || r.work.toLowerCase().includes(kw)),
   );
-  const filtered = configured && results.data ? results.data : mockFiltered;
-  const isEmpty = filtered.length === 0;
+  const filtered = configured ? (results.data ?? []) : mockFiltered;
+  const loading = configured && results.isPending && !results.data;
+  const isEmpty = !loading && filtered.length === 0;
 
   // Keyword suggestions: popular works matching what's typed (excluding an
   // exact match). Empty input shows the whole popular list as quick picks.
@@ -214,6 +215,9 @@ export function SearchScreen() {
 
       {/* results / empty state */}
       <div style={{ padding: "16px 18px 30px" }} className="pt-grid">
+        {loading && (
+          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        )}
         {filtered.map((res) => (
           <button
             key={res.key}

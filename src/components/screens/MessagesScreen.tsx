@@ -19,12 +19,16 @@ export function MessagesScreen() {
   const convosQuery = useConversations(user?.id, moderation.data?.blockedUserIds);
   // Real conversations once connected and loaded; the handoff's mock list
   // otherwise — same Conversation shape either way.
-  const conversations = configured && convosQuery.data ? convosQuery.data : mockConversations;
+  const conversations = configured ? (convosQuery.data ?? []) : mockConversations;
+  const loading = configured && convosQuery.isPending && !convosQuery.data;
   const isEmpty = configured && convosQuery.data?.length === 0;
 
   return (
     <div>
       <AppBar title="メッセージ" onBack={back} />
+      {loading && (
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      )}
       {isEmpty && (
         <EmptyState
           icon="💬"

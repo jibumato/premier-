@@ -27,6 +27,7 @@ export function MarketDetailScreen() {
   const markSold = useMarkSold();
 
   const real = configured && selectedMarketItemId ? itemQuery.data : undefined;
+  const loading = configured && Boolean(selectedMarketItemId) && itemQuery.isPending && !itemQuery.data;
   const isSeller = Boolean(real && user && real.sellerId === user.id);
 
   const title = real?.title ?? "魔法使い衣装 一式（Mサイズ）";
@@ -64,6 +65,15 @@ export function MarketDetailScreen() {
       nav("profile", "mypage");
     }
   };
+
+  if (loading) {
+    return (
+      <div>
+        <AppBar title="商品の詳細" onBack={back} />
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -19,7 +19,8 @@ export function NotifyScreen() {
   const markRead = useMarkNotificationsRead();
   // Real notifications once connected and loaded; the handoff's mock list
   // otherwise — same Notification shape either way.
-  const notifications = configured && notifsQuery.data ? notifsQuery.data : mockNotifications;
+  const notifications = configured ? (notifsQuery.data ?? []) : mockNotifications;
+  const loading = configured && notifsQuery.isPending && !notifsQuery.data;
   const isEmpty = configured && notifsQuery.data?.length === 0;
 
   // Opening this screen clears the unread state (bell badge), same as reading a DM thread.
@@ -40,6 +41,9 @@ export function NotifyScreen() {
         </button>
         <div style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary }}>おしらせ</div>
       </div>
+      {loading && (
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      )}
       {isEmpty && (
         <EmptyState
           icon="🔔"

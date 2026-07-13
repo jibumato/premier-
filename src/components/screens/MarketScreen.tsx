@@ -47,6 +47,7 @@ export function MarketScreen() {
   const [uploading, setUploading] = useState(false);
 
   const real = configured ? itemsQuery.data : undefined;
+  const loading = configured && itemsQuery.isPending && !itemsQuery.data;
   const items: {
     key: string;
     title: string;
@@ -58,16 +59,18 @@ export function MarketScreen() {
     imageUrl: string | null;
   }[] = real
     ? real.map((it) => ({ ...it }))
-    : mockMarketItems.map((it) => ({
-        key: it.key,
-        title: it.title,
-        work: it.work,
-        price: it.price,
-        size: it.size,
-        condition: it.condition,
-        sold: Boolean(it.sold),
-        imageUrl: null,
-      }));
+    : configured
+      ? []
+      : mockMarketItems.map((it) => ({
+          key: it.key,
+          title: it.title,
+          work: it.work,
+          price: it.price,
+          size: it.size,
+          condition: it.condition,
+          sold: Boolean(it.sold),
+          imageUrl: null,
+        }));
   const works = worksQuery.data ?? [];
 
   const resetForm = () => {
@@ -275,7 +278,9 @@ export function MarketScreen() {
         </div>
       )}
 
-      {real && items.length === 0 && !listing ? (
+      {loading && !listing ? (
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      ) : real && items.length === 0 && !listing ? (
         <div style={{ padding: "40px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
           まだ出品はありません。
           <br />

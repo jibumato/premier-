@@ -30,7 +30,8 @@ export function AnnouncementsScreen() {
   // Real announcements once connected and loaded; the mock list otherwise —
   // same Announcement shape either way.
   const real = configured ? query.data : undefined;
-  const items = real ?? mockAnnouncements;
+  const items = configured ? (query.data ?? []) : mockAnnouncements;
+  const loading = configured && query.isPending && !query.data;
   const isEmpty = Boolean(real) && items.length === 0;
 
   return (
@@ -46,6 +47,9 @@ export function AnnouncementsScreen() {
       )}
 
       <div style={{ padding: "12px 22px 30px" }} className="pt-grid">
+        {loading && (
+          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        )}
         {items.map((a) => {
           const cat = categoryStyle[a.category] ?? categoryStyle.update;
           return (

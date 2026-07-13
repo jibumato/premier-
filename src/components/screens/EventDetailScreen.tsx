@@ -28,6 +28,7 @@ export function EventDetailScreen() {
   const [mockGoing, setMockGoing] = useState(false);
 
   const real = configured && selectedEventId ? eventQuery.data : undefined;
+  const loading = configured && Boolean(selectedEventId) && eventQuery.isPending && !eventQuery.data;
   const going = real ? Boolean(isGoingQuery.data) : mockGoing;
 
   const name = real?.name ?? "ホロサマ 2025";
@@ -51,6 +52,15 @@ export function EventDetailScreen() {
       setMockGoing(true);
     }
   };
+
+  if (loading) {
+    return (
+      <div>
+        <AppBar title="イベントの詳細" onBack={back} />
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      </div>
+    );
+  }
 
   return (
     <div>

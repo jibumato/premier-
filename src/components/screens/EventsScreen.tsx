@@ -14,7 +14,8 @@ export function EventsScreen() {
 
   const eventsQuery = useEvents();
   const real = configured ? eventsQuery.data : undefined;
-  const events = real ?? mockEvents;
+  const events = configured ? (eventsQuery.data ?? []) : mockEvents;
+  const loading = configured && eventsQuery.isPending && !eventsQuery.data;
 
   const handleOpen = (key: string) => {
     if (real) {
@@ -29,6 +30,9 @@ export function EventsScreen() {
       <AppBar title="イベントカレンダー" onBack={back} />
 
       <div style={{ padding: "10px 22px 30px" }} className="pt-grid">
+        {loading && (
+          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        )}
         {events.map((ev) => (
           <button
             key={ev.key}

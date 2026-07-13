@@ -26,7 +26,8 @@ export function QaScreen() {
   const [tag, setTag] = useState("");
 
   const real = configured ? questionsQuery.data : undefined;
-  const questions = real ?? qaItems;
+  const questions = configured ? (questionsQuery.data ?? []) : qaItems;
+  const loading = configured && questionsQuery.isPending && !questionsQuery.data;
   const isEmpty = Boolean(real) && questions.length === 0 && !asking;
 
   const handleAskClick = () => {
@@ -212,6 +213,9 @@ export function QaScreen() {
         />
       )}
       <div style={{ padding: "10px 22px 30px" }} className="pt-grid">
+        {loading && !asking && (
+          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        )}
         {questions.map((q) => (
           <button
             key={q.key}
