@@ -12,17 +12,17 @@ import { SectionHeading } from "./ui";
 export function SafetySection() {
   const { nav } = useRouter();
 
-  const cards: { emoji: string; title: string; body: string; onClick?: () => void }[] = [
-    { emoji: "🛡", title: "本人確認バッジ", body: "確認済みの人は名前の横にバッジ。なりすまし対策に。" },
-    { emoji: "⭐", title: "レビュー制度", body: "参加後にお互いを評価。信頼できる仲間が見つかる。" },
-    { emoji: "🚩", title: "通報・ブロック", body: "不快な相手はすぐブロック。運営がしっかり対応します。" },
-    { emoji: "💬", title: "困ったら知恵袋", body: "使い方やマナーを気軽に質問できます。", onClick: () => nav("qa") },
+  const cards: { icon: string; title: string; body: string; onClick?: () => void }[] = [
+    { icon: "/safety-verify.png", title: "本人確認バッジ", body: "確認済みの人は名前の横にバッジ。なりすまし対策に。" },
+    { icon: "/safety-review.png", title: "レビュー制度", body: "参加後にお互いを評価。信頼できる仲間が見つかる。" },
+    { icon: "/safety-report.png", title: "通報・ブロック", body: "不快な相手はすぐブロック。運営がしっかり対応します。" },
+    { icon: "/safety-qa.png", title: "困ったら知恵袋", body: "使い方やマナーを気軽に質問できます。", onClick: () => nav("qa") },
   ];
 
   return (
     <div style={{ padding: "28px 0 0" }}>
       <div style={{ padding: "0 22px" }}>
-        <SectionHeading accent={colors.primary}>安心して参加できる仕組み</SectionHeading>
+        <SectionHeading accent={colors.primary}>安心して参加できる制度</SectionHeading>
       </div>
       <div
         style={{
@@ -35,7 +35,8 @@ export function SafetySection() {
         {cards.map((c) => {
           const inner = (
             <>
-              <div style={{ fontSize: 22, lineHeight: 1 }}>{c.emoji}</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.icon} alt="" width={40} height={40} style={{ display: "block" }} />
               <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, marginTop: 8 }}>{c.title}</div>
               <div style={{ fontSize: 10.5, color: colors.textMutedAlt, lineHeight: 1.6, marginTop: 4 }}>{c.body}</div>
               {c.onClick && (
