@@ -140,10 +140,14 @@ export function useMyApplicationCount(userId: string | undefined) {
 
 export interface AwaseHistoryItem {
   key: string;
+  /** 元の併せID（募集中なら詳細へ遷移できる）。 */
+  awaseId: string;
   title: string;
   work: string;
   date: string;
   role: "主催" | "参加";
+  /** 併せの現在の募集状態。"open" のときだけ詳細へ飛べる。 */
+  status: "open" | "closed";
   createdAt: string;
 }
 
@@ -158,37 +162,41 @@ export function useAwaseHistory(userId: string | undefined) {
       const [hosted, applied] = await Promise.all([
         supabase
           .from("awase")
-          .select("id, title, event_date, created_at, works(name)")
+          .select("id, title, event_date, status, created_at, works(name)")
           .eq("host_id", userId!)
           .order("created_at", { ascending: false }),
         supabase
           .from("awase_applications")
-          .select("id, created_at, awase(id, title, event_date, works(name))")
+          .select("id, created_at, awase(id, title, event_date, status, works(name))")
           .eq("applicant_id", userId!)
           .in("status", ["accepted", "done"])
           .order("created_at", { ascending: false }),
       ]);
       if (hosted.error) throw hosted.error;
       if (applied.error) throw applied.error;
-      type HostRow = { id: string; title: string; event_date: string; created_at: string; works: { name: string } | null };
-      type AppRow = { id: string; created_at: string; awase: { id: string; title: string; event_date: string; works: { name: string } | null } | null };
+      type HostRow = { id: string; title: string; event_date: string; status: "open" | "closed"; created_at: string; works: { name: string } | null };
+      type AppRow = { id: string; created_at: string; awase: { id: string; title: string; event_date: string; status: "open" | "closed"; works: { name: string } | null } | null };
       const items: AwaseHistoryItem[] = [
         ...((hosted.data ?? []) as unknown as HostRow[]).map((r) => ({
           key: `h-${r.id}`,
+          awaseId: r.id,
           title: r.title,
           work: r.works?.name ?? "オリジナル",
           date: r.event_date,
           role: "主催" as const,
+          status: r.status,
           createdAt: r.created_at,
         })),
         ...((applied.data ?? []) as unknown as AppRow[])
           .filter((r) => r.awase)
           .map((r) => ({
             key: `a-${r.id}`,
+            awaseId: r.awase!.id,
             title: r.awase!.title,
             work: r.awase!.works?.name ?? "オリジナル",
             date: r.awase!.event_date,
             role: "参加" as const,
+            status: r.awase!.status,
             createdAt: r.created_at,
           })),
       ];
