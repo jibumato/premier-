@@ -559,6 +559,10 @@ export interface Database {
         Args: { p_request_id: string; p_note?: string | null };
         Returns: undefined;
       };
+      delete_my_account: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
     };
     Enums: {
       user_role: UserRole;
