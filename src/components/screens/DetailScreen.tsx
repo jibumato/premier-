@@ -16,6 +16,7 @@ import {
   useAwaseImages,
   useAwaseRoles,
   useDeleteAwase,
+  useMyApplication,
   useRemoveAwaseImage,
   useUpdateAwase,
 } from "@/lib/queries/awase";
@@ -81,6 +82,9 @@ export function DetailScreen() {
   const isHost = Boolean(real && user && real.host_id === user.id);
   const applicantCount = useAwaseApplicantCount(isHost ? selectedAwaseId : null);
   const applicantTotal = applicantCount.data?.total ?? 0;
+  // 自分の応募状況（応募者側）。主催者は対象外。二重応募防止＋状態表示に使う。
+  const myApplication = useMyApplication(!isHost ? selectedAwaseId : null, !isHost ? user?.id : undefined);
+  const myAppStatus = configured ? myApplication.data ?? null : null;
   const isClosed = real ? real.status === "closed" : false;
   const now = Date.now();
   const isScheduled = Boolean(real?.publish_at && new Date(real.publish_at).getTime() > now);
@@ -158,10 +162,24 @@ export function DetailScreen() {
 
   const handleApply = () => {
     setConfirmApply(false);
-    if (real && user) {
-      apply.mutate({ awaseId: real.id, applicantId: user.id });
+    if (!real || !user) {
+      // プロトタイプ（未接続）は従来どおり応募完了画面へ
+      nav("applied");
+      return;
     }
-    nav("applied");
+    if (apply.isPending) return;
+    apply.mutate(
+      { awaseId: real.id, applicantId: user.id },
+      {
+        onSuccess: () => nav("applied"),
+        onError: (e) => {
+          const msg = (e as { code?: string })?.code === "23505"
+            ? "すでにこの併せに応募済みです。"
+            : "応募に失敗しました。通信環境を確認して、もう一度お試しください。";
+          alert(msg);
+        },
+      },
+    );
   };
 
   const openEdit = () => {
@@ -700,7 +718,45 @@ export function DetailScreen() {
           </div>
         ) : (
           <>
-            {isDeadlinePassed ? (
+            {myAppStatus ? (
+              <div
+                style={{
+                  marginTop: 22,
+                  textAlign: "center",
+                  border: `1px solid ${myAppStatus === "accepted" ? colors.primary : colors.borderSoft}`,
+                  background: myAppStatus === "accepted" ? colors.primaryBg1 : colors.primaryBg5,
+                  color: myAppStatus === "accepted" ? colors.primary : colors.textMutedAlt,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "15px 0",
+                  borderRadius: 14,
+                }}
+              >
+                {myAppStatus === "accepted"
+                  ? "参加が承認されました🎉"
+                  : myAppStatus === "rejected"
+                    ? "今回は見送りとなりました"
+                    : myAppStatus === "done"
+                      ? "参加済み"
+                      : "応募済み（主催者の承認待ち）"}
+              </div>
+            ) : isClosed ? (
+              <div
+                style={{
+                  marginTop: 22,
+                  textAlign: "center",
+                  border: `1px solid ${colors.borderSoft}`,
+                  background: colors.primaryBg5,
+                  color: colors.textMutedAlt,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "15px 0",
+                  borderRadius: 14,
+                }}
+              >
+                この募集は終了しました
+              </div>
+            ) : isDeadlinePassed ? (
               <div
                 style={{
                   marginTop: 22,
