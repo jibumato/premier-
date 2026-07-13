@@ -5,6 +5,8 @@ import { colors, shadow } from "@/lib/tokens";
 import { siteTagline } from "@/lib/data";
 import { useRouter } from "./AppRouter";
 import { BellIcon, CalendarIcon, HelpIcon, HomeIcon, PlusIcon, SearchIcon, UserIcon } from "./icons";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useNotifications } from "@/lib/queries/notifications";
 import type { Screen, Tab } from "@/lib/types";
 
 /**
@@ -30,11 +32,13 @@ function Row({
   label,
   icon,
   onClick,
+  badge,
 }: {
   active: boolean;
   label: string;
   icon: (c: string) => ReactNode;
   onClick: () => void;
+  badge?: number;
 }) {
   const color = active ? colors.primary : colors.textSecondaryAlt;
   return (
@@ -58,7 +62,31 @@ function Row({
         textAlign: "left",
       }}
     >
-      <span style={{ width: 24, display: "flex", justifyContent: "center" }}>{icon(color)}</span>
+      <span style={{ width: 24, display: "flex", justifyContent: "center", position: "relative" }}>
+        {icon(color)}
+        {badge != null && badge > 0 && (
+          <span
+            aria-label={`未読${badge}件`}
+            style={{
+              position: "absolute",
+              top: -5,
+              right: -2,
+              minWidth: 15,
+              height: 15,
+              padding: "0 4px",
+              borderRadius: 999,
+              background: colors.pink,
+              color: colors.white,
+              fontSize: 9,
+              fontWeight: 700,
+              lineHeight: "15px",
+              textAlign: "center",
+            }}
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </span>
       {label}
     </button>
   );
@@ -66,6 +94,9 @@ function Row({
 
 export function Sidebar() {
   const { tab, screen, nav } = useRouter();
+  const { user } = useAuth();
+  const notifs = useNotifications(user?.id);
+  const unread = notifs.data?.filter((n) => n.unread).length ?? 0;
 
   return (
     <nav
@@ -130,6 +161,7 @@ export function Sidebar() {
             label={it.label}
             icon={it.icon}
             onClick={() => nav(it.screen, it.tab)}
+            badge={it.tab === "notify" ? unread : undefined}
           />
         ))}
       </div>
