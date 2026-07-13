@@ -27,6 +27,7 @@ export type Screen =
   | "qaDetail"
   | "report"
   | "settings"
+  | "adminVerify"
   | "corporate"
   | "verify"
   | "terms"

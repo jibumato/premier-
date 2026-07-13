@@ -8,6 +8,8 @@ import { AppBar, Toggle } from "../ui";
 import { ChevronRightIcon } from "../icons";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useProfile } from "@/lib/queries/profile";
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -81,6 +83,9 @@ function LinkRow({ title, onClick, danger, last }: { title: string; onClick: () 
 
 export function SettingsScreen() {
   const { back, nav } = useRouter();
+  const { user } = useAuth();
+  const profile = useProfile(user?.id);
+  const isAdmin = Boolean(isSupabaseConfigured() && profile.data?.is_admin);
   const [pushApply, setPushApply] = useState(true);
   const [pushMsg, setPushMsg] = useState(true);
   const [pushLike, setPushLike] = useState(false);
@@ -131,6 +136,12 @@ export function SettingsScreen() {
         <LinkRow title="プライバシーポリシー" onClick={() => nav("privacy")} />
         <LinkRow title="法人のお客様へ（掲載案内）" onClick={() => nav("corporate")} last />
       </Group>
+
+      {isAdmin && (
+        <Group title="運営">
+          <LinkRow title="本人確認の承認" onClick={() => nav("adminVerify")} last />
+        </Group>
+      )}
 
       <Group title="アカウント">
         <LinkRow title="ログアウト" onClick={handleLogout} danger last />
