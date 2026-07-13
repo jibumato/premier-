@@ -6,7 +6,7 @@ import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadge, VerifiedBadgeGhost } from "../icons";
+import { ChevronLeftIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
@@ -259,7 +259,10 @@ export function ProfileScreen() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{displayName}</h2>
           {isVerified ? (
-            <VerifiedBadge />
+            // 本人確認済エンブレム（アップロード画像）。極小だと文字がつぶれるため、
+            // プロフィールでは視認できるサイズで表示する。
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/verified-badge.png" alt="本人確認済" width={40} height={40} style={{ display: "block", flex: "0 0 auto" }} />
           ) : isOwnProfile ? (
             // Not yet verified: show the empty badge slot (dashed) so the owner
             // can see where the 本人確認 badge will appear, and tap to start it.
