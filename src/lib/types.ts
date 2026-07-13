@@ -136,6 +136,8 @@ export interface EventItem {
   region: string;
   going: number;
   tag: string;
+  /** 近日判定用の開始日 (YYYY-MM-DD)。モックでは省略可。 */
+  startsOn?: string | null;
 }
 
 export interface QaItem {

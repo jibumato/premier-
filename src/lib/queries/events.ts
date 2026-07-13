@@ -12,6 +12,8 @@ export interface EventListItem {
   region: string;
   going: number;
   tag: string;
+  /** 並べ替え・近日判定用の開始日 (YYYY-MM-DD)。未設定なら null。 */
+  startsOn: string | null;
 }
 
 export interface EventDetail {
@@ -35,7 +37,8 @@ export function useEvents() {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, venue, region, tag, event_rsvps(count)")
+        .select("id, name, event_date, venue, region, tag, starts_on, event_rsvps(count)")
+        .order("starts_on", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true });
       if (error) throw error;
       const rows = (data ?? []) as unknown as {
@@ -45,6 +48,7 @@ export function useEvents() {
         venue: string;
         region: string;
         tag: string;
+        starts_on: string | null;
         event_rsvps: { count: number }[];
       }[];
       return rows.map((r) => ({
@@ -55,6 +59,7 @@ export function useEvents() {
         region: r.region,
         going: r.event_rsvps?.[0]?.count ?? 0,
         tag: r.tag,
+        startsOn: r.starts_on,
       }));
     },
   });
