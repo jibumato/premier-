@@ -539,6 +539,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["home_pickups"]["Insert"]>;
         Relationships: [];
       };
+      awase_schedule_options: {
+        Row: {
+          id: string;
+          awase_id: string;
+          label: string;
+          is_decided: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          awase_id: string;
+          label: string;
+          is_decided?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["awase_schedule_options"]["Insert"]>;
+        Relationships: [];
+      };
+      awase_schedule_votes: {
+        Row: {
+          option_id: string;
+          user_id: string;
+          mark: string;
+          updated_at: string;
+        };
+        Insert: {
+          option_id: string;
+          user_id: string;
+          mark: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["awase_schedule_votes"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -588,6 +622,10 @@ export interface Database {
       admin_delete_qa_answer: {
         Args: { p_answer_id: string };
         Returns: undefined;
+      };
+      can_vote_awase_schedule: {
+        Args: { p_awase: string };
+        Returns: boolean;
       };
       delete_my_account: {
         Args: Record<string, never>;
