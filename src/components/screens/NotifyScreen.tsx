@@ -5,14 +5,14 @@ import { colors } from "@/lib/tokens";
 import { notifications as mockNotifications } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
-import { ChevronLeftIcon } from "../icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
 
 export function NotifyScreen() {
-  const { back } = useRouter();
+  const { back, openAwase } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   const notifsQuery = useNotifications(user?.id);
@@ -52,34 +52,55 @@ export function NotifyScreen() {
         />
       )}
       <div style={{ display: "flex", flexDirection: "column" }}>
-        {notifications.map((n) => (
-          <div
-            key={n.key}
-            style={{
-              display: "flex",
-              gap: 12,
-              padding: "15px 22px",
-              borderBottom: "1px solid #F1EFF6",
-              background: n.unread ? colors.primaryBg5 : colors.white,
-            }}
-          >
-            <div
-              style={{
-                flex: "0 0 40px",
-                height: 40,
-                borderRadius: "50%",
-                overflow: "hidden",
-                background: colors.primaryBg1,
-              }}
-            >
-              <ImageSlot circle />
+        {notifications.map((n) => {
+          // 通知の種別に応じた遷移先。応募関連は該当の併せ詳細へ
+          // （主催者はそこから「応募者を見る」で承認画面に進める）。
+          const goTo = n.kind === "application" && n.entityId ? () => openAwase(n.entityId!) : null;
+          const inner = (
+            <>
+              <div
+                style={{
+                  flex: "0 0 40px",
+                  height: 40,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  background: colors.primaryBg1,
+                }}
+              >
+                <ImageSlot circle />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, color: "#3A3548", lineHeight: 1.6 }}>{n.text}</div>
+                <div style={{ fontSize: 10.5, color: colors.textMutedSoft, marginTop: 4 }}>{n.time}</div>
+              </div>
+              {goTo && (
+                <div style={{ flex: "0 0 auto", alignSelf: "center" }}>
+                  <ChevronRightIcon />
+                </div>
+              )}
+            </>
+          );
+          const rowStyle: React.CSSProperties = {
+            display: "flex",
+            gap: 12,
+            padding: "15px 22px",
+            borderBottom: "1px solid #F1EFF6",
+            background: n.unread ? colors.primaryBg5 : colors.white,
+            width: "100%",
+            textAlign: "left",
+            fontFamily: "inherit",
+            alignItems: "flex-start",
+          };
+          return goTo ? (
+            <button key={n.key} onClick={goTo} style={{ ...rowStyle, border: "none", cursor: "pointer" }}>
+              {inner}
+            </button>
+          ) : (
+            <div key={n.key} style={rowStyle}>
+              {inner}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, color: "#3A3548", lineHeight: 1.6 }}>{n.text}</div>
-              <div style={{ fontSize: 10.5, color: colors.textMutedSoft, marginTop: 4 }}>{n.time}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

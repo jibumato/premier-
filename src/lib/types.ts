@@ -79,6 +79,10 @@ export interface Notification {
   text: string;
   time: string;
   unread: boolean;
+  /** 通知の種別（application / follow / like / badge / message）。遷移先の判定に使う。 */
+  kind?: string;
+  /** 関連エンティティID（applicationなら併せID等）。タップ遷移に使う。 */
+  entityId?: string | null;
 }
 
 export type AnnouncementCategory = "update" | "news" | "maintenance";

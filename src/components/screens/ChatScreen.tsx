@@ -223,7 +223,8 @@ export function ChatScreen() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") send();
+            // IME変換確定のEnterでは送信しない（日本語入力の変換候補確定と送信を区別）。
+            if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) send();
           }}
           placeholder="メッセージを入力"
           style={{
