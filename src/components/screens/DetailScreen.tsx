@@ -21,6 +21,7 @@ import {
   useUpdateAwase,
 } from "@/lib/queries/awase";
 import { useAwaseAchievementCount, useProfile } from "@/lib/queries/profile";
+import { useAwaseGroupChat } from "@/lib/queries/messages";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -59,7 +60,7 @@ const mockInfoGrid = [
 ];
 
 export function DetailScreen() {
-  const { back, nav, openProfile, openReport, openCreateFromDuplicate, selectedAwaseId } = useRouter();
+  const { back, nav, openProfile, openReport, openChat, openCreateFromDuplicate, selectedAwaseId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -85,6 +86,18 @@ export function DetailScreen() {
   // 自分の応募状況（応募者側）。主催者は対象外。二重応募防止＋状態表示に使う。
   const myApplication = useMyApplication(!isHost ? selectedAwaseId : null, !isHost ? user?.id : undefined);
   const myAppStatus = configured ? myApplication.data ?? null : null;
+  // 承認済みメンバーのグループチャット（主催＋accepted/doneで参加可能）
+  const groupChat = useAwaseGroupChat();
+  const openMemberGroupChat = () => {
+    if (!real || groupChat.isPending) return;
+    groupChat.mutate(
+      { awaseId: real.id },
+      {
+        onSuccess: (convId) => openChat(convId),
+        onError: () => alert("グループチャットを開けませんでした。もう一度お試しください。"),
+      },
+    );
+  };
   // 女性限定募集は本人確認済みでないと応募できない（RLSで強制）。UI側でも導線を出す。
   const viewerProfile = useProfile(user?.id);
   const viewerVerified = configured ? Boolean(viewerProfile.data?.is_verified) : true;
@@ -733,26 +746,49 @@ export function DetailScreen() {
         ) : (
           <>
             {myAppStatus ? (
-              <div
-                style={{
-                  marginTop: 22,
-                  textAlign: "center",
-                  border: `1px solid ${myAppStatus === "accepted" ? colors.primary : colors.borderSoft}`,
-                  background: myAppStatus === "accepted" ? colors.primaryBg1 : colors.primaryBg5,
-                  color: myAppStatus === "accepted" ? colors.primary : colors.textMutedAlt,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  padding: "15px 0",
-                  borderRadius: 14,
-                }}
-              >
-                {myAppStatus === "accepted"
-                  ? "参加が承認されました🎉"
-                  : myAppStatus === "rejected"
-                    ? "今回は見送りとなりました"
-                    : myAppStatus === "done"
-                      ? "参加済み"
-                      : "応募済み（主催者の承認待ち）"}
+              <div style={{ marginTop: 22 }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    border: `1px solid ${myAppStatus === "accepted" ? colors.primary : colors.borderSoft}`,
+                    background: myAppStatus === "accepted" ? colors.primaryBg1 : colors.primaryBg5,
+                    color: myAppStatus === "accepted" ? colors.primary : colors.textMutedAlt,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    padding: "15px 0",
+                    borderRadius: 14,
+                  }}
+                >
+                  {myAppStatus === "accepted"
+                    ? "参加が承認されました🎉"
+                    : myAppStatus === "rejected"
+                      ? "今回は見送りとなりました"
+                      : myAppStatus === "done"
+                        ? "参加済み"
+                        : "応募済み（主催者の承認待ち）"}
+                </div>
+                {(myAppStatus === "accepted" || myAppStatus === "done") && (
+                  <button
+                    onClick={openMemberGroupChat}
+                    disabled={groupChat.isPending}
+                    style={{
+                      width: "100%",
+                      marginTop: 10,
+                      border: `1px solid ${colors.primary}`,
+                      background: colors.white,
+                      color: colors.primary,
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      padding: "13px 0",
+                      borderRadius: 13,
+                      cursor: groupChat.isPending ? "default" : "pointer",
+                      opacity: groupChat.isPending ? 0.6 : 1,
+                    }}
+                  >
+                    {groupChat.isPending ? "開いています…" : "メンバーのグループチャット"}
+                  </button>
+                )}
               </div>
             ) : isClosed ? (
               <div

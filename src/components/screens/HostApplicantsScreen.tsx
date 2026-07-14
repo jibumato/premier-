@@ -16,7 +16,7 @@ import {
   type ApplicationStatus,
   type Applicant,
 } from "@/lib/queries/awase";
-import { useGetOrCreateConversation, useSendMessage } from "@/lib/queries/messages";
+import { useAwaseGroupChat, useGetOrCreateConversation, useSendMessage } from "@/lib/queries/messages";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /** Mock applicants so the screen is meaningful in prototype/mock mode. */
@@ -46,6 +46,18 @@ export function HostApplicantsScreen() {
   const setAwaseStatus = useSetAwaseStatus();
   const getOrCreateConversation = useGetOrCreateConversation();
   const sendMessage = useSendMessage();
+  const groupChat = useAwaseGroupChat();
+
+  const openGroupChat = () => {
+    if (!real || groupChat.isPending) return;
+    groupChat.mutate(
+      { awaseId: real.id },
+      {
+        onSuccess: (convId) => openChat(convId),
+        onError: () => alert("グループチャットを開けませんでした。もう一度お試しください。"),
+      },
+    );
+  };
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
   const loading = configured && Boolean(selectedAwaseId) && awaseQuery.isPending && !awaseQuery.data;
@@ -200,6 +212,27 @@ export function HostApplicantsScreen() {
               }}
             >
               承認者に一斉連絡（{acceptedList.length}名）
+            </button>
+          )}
+          {real && acceptedList.length > 0 && (
+            <button
+              onClick={openGroupChat}
+              disabled={groupChat.isPending}
+              style={{
+                flex: 1,
+                border: `1px solid ${colors.primary}`,
+                background: colors.white,
+                color: colors.primary,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                fontWeight: 700,
+                padding: "11px 0",
+                borderRadius: 12,
+                cursor: groupChat.isPending ? "default" : "pointer",
+                opacity: groupChat.isPending ? 0.6 : 1,
+              }}
+            >
+              {groupChat.isPending ? "開いています…" : "グループチャット"}
             </button>
           )}
           {real && (

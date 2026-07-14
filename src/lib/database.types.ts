@@ -228,8 +228,8 @@ export interface Database {
         Relationships: [];
       };
       conversations: {
-        Row: { id: string; awase_id: string | null; created_at: string };
-        Insert: { id?: string; awase_id?: string | null; created_at?: string };
+        Row: { id: string; awase_id: string | null; is_group: boolean; title: string | null; created_at: string };
+        Insert: { id?: string; awase_id?: string | null; is_group?: boolean; title?: string | null; created_at?: string };
         Update: Partial<Database["public"]["Tables"]["conversations"]["Insert"]>;
         Relationships: [];
       };
@@ -571,6 +571,10 @@ export interface Database {
       };
       create_direct_conversation: {
         Args: { p_other: string; p_awase?: string | null };
+        Returns: string;
+      };
+      get_or_create_awase_group_chat: {
+        Args: { p_awase: string };
         Returns: string;
       };
     };

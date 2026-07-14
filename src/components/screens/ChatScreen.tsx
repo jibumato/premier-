@@ -7,7 +7,13 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, SendIcon, StarIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useMessages, useSendMessage, useMarkConversationRead, useOtherReadAt } from "@/lib/queries/messages";
+import {
+  useMessages,
+  useSendMessage,
+  useMarkConversationRead,
+  useOtherReadAt,
+  useConversationMeta,
+} from "@/lib/queries/messages";
 import { useConversationInfo } from "@/lib/queries/reviews";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
@@ -37,15 +43,24 @@ export function ChatScreen() {
 
   const real = configured && selectedConversationId ? realMessages.data : undefined;
   const realInfo = configured && selectedConversationId ? convInfo.data : undefined;
+  const meta = useConversationMeta(selectedConversationId);
+  const isGroup = Boolean(configured && meta.data?.isGroup);
+  const memberNames = meta.data?.memberNames;
   const loading = configured && Boolean(selectedConversationId) && realMessages.isPending && !realMessages.data;
-  const partnerName = realInfo?.otherName ?? "かな";
-  const partnerContext = realInfo?.awaseTitle ?? "魔法学園 生徒会併せ";
-  const messages: ChatMessage[] = real
+  const partnerName = isGroup
+    ? `${meta.data?.title ?? "併せグループ"}`
+    : (realInfo?.otherName ?? "かな");
+  const partnerContext = isGroup
+    ? `グループチャット（${memberNames?.size ?? 0}人）`
+    : (realInfo?.awaseTitle ?? "魔法学園 生徒会併せ");
+  const messages: (ChatMessage & { senderName?: string })[] = real
     ? real.map((m) => ({
         key: m.id,
-        from: m.sender_id === user?.id ? "me" : "them",
+        from: m.sender_id === user?.id ? ("me" as const) : ("them" as const),
         text: m.body,
         time: formatRelativeTime(m.created_at),
+        // グループでは相手の吹き出しに発言者名を出す
+        senderName: isGroup && m.sender_id !== user?.id ? (memberNames?.get(m.sender_id) ?? "メンバー") : undefined,
       }))
     : configured && selectedConversationId
       ? []
@@ -128,27 +143,30 @@ export function ChatScreen() {
           <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{partnerName}</div>
           <div style={{ fontSize: 10.5, color: colors.textMutedAlt }}>{partnerContext}</div>
         </div>
-        <button
-          onClick={() => nav("reviewWrite")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            border: `1px solid ${colors.border}`,
-            background: colors.white,
-            borderRadius: 999,
-            padding: "6px 11px",
-            fontSize: 11,
-            fontWeight: 600,
-            color: colors.primary,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <StarIcon size={12} color={colors.starGold} filled />
-          レビュー
-        </button>
+        {/* グループでは相手が1人に定まらないためレビュー導線は出さない */}
+        {!isGroup && (
+          <button
+            onClick={() => nav("reviewWrite")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              border: `1px solid ${colors.border}`,
+              background: colors.white,
+              borderRadius: 999,
+              padding: "6px 11px",
+              fontSize: 11,
+              fontWeight: 600,
+              color: colors.primary,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <StarIcon size={12} color={colors.starGold} filled />
+            レビュー
+          </button>
+        )}
       </div>
 
       {/* messages */}
@@ -168,20 +186,26 @@ export function ChatScreen() {
                 gap: 6,
               }}
             >
-              <div
-                style={{
-                  maxWidth: "74%",
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  padding: "10px 13px",
-                  borderRadius: 16,
-                  borderBottomRightRadius: mine ? 4 : 16,
-                  borderBottomLeftRadius: mine ? 16 : 4,
-                  background: mine ? colors.primary : colors.primaryBg2,
-                  color: mine ? colors.white : colors.textPrimary,
-                }}
-              >
-                {m.text}
+              <div style={{ maxWidth: "74%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start" }}>
+                {m.senderName && (
+                  <div style={{ fontSize: 10, fontWeight: 700, color: colors.textMutedAlt, margin: "0 4px 3px" }}>
+                    {m.senderName}
+                  </div>
+                )}
+                <div
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    padding: "10px 13px",
+                    borderRadius: 16,
+                    borderBottomRightRadius: mine ? 4 : 16,
+                    borderBottomLeftRadius: mine ? 16 : 4,
+                    background: mine ? colors.primary : colors.primaryBg2,
+                    color: mine ? colors.white : colors.textPrimary,
+                  }}
+                >
+                  {m.text}
+                </div>
               </div>
               <span
                 style={{
