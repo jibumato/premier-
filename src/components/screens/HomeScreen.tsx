@@ -20,6 +20,7 @@ import { WorkCover } from "../WorkCover";
 import { AwaseCover } from "../AwaseCover";
 import { StarterGuide } from "../StarterGuide";
 import { SafetySection } from "../SafetySection";
+import { HomePickup } from "../HomePickup";
 import type { Screen } from "@/lib/types";
 
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
@@ -256,6 +257,9 @@ export function HomeScreen() {
           </button>
         ))}
       </div>
+
+      {/* プルミエ！ピックアップ — 運営キュレーションのレイヤー写真ショーケース */}
+      <HomePickup />
 
       {/* popular works */}
       <div style={{ padding: "22px 0 0" }}>

@@ -519,6 +519,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["announcements"]["Insert"]>;
         Relationships: [];
       };
+      home_pickups: {
+        Row: {
+          id: string;
+          image_url: string;
+          caption: string | null;
+          sort: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          image_url: string;
+          caption?: string | null;
+          sort?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["home_pickups"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {

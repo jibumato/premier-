@@ -94,6 +94,23 @@ a:hover {
   }
 }
 
+/*
+ * Pickup showcase grid: 2 photo columns on mobile, 4 on the wider desktop
+ * content area. Tiles are 3:4 portraits (see HomePickup.tsx).
+ */
+.pt-pickup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+@media (min-width: 641px) {
+  .pt-pickup-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 11px;
+  }
+}
+
 /* Sidebar shows on desktop only; the bottom nav shows on mobile only. */
 @media (min-width: 641px) {
   .pt-bottomnav {
