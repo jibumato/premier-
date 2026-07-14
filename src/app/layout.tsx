@@ -2,10 +2,28 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
+const siteTitle = "プルミエ！ — コスプレイヤー交流マッチング";
+const siteDescription =
+  "コスプレイヤー同士（カメラマンも参加可）が好きな作品でつながり、併せ撮影の企画・募集・応募ができる交流プラットフォーム。";
+
 export const metadata: Metadata = {
-  title: "プルミエ！ — コスプレイヤー交流マッチング",
-  description:
-    "コスプレイヤー同士（カメラマンも参加可）が好きな作品でつながり、併せ撮影の企画・募集・応募ができる交流プラットフォーム。",
+  metadataBase: new URL("https://premiercos.com"),
+  title: siteTitle,
+  description: siteDescription,
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    siteName: "プルミエ！",
+    type: "website",
+    locale: "ja_JP",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: ["/og.png"],
+  },
 };
 
 export const viewport: Viewport = {

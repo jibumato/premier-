@@ -263,9 +263,14 @@ export function DetailScreen() {
   };
 
   const [copied, setCopied] = useState(false);
+  // 共有は /a/<id>（サーバーが OGP メタを返す共有用URL）を使う。X などの
+  // クローラーは JS を実行しないため、/?awase=<id> だとリッチカードが出ない。
+  const shareUrl = () =>
+    real ? `${window.location.origin}/a/${real.id}` : window.location.href;
+
   const handleShare = async () => {
     if (typeof window === "undefined") return;
-    const url = window.location.href;
+    const url = shareUrl();
     const shareData = { title: `${title}｜プルミエ！`, text: `${title}（${workName}）`, url };
     try {
       if (navigator.share) {
@@ -281,11 +286,10 @@ export function DetailScreen() {
   };
 
   // X（旧Twitter）へワンボタン投稿。募集中なら「募集告知」、締切後は「募集終了」の
-  // 定型文を自動で出し分ける。URL は詳細表示中に AppRouter が `?awase=<id>` を同期
-  // しているため、そのままこの併せへのディープリンクになる。
+  // 定型文を自動で出し分ける。URL は OGP 付きの共有用URL（/a/<id>）。
   const shareToX = () => {
     if (typeof window === "undefined") return;
-    const url = window.location.href;
+    const url = shareUrl();
     const date = real?.event_date ?? "7/26(日) 13:00〜";
     const place = real?.place ?? real?.region ?? "都内スタジオ";
     const text = isClosed
