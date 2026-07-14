@@ -203,6 +203,8 @@ export function VerifyScreen() {
             </label>
             <p style={{ margin: "8px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
               運転免許証・パスポート・マイナンバーカード（表面のみ）などの顔写真付き身分証。マイナンバーの番号は隠して撮影してください。
+              <br />
+              学生証をお持ちの方は、学生証と健康保険証を並べて1枚の写真に収めてご提出ください（生年月日の確認のため）。
             </p>
           </div>
 
