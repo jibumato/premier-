@@ -26,6 +26,7 @@ import { QaDetailScreen } from "./screens/QaDetailScreen";
 import { ReportScreen } from "./screens/ReportScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { AdminVerificationScreen } from "./screens/AdminVerificationScreen";
+import { AdminPickupsScreen } from "./screens/AdminPickupsScreen";
 import { CorporateScreen } from "./screens/CorporateScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
 import { TermsScreen } from "./screens/TermsScreen";
@@ -60,6 +61,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   report: ReportScreen,
   settings: SettingsScreen,
   adminVerify: AdminVerificationScreen,
+  adminPickups: AdminPickupsScreen,
   corporate: CorporateScreen,
   verify: VerifyScreen,
   terms: TermsScreen,

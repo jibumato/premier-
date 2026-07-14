@@ -28,6 +28,7 @@ export type Screen =
   | "report"
   | "settings"
   | "adminVerify"
+  | "adminPickups"
   | "corporate"
   | "verify"
   | "terms"
