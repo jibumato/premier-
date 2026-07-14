@@ -64,6 +64,7 @@ select
   (select exists(select 1 from pg_policies
      where tablename='home_pickups' and policyname='home_pickups_admin_insert'))
                                                          as home_pickups_admin,    -- false → 0037 未適用（運営画面から管理）
+  (select count(*) from studios where region='中部')      as studios_chubu,         -- 0 → 0038 未適用（名古屋スタジオ）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -93,6 +94,7 @@ select
 - `qa_delete_policy` が `false` → **ステップ 2w**（0035・知恵袋の削除方針）
 - `home_pickups_table` が `false` → **ステップ 2x**（0036・トップのピックアップ）
 - `home_pickups_admin` が `false` → **ステップ 2y**（0037・ピックアップを運営画面から管理）
+- `studios_chubu` が `0` → **ステップ 2z**（0038・撮影スタジオに中部/名古屋を追加）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -518,6 +520,24 @@ insert into home_pickups (image_url, caption, sort) values
 
 > 運営アカウントの指定は `update profiles set is_admin = true where id = '対象のID';`
 > （本人確認の承認画面と同じ運営フラグを使います）。
+
+---
+
+## ☐ ステップ 2z: 撮影スタジオに中部（名古屋）を追加（マイグレーション 0038）
+
+`studios_chubu` が `0` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0038_studios_chubu.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ スタジオ一覧の地域フィルタに「**中部**」チップが増え、名古屋の実在
+スタジオ（Reve／photo space HISAYA／千代田ヴィレッジ／Buff STUDIO）が
+表示されます。地域チップは `studios.region` から自動生成されるので、UI 側の
+変更は不要です。`on conflict (name) do nothing` 付きで冪等・再実行安全。
+
+- 追加・変更したいスタジオは、SQL Editor から `studios` に直接 INSERT/UPDATE
+  してください（例のフォーマットは 0038 と 0020 を参照）。料金は変動するため
+  `price_text` は「時間制（公式サイト参照）」のように公式サイト参照に留めるのが安全です。
 
 ---
 
