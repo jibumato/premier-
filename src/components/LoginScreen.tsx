@@ -12,15 +12,26 @@ type Mode = "signIn" | "signUp";
 
 /** Supabase 認証エラーを日本語の分かりやすい文言に変換。未知のものは実メッセージを添える。 */
 function friendlyAuthError(e: unknown, mode: Mode): string {
-  const err = e as { message?: string; code?: string; status?: number };
-  const msg = (err?.message ?? "").toString();
-  const m = msg.toLowerCase();
+  const err = e as { message?: string; code?: string; status?: number; name?: string };
+  const rawMsg = (err?.message ?? "").toString();
+  const m = rawMsg.toLowerCase();
   const code = (err?.code ?? "").toString();
   const status = err?.status;
+  // "{}"/"[object Object]" のような中身の無いメッセージは空扱いにする
+  const msg = rawMsg === "{}" || rawMsg === "[object Object]" ? "" : rawMsg;
   if (m.includes("already registered") || code === "user_already_exists")
     return "このメールアドレスは既に登録されています。ログインをお試しください。";
-  if (m.includes("rate limit") || status === 429 || code.includes("rate_limit"))
-    return "確認メールの送信が一時的に制限されています。数分おいてから再度お試しください。";
+  // 確認メールの送信に失敗（送信制限 or SMTP設定不備）— 登録時に最も多い
+  if (
+    m.includes("rate limit") ||
+    status === 429 ||
+    code.includes("rate_limit") ||
+    m.includes("sending") ||
+    m.includes("confirmation email") ||
+    m.includes("smtp") ||
+    m.includes("email") && m.includes("send")
+  )
+    return "確認メールの送信に失敗しました。送信回数の制限に達したか、メール送信設定に問題がある可能性があります。数分おいて再度お試しください。";
   if (m.includes("invalid login") || code === "invalid_credentials")
     return "メールアドレスまたはパスワードが正しくありません。";
   if (m.includes("email not confirmed") || code === "email_not_confirmed")
@@ -34,6 +45,9 @@ function friendlyAuthError(e: unknown, mode: Mode): string {
   if (m.includes("signups not allowed") || m.includes("signup is disabled") || m.includes("email logins are disabled") || m.includes("signups are disabled"))
     return "現在、新規登録を受け付けていません（運営の設定をご確認ください）。";
   const action = mode === "signUp" ? "登録" : "ログイン";
+  // 登録時に中身の無いエラー = 確認メール送信まわりの失敗が濃厚
+  if (!msg && mode === "signUp")
+    return "登録に失敗しました。確認メールの送信でエラーが発生した可能性があります（送信制限またはメール設定）。数分おいて再度お試しください。";
   return msg ? `${action}に失敗しました：${msg}` : `${action}に失敗しました。時間をおいて再度お試しください。`;
 }
 
