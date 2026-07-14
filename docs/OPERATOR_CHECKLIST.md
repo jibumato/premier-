@@ -67,6 +67,8 @@ select
   (select count(*) from studios where region='中部')      as studios_chubu,         -- 0 → 0038 未適用（名古屋スタジオ）
   (select to_regclass('public.awase_schedule_options') is not null)
                                                          as awase_schedule,         -- false → 0039 未適用（日程調整）
+  (select exists(select 1 from information_schema.columns
+     where table_name='works' and column_name='reading')) as works_reading,        -- false → 0040 未適用（作品のあいうえお順）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -98,6 +100,7 @@ select
 - `home_pickups_admin` が `false` → **ステップ 2y**（0037・ピックアップを運営画面から管理）
 - `studios_chubu` が `0` → **ステップ 2z**（0038・撮影スタジオに中部/名古屋を追加）
 - `awase_schedule` が `false` → **ステップ 2aa**（0039・併せの日程調整）
+- `works_reading` が `false` → **ステップ 2ab**（0040・作品をあいうえお順に）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -562,6 +565,24 @@ insert into home_pickups (image_url, caption, sort) values
 未適用の間も既存画面は壊れません（日程調整セクションが表示されないだけ）。
 冪等ではないため**実行は1回だけ**にしてください（`already exists` エラーが
 出たら適用済みです）。
+
+---
+
+## ☐ ステップ 2ab: 作品をあいうえお順に（マイグレーション 0040）
+
+`works_reading` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0040_works_reading.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ `works` に読み（かな）列が付き、併せ作成画面の作品選択が
+**あいうえお順＋読み検索（ナルト/naruto/なると）** で選べるようになります。
+未適用の間も壊れず、従来どおり名前順で表示されます（`select("*")` で読み列が
+無くても動作）。冪等（`add column if not exists`）で再実行安全。
+
+- **今後 works に作品を追加**したら、あわせて読みも入れると並びが崩れません:
+  `update works set reading = 'よみ' where name = '作品名';`
+  （読み未設定でも致命的ではなく、その作品だけ名前基準で並びます）
 
 ---
 
