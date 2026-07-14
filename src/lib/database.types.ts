@@ -240,8 +240,8 @@ export interface Database {
         Relationships: [];
       };
       messages: {
-        Row: { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
-        Insert: { id?: string; conversation_id: string; sender_id: string; body: string; created_at?: string };
+        Row: { id: string; conversation_id: string; sender_id: string; body: string; image_url: string | null; created_at: string };
+        Insert: { id?: string; conversation_id: string; sender_id: string; body: string; image_url?: string | null; created_at?: string };
         Update: Partial<Database["public"]["Tables"]["messages"]["Insert"]>;
         Relationships: [];
       };

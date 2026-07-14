@@ -12,6 +12,7 @@ export interface MessageRow {
   conversation_id: string;
   sender_id: string;
   body: string;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -41,7 +42,7 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
             .neq("user_id", userId!),
           supabase
             .from("messages")
-            .select("conversation_id, body, created_at")
+            .select("conversation_id, body, image_url, created_at")
             .in("conversation_id", ids)
             .order("created_at", { ascending: false }),
           supabase.from("conversations").select("id, is_group, title").in("id", ids),
@@ -79,8 +80,8 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
       const otherNameMap = new Map(otherRows.map((r) => [r.conversation_id, r.profiles?.display_name ?? "不明"]));
       const memberCount = new Map<string, number>();
       for (const r of otherRows) memberCount.set(r.conversation_id, (memberCount.get(r.conversation_id) ?? 0) + 1);
-      const lastMsgMap = new Map<string, { body: string; created_at: string }>();
-      for (const m of (msgs ?? []) as { conversation_id: string; body: string; created_at: string }[]) {
+      const lastMsgMap = new Map<string, { body: string; image_url: string | null; created_at: string }>();
+      for (const m of (msgs ?? []) as { conversation_id: string; body: string; image_url: string | null; created_at: string }[]) {
         if (!lastMsgMap.has(m.conversation_id)) lastMsgMap.set(m.conversation_id, m);
       }
 
@@ -95,7 +96,7 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
         return {
           key: id,
           name,
-          last: last?.body ?? "",
+          last: last ? (last.body || (last.image_url ? "📷 画像" : "")) : "",
           time: last ? formatRelativeTime(last.created_at) : "",
           unread: hasUnread ? 1 : 0,
         };
@@ -119,7 +120,7 @@ export function useMessages(conversationId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("messages")
-        .select("id, conversation_id, sender_id, body, created_at")
+        .select("id, conversation_id, sender_id, body, image_url, created_at")
         .eq("conversation_id", conversationId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -153,13 +154,18 @@ export function useSendMessage() {
       conversationId,
       senderId,
       body,
+      imageUrl,
     }: {
       conversationId: string;
       senderId: string;
       body: string;
+      /** 画像付き送信（本文は空でも可）。R2 の公開URL。 */
+      imageUrl?: string | null;
     }) => {
       const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: senderId, body });
+      const { error } = await supabase
+        .from("messages")
+        .insert({ conversation_id: conversationId, sender_id: senderId, body, image_url: imageUrl ?? null });
       if (error) throw error;
     },
     onSuccess: (_d, { conversationId }) => {
