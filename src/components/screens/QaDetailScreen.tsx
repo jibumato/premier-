@@ -8,6 +8,8 @@ import { AppBar, PrimaryButton } from "../ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
   useCreateQaAnswer,
+  useDeleteQaAnswer,
+  useDeleteQaQuestion,
   useMarkBestAnswer,
   useQaAnswers,
   useQaQuestion,
@@ -59,6 +61,8 @@ export function QaDetailScreen() {
   const createAnswer = useCreateQaAnswer();
   const toggleLike = useToggleQaLike();
   const markBest = useMarkBestAnswer();
+  const deleteQuestion = useDeleteQaQuestion();
+  const deleteAnswer = useDeleteQaAnswer();
 
   const [mockAnswers, setMockAnswers] = useState(initialAnswers);
   const [draft, setDraft] = useState("");
@@ -80,7 +84,15 @@ export function QaDetailScreen() {
   const authorLine = real ? `${real.authorName} · ${real.time}` : configured ? "" : "かな · 2日前";
   const displayAnswers = (
     answers ?? (configured ? [] : mockAnswers.map((a) => ({ ...a, likedByMe: false })))
-  ).map((a) => ({ key: a.key, name: a.name, text: a.text, best: a.best, likes: a.likes, likedByMe: a.likedByMe }));
+  ).map((a) => ({
+    key: a.key,
+    authorId: (a as { authorId?: string }).authorId ?? "",
+    name: a.name,
+    text: a.text,
+    best: a.best,
+    likes: a.likes,
+    likedByMe: a.likedByMe,
+  }));
   const answerCount = displayAnswers.length;
   const solved = answers ? answers.some((a) => a.best) : !configured;
 
@@ -96,6 +108,29 @@ export function QaDetailScreen() {
     if (selectedQaQuestionId) {
       markBest.mutate({ answerId, questionId: selectedQaQuestionId });
     }
+  };
+
+  // 質問の削除は「回答が付く前」のみ本人が可能（付いた後は運営のみ＝RLSで拒否される）
+  const canDeleteQuestion = isQuestionAuthor && (answers?.length ?? 0) === 0;
+  const handleDeleteQuestion = () => {
+    if (!selectedQaQuestionId || deleteQuestion.isPending) return;
+    if (!window.confirm("この質問を削除しますか？")) return;
+    deleteQuestion.mutate(
+      { questionId: selectedQaQuestionId },
+      {
+        onSuccess: () => back(),
+        onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました"),
+      },
+    );
+  };
+
+  const handleDeleteAnswer = (answerId: string) => {
+    if (!selectedQaQuestionId || deleteAnswer.isPending) return;
+    if (!window.confirm("この回答を削除しますか？")) return;
+    deleteAnswer.mutate(
+      { answerId, questionId: selectedQaQuestionId },
+      { onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました") },
+    );
   };
 
   const post = () => {
@@ -142,7 +177,26 @@ export function QaDetailScreen() {
         <p style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.9, color: colors.textSecondary }}>
           {bodyText}
         </p>
-        <div style={{ fontSize: 11, color: colors.textMutedSoft, marginTop: 12 }}>{authorLine}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+          <div style={{ fontSize: 11, color: colors.textMutedSoft }}>{authorLine}</div>
+          {canDeleteQuestion && (
+            <button
+              onClick={handleDeleteQuestion}
+              style={{
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                color: "#C0616E",
+                borderRadius: 999,
+                padding: "5px 12px",
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              この質問を削除
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ height: 8, background: colors.primaryBg4, margin: "18px 0 0" }} />
@@ -208,6 +262,24 @@ export function QaDetailScreen() {
                     }}
                   >
                     ベストに選ぶ
+                  </button>
+                )}
+                {real && user && a.authorId === user.id && !a.best && (
+                  <button
+                    onClick={() => handleDeleteAnswer(a.key)}
+                    style={{
+                      border: `1px solid ${colors.border}`,
+                      background: colors.white,
+                      color: "#C0616E",
+                      borderRadius: 999,
+                      padding: "5px 12px",
+                      fontSize: 11,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    削除
                   </button>
                 )}
               </div>
