@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useId } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -469,7 +470,9 @@ export function useApply() {
 /** 自分がこの併せに応募済みか（＋そのステータス）。未応募なら null。
  * 二重応募を UI 側で防ぎ、「応募済み／承認待ち／承認済み／見送り」を出すのに使う。 */
 export function useMyApplication(awaseId: string | null, userId: string | undefined) {
-  return useQuery({
+  const qc = useQueryClient();
+  const channelId = useId();
+  const query = useQuery({
     queryKey: ["my_application", awaseId, userId],
     enabled: isSupabaseConfigured() && Boolean(awaseId) && Boolean(userId),
     queryFn: async (): Promise<ApplicationStatus | null> => {
@@ -484,6 +487,25 @@ export function useMyApplication(awaseId: string | null, userId: string | undefi
       return (data?.status as ApplicationStatus | undefined) ?? null;
     },
   });
+
+  // 主催者が承認/却下/応募中に戻す等でステータスを変えたら、応募者の表示に即反映する。
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !awaseId || !userId) return;
+    const supabase = getSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`my_application:${awaseId}:${channelId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "awase_applications", filter: `awase_id=eq.${awaseId}` },
+        () => qc.invalidateQueries({ queryKey: ["my_application", awaseId, userId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [awaseId, userId, qc, channelId]);
+
+  return query;
 }
 
 export type ApplicationStatus = "applied" | "accepted" | "rejected" | "done";
@@ -503,7 +525,9 @@ export interface Applicant {
 /** Applicants to an awase, newest first — for the host's 応募者管理 screen
  * (readable by the host per the applications_select RLS policy). */
 export function useAwaseApplicants(awaseId: string | null) {
-  return useQuery({
+  const qc = useQueryClient();
+  const channelId = useId();
+  const query = useQuery({
     queryKey: ["awase_applicants", awaseId],
     enabled: isSupabaseConfigured() && Boolean(awaseId),
     queryFn: async (): Promise<Applicant[]> => {
@@ -534,6 +558,28 @@ export function useAwaseApplicants(awaseId: string | null) {
       }));
     },
   });
+
+  // 新規応募・ステータス変更を主催者の一覧に即反映する。
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !awaseId) return;
+    const supabase = getSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`awase_applicants:${awaseId}:${channelId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "awase_applications", filter: `awase_id=eq.${awaseId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["awase_applicants", awaseId] });
+          qc.invalidateQueries({ queryKey: ["awase_applicant_count", awaseId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [awaseId, qc, channelId]);
+
+  return query;
 }
 
 /** Total + accepted application counts for an awase (host controls / 満員判定). */
