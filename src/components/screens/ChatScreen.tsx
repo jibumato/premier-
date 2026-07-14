@@ -51,14 +51,13 @@ export function ChatScreen() {
       ? []
       : mockMessages;
 
-  // 「既読」表示: 相手の last_read_at 以前に送った自分のメッセージのうち、
-  // 最新の1件のキーを求める（LINE風に、既読になった一番下の自分の吹き出しに付ける）。
+  // 「既読」表示: 相手の last_read_at 以前に送った自分のメッセージ「すべて」に付ける。
   const otherReadMs = otherReadAt.data ? new Date(otherReadAt.data).getTime() : 0;
-  let lastReadMineKey: string | null = null;
+  const readMineKeys = new Set<string>();
   if (real && otherReadMs) {
     for (const m of real) {
       if (m.sender_id === user?.id && new Date(m.created_at).getTime() <= otherReadMs) {
-        lastReadMineKey = m.id;
+        readMineKeys.add(m.id);
       }
     }
   }
@@ -196,7 +195,7 @@ export function ChatScreen() {
                   gap: 1,
                 }}
               >
-                {mine && m.key === lastReadMineKey && (
+                {mine && readMineKeys.has(m.key) && (
                   <span style={{ color: colors.primary, fontWeight: 700 }}>既読</span>
                 )}
                 {m.time}
