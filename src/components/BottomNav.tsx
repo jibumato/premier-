@@ -117,7 +117,6 @@ export function BottomNav() {
             alignItems: "center",
             justifyContent: "center",
             boxShadow: shadow.fab,
-            marginTop: -8,
           }}
         >
           <PlusIcon />
