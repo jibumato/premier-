@@ -449,6 +449,7 @@ export function useCreateAwase() {
 
 /** Apply to an awase (detail screen's 応募する button). */
 export function useApply() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ awaseId, applicantId }: { awaseId: string; applicantId: string }) => {
       const supabase = getSupabaseBrowserClient();
@@ -456,6 +457,31 @@ export function useApply() {
         .from("awase_applications")
         .insert({ awase_id: awaseId, applicant_id: applicantId });
       if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId, applicantId }) => {
+      qc.invalidateQueries({ queryKey: ["my_application", awaseId, applicantId] });
+      qc.invalidateQueries({ queryKey: ["my_application_count", applicantId] });
+      qc.invalidateQueries({ queryKey: ["awase_applicant_count", awaseId] });
+    },
+  });
+}
+
+/** 自分がこの併せに応募済みか（＋そのステータス）。未応募なら null。
+ * 二重応募を UI 側で防ぎ、「応募済み／承認待ち／承認済み／見送り」を出すのに使う。 */
+export function useMyApplication(awaseId: string | null, userId: string | undefined) {
+  return useQuery({
+    queryKey: ["my_application", awaseId, userId],
+    enabled: isSupabaseConfigured() && Boolean(awaseId) && Boolean(userId),
+    queryFn: async (): Promise<ApplicationStatus | null> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase_applications")
+        .select("status")
+        .eq("awase_id", awaseId!)
+        .eq("applicant_id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.status as ApplicationStatus | undefined) ?? null;
     },
   });
 }
