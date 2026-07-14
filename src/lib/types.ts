@@ -120,6 +120,8 @@ export interface ChatMessage {
   from: "me" | "them";
   text: string;
   time: string;
+  /** 画像付きメッセージ（R2の公開URL）。テキストのみなら undefined/null。 */
+  imageUrl?: string | null;
 }
 
 export interface MarketItem {

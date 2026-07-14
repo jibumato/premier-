@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { chatThread } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -15,6 +15,7 @@ import {
   useConversationMeta,
 } from "@/lib/queries/messages";
 import { useConversationInfo } from "@/lib/queries/reviews";
+import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
 import type { ChatMessage } from "@/lib/types";
@@ -40,6 +41,9 @@ export function ChatScreen() {
 
   const [mockMessages, setMockMessages] = useState<ChatMessage[]>(chatThread);
   const [draft, setDraft] = useState("");
+  const uploadImage = useUploadImage();
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const real = configured && selectedConversationId ? realMessages.data : undefined;
   const realInfo = configured && selectedConversationId ? convInfo.data : undefined;
@@ -59,6 +63,7 @@ export function ChatScreen() {
         from: m.sender_id === user?.id ? ("me" as const) : ("them" as const),
         text: m.body,
         time: formatRelativeTime(m.created_at),
+        imageUrl: m.image_url,
         // グループでは相手の吹き出しに発言者名を出す
         senderName: isGroup && m.sender_id !== user?.id ? (memberNames?.get(m.sender_id) ?? "メンバー") : undefined,
       }))
@@ -86,6 +91,20 @@ export function ChatScreen() {
       setMockMessages((m) => [...m, { key: `me-${m.length}`, from: "me", text, time: "今" }]);
     }
     setDraft("");
+  };
+
+  // 画像送信: 選択 → R2へアップロード → 画像付きメッセージとして即送信（LINE風）。
+  const handleImageSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // 同じ画像を続けて選べるように
+    if (!file || !user || !selectedConversationId || !configured) return;
+    try {
+      const result = await uploadImage.mutateAsync({ file, kind: "chat" });
+      if (!result.url) throw new Error("アップロード基盤が未設定です");
+      sendMessage.mutate({ conversationId: selectedConversationId, senderId: user.id, body: "", imageUrl: result.url });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "画像の送信に失敗しました。もう一度お試しください。");
+    }
   };
 
   if (loading) {
@@ -192,20 +211,45 @@ export function ChatScreen() {
                     {m.senderName}
                   </div>
                 )}
-                <div
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 1.6,
-                    padding: "10px 13px",
-                    borderRadius: 16,
-                    borderBottomRightRadius: mine ? 4 : 16,
-                    borderBottomLeftRadius: mine ? 16 : 4,
-                    background: mine ? colors.primary : colors.primaryBg2,
-                    color: mine ? colors.white : colors.textPrimary,
-                  }}
-                >
-                  {m.text}
-                </div>
+                {m.imageUrl && (
+                  <button
+                    onClick={() => setLightboxUrl(m.imageUrl!)}
+                    style={{
+                      border: "none",
+                      padding: 0,
+                      background: "none",
+                      cursor: "pointer",
+                      borderRadius: 14,
+                      overflow: "hidden",
+                      marginBottom: m.text ? 4 : 0,
+                      maxWidth: "100%",
+                    }}
+                    aria-label="画像を拡大"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={m.imageUrl}
+                      alt=""
+                      style={{ display: "block", maxWidth: 210, maxHeight: 260, objectFit: "cover", borderRadius: 14 }}
+                    />
+                  </button>
+                )}
+                {m.text && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      padding: "10px 13px",
+                      borderRadius: 16,
+                      borderBottomRightRadius: mine ? 4 : 16,
+                      borderBottomLeftRadius: mine ? 16 : 4,
+                      background: mine ? colors.primary : colors.primaryBg2,
+                      color: mine ? colors.white : colors.textPrimary,
+                    }}
+                  >
+                    {m.text}
+                  </div>
+                )}
               </div>
               <span
                 style={{
@@ -242,6 +286,38 @@ export function ChatScreen() {
           borderTop: `1px solid ${colors.borderSofter}`,
         }}
       >
+        {configured && selectedConversationId && (
+          <>
+            <button
+              onClick={() => !uploadImage.isPending && imageInputRef.current?.click()}
+              aria-label="画像を送る"
+              disabled={uploadImage.isPending}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: uploadImage.isPending ? "default" : "pointer",
+                flex: "0 0 auto",
+                fontSize: 16,
+                opacity: uploadImage.isPending ? 0.5 : 1,
+              }}
+            >
+              {uploadImage.isPending ? "…" : "📷"}
+            </button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelected}
+              style={{ display: "none" }}
+            />
+          </>
+        )}
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -281,6 +357,31 @@ export function ChatScreen() {
           <SendIcon size={18} />
         </button>
       </div>
+
+      {/* 画像の拡大表示 */}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(12,10,20,0.86)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            zIndex: 100,
+            cursor: "zoom-out",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt=""
+            style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }}
+          />
+        </div>
+      )}
     </div>
   );
 }
