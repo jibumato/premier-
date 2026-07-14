@@ -102,6 +102,20 @@ a:hover {
 }
 
 @media (max-width: 640px) {
+  /*
+   * Lock the page to the dynamic viewport so ONLY the inner .pt-scroll scrolls
+   * and the bottom nav stays pinned to the bottom of the screen. Previously the
+   * base `body { min-height: 100vh }` (static vh) made the body taller than the
+   * visible area while the address bar showed, so the whole frame — bottom nav
+   * included — scrolled with the page instead of staying put.
+   */
+  html,
+  body {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   body {
     padding: 0;
     align-items: stretch;
@@ -117,5 +131,12 @@ a:hover {
 
   .pt-sidebar {
     display: none !important;
+  }
+
+  /* Keep the tab labels clear of the home indicator on notched phones. */
+  .pt-bottomnav {
+    height: calc(72px + env(safe-area-inset-bottom)) !important;
+    flex-basis: calc(72px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important;
   }
 }

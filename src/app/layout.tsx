@@ -12,6 +12,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#E9E6EF",
+  // ノッチ/ホームインジケータのある端末で safe-area-inset を有効にし、
+  // 下部ナビをインジケータに被らせない（globals.css の .pt-bottomnav 参照）。
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
