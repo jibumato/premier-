@@ -61,6 +61,9 @@ select
                                                          as qa_delete_policy,     -- false → 0035 未適用（知恵袋の削除方針）
   (select to_regclass('public.home_pickups') is not null)
                                                          as home_pickups_table,   -- false → 0036 未適用（トップのピックアップ）
+  (select exists(select 1 from pg_policies
+     where tablename='home_pickups' and policyname='home_pickups_admin_insert'))
+                                                         as home_pickups_admin,    -- false → 0037 未適用（運営画面から管理）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -89,6 +92,7 @@ select
 - `chat_images` が `false` → **ステップ 2v**（0034・チャット画像）
 - `qa_delete_policy` が `false` → **ステップ 2w**（0035・知恵袋の削除方針）
 - `home_pickups_table` が `false` → **ステップ 2x**（0036・トップのピックアップ）
+- `home_pickups_admin` が `false` → **ステップ 2y**（0037・ピックアップを運営画面から管理）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -492,6 +496,28 @@ insert into home_pickups (image_url, caption, sort) values
 - 差し替えは行を消して入れ直すか、`image_url` を更新するだけ。
 
 冪等・再実行安全（テーブル作成は 0036、写真の登録は上記INSERTを必要な分だけ）。
+
+> **0037 を適用すると、以下の SQL 操作はアプリの運営画面から行えるようになります**
+> （設定 → 運営 → 「トップのピックアップ管理」）。SQL Editor での操作は
+> 初期投入や緊急時のバックアップ手段として残しておいてください。
+
+---
+
+## ☐ ステップ 2y: ピックアップを運営画面から管理（マイグレーション 0037）
+
+`home_pickups_admin` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0037_home_pickups_admin.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 運営アカウント（`profiles.is_admin = true`）が、アプリ内の
+**設定 → 運営 → 「トップのピックアップ管理」** から、ピックアップ写真を
+**追加（アップロード）・公開/非公開・並び替え・削除**できるようになります。
+画像は R2 に `pickup/<運営のID>/…` として保存されます。書き込みは RLS で
+`is_admin()` に限定されており、一般ユーザーからは変更できません。冪等・再実行安全。
+
+> 運営アカウントの指定は `update profiles set is_admin = true where id = '対象のID';`
+> （本人確認の承認画面と同じ運営フラグを使います）。
 
 ---
 
