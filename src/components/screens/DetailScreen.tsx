@@ -20,7 +20,7 @@ import {
   useRemoveAwaseImage,
   useUpdateAwase,
 } from "@/lib/queries/awase";
-import { useAwaseAchievementCount } from "@/lib/queries/profile";
+import { useAwaseAchievementCount, useProfile } from "@/lib/queries/profile";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -85,6 +85,10 @@ export function DetailScreen() {
   // 自分の応募状況（応募者側）。主催者は対象外。二重応募防止＋状態表示に使う。
   const myApplication = useMyApplication(!isHost ? selectedAwaseId : null, !isHost ? user?.id : undefined);
   const myAppStatus = configured ? myApplication.data ?? null : null;
+  // 女性限定募集は本人確認済みでないと応募できない（RLSで強制）。UI側でも導線を出す。
+  const viewerProfile = useProfile(user?.id);
+  const viewerVerified = configured ? Boolean(viewerProfile.data?.is_verified) : true;
+  const needsVerifyToApply = Boolean(configured && real?.women_only && !isHost && !viewerVerified);
   const isClosed = real ? real.status === "closed" : false;
   const now = Date.now();
   const isScheduled = Boolean(real?.publish_at && new Date(real.publish_at).getTime() > now);
@@ -173,9 +177,19 @@ export function DetailScreen() {
       {
         onSuccess: () => nav("applied"),
         onError: (e) => {
-          const msg = (e as { code?: string })?.code === "23505"
-            ? "すでにこの併せに応募済みです。"
-            : "応募に失敗しました。通信環境を確認して、もう一度お試しください。";
+          const err = e as { code?: string; message?: string };
+          // 診断用: 実際のエラーをコンソールに残す
+          console.error("apply failed", err);
+          let msg: string;
+          if (err.code === "23505") {
+            msg = "すでにこの併せに応募済みです。";
+          } else if (err.code === "42501") {
+            // RLS 違反 = 応募条件を満たさない
+            msg =
+              "応募条件を満たしていないため応募できませんでした。\n（募集終了・応募締切・公開前、または女性限定募集で本人確認が未完了の可能性があります）";
+          } else {
+            msg = `応募に失敗しました。もう一度お試しください。\n(${err.code ?? "?"}: ${err.message ?? "unknown"})`;
+          }
           alert(msg);
         },
       },
@@ -771,6 +785,21 @@ export function DetailScreen() {
                 }}
               >
                 応募は締め切りました
+              </div>
+            ) : needsVerifyToApply ? (
+              <div style={{ marginTop: 22 }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    fontSize: 11.5,
+                    color: colors.pinkText,
+                    lineHeight: 1.7,
+                    marginBottom: 10,
+                  }}
+                >
+                  女性限定の募集です。応募には本人確認が必要です。
+                </div>
+                <PrimaryButton onClick={() => nav("verify")}>本人確認をして応募する</PrimaryButton>
               </div>
             ) : (
               <PrimaryButton onClick={() => setConfirmApply(true)} style={{ marginTop: 22 }}>
