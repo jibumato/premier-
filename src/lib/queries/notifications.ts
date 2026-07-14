@@ -11,6 +11,7 @@ interface NotificationRow {
   id: string;
   type: string;
   body: string;
+  entity_id: string | null;
   is_read: boolean;
   created_at: string;
 }
@@ -30,7 +31,7 @@ export function useNotifications(userId: string | undefined) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, type, body, is_read, created_at")
+        .select("id, type, body, entity_id, is_read, created_at")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false })
         .limit(30);
@@ -40,6 +41,8 @@ export function useNotifications(userId: string | undefined) {
         text: n.body,
         time: formatRelativeTime(n.created_at),
         unread: !n.is_read,
+        kind: n.type,
+        entityId: n.entity_id,
       }));
     },
   });
