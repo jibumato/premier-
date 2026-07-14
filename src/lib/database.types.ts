@@ -561,6 +561,14 @@ export interface Database {
         Args: { p_request_id: string; p_note?: string | null };
         Returns: undefined;
       };
+      admin_delete_qa_question: {
+        Args: { p_question_id: string };
+        Returns: undefined;
+      };
+      admin_delete_qa_answer: {
+        Args: { p_answer_id: string };
+        Returns: undefined;
+      };
       delete_my_account: {
         Args: Record<string, never>;
         Returns: undefined;

@@ -254,6 +254,51 @@ export function useToggleQaLike() {
   });
 }
 
+/** 質問の削除（投稿者本人・回答が付く前のみ RLS が許可）。
+ * 回答が付いた後は運営のみ（admin_delete_qa_question RPC）削除できる。 */
+export function useDeleteQaQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ questionId }: { questionId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      // RLS で弾かれた場合は 0件削除で成功扱いになるため、削除行を返させて検知する
+      const { data, error } = await supabase
+        .from("qa_questions")
+        .delete()
+        .eq("id", questionId)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("回答が付いた質問は削除できません（運営にお問い合わせください）");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["qa_questions"] }),
+  });
+}
+
+/** 回答の削除（回答者本人・ベストアンサー確定前のみ RLS が許可）。 */
+export function useDeleteQaAnswer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ answerId }: { answerId: string; questionId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("qa_answers")
+        .delete()
+        .eq("id", answerId)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("ベストアンサーに選ばれた回答は削除できません");
+      }
+    },
+    onSuccess: (_d, { questionId }) => {
+      qc.invalidateQueries({ queryKey: ["qa_answers", questionId] });
+      qc.invalidateQueries({ queryKey: ["qa_questions"] });
+    },
+  });
+}
+
 /** Marks an answer as the best one — RLS-less RPC that itself checks the
  * caller is the question's author (see mark_best_answer() in the migration). */
 export function useMarkBestAnswer() {
