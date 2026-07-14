@@ -4,7 +4,7 @@ import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { popularWorks, regions, searchResults } from "@/lib/data";
 import { useRouter } from "../AppRouter";
-import { ImageSlot } from "../ImageSlot";
+import { AwaseCover } from "../AwaseCover";
 import { ChevronLeftIcon, PinIcon, SearchIcon } from "../icons";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
@@ -236,7 +236,7 @@ export function SearchScreen() {
             }}
           >
             <div style={{ flex: "0 0 92px", height: 92, position: "relative" }}>
-              <ImageSlot radius={14} src={res.coverUrl ?? undefined} />
+              <AwaseCover radius={14} coverUrl={res.coverUrl} work={res.work} />
               {res.womenOnly && (
                 <span
                   style={{
