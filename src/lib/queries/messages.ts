@@ -32,32 +32,44 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
       let ids = (mine ?? []).map((r) => r.conversation_id as string);
       if (ids.length === 0) return [];
 
-      const [{ data: others, error: othersErr }, { data: msgs, error: msgErr }] = await Promise.all([
-        supabase
-          .from("conversation_members")
-          .select("conversation_id, user_id, profiles(display_name)")
-          .in("conversation_id", ids)
-          .neq("user_id", userId!),
-        supabase
-          .from("messages")
-          .select("conversation_id, body, created_at")
-          .in("conversation_id", ids)
-          .order("created_at", { ascending: false }),
-      ]);
+      const [{ data: others, error: othersErr }, { data: msgs, error: msgErr }, { data: convs, error: convErr }] =
+        await Promise.all([
+          supabase
+            .from("conversation_members")
+            .select("conversation_id, user_id, profiles(display_name)")
+            .in("conversation_id", ids)
+            .neq("user_id", userId!),
+          supabase
+            .from("messages")
+            .select("conversation_id, body, created_at")
+            .in("conversation_id", ids)
+            .order("created_at", { ascending: false }),
+          supabase.from("conversations").select("id, is_group, title").in("id", ids),
+        ]);
       if (othersErr) throw othersErr;
       if (msgErr) throw msgErr;
+      if (convErr) throw convErr;
 
       const otherRows = (others ?? []) as unknown as {
         conversation_id: string;
         user_id: string;
         profiles: { display_name: string } | null;
       }[];
+      const groupMap = new Map(
+        ((convs ?? []) as { id: string; is_group: boolean; title: string | null }[]).map((c) => [
+          c.id,
+          { isGroup: c.is_group, title: c.title },
+        ]),
+      );
 
-      // Drop conversations whose other participant is blocked.
+      // Drop 1:1 conversations whose other participant is blocked
+      // (group chats stay visible even if one member is blocked).
       if (blockedUserIds?.length) {
         const blocked = new Set(blockedUserIds);
         const blockedConvos = new Set(
-          otherRows.filter((r) => blocked.has(r.user_id)).map((r) => r.conversation_id),
+          otherRows
+            .filter((r) => blocked.has(r.user_id) && !groupMap.get(r.conversation_id)?.isGroup)
+            .map((r) => r.conversation_id),
         );
         ids = ids.filter((id) => !blockedConvos.has(id));
         if (ids.length === 0) return [];
@@ -65,6 +77,8 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
 
       const lastReadMap = new Map((mine ?? []).map((r) => [r.conversation_id as string, r.last_read_at as string]));
       const otherNameMap = new Map(otherRows.map((r) => [r.conversation_id, r.profiles?.display_name ?? "不明"]));
+      const memberCount = new Map<string, number>();
+      for (const r of otherRows) memberCount.set(r.conversation_id, (memberCount.get(r.conversation_id) ?? 0) + 1);
       const lastMsgMap = new Map<string, { body: string; created_at: string }>();
       for (const m of (msgs ?? []) as { conversation_id: string; body: string; created_at: string }[]) {
         if (!lastMsgMap.has(m.conversation_id)) lastMsgMap.set(m.conversation_id, m);
@@ -74,9 +88,13 @@ export function useConversations(userId: string | undefined, blockedUserIds?: st
         const last = lastMsgMap.get(id);
         const lastReadAt = lastReadMap.get(id) ?? new Date(0).toISOString();
         const hasUnread = Boolean(last && new Date(last.created_at) > new Date(lastReadAt));
+        const group = groupMap.get(id);
+        const name = group?.isGroup
+          ? `${group.title ?? "併せグループ"}（${(memberCount.get(id) ?? 0) + 1}人）`
+          : (otherNameMap.get(id) ?? "不明");
         return {
           key: id,
-          name: otherNameMap.get(id) ?? "不明",
+          name,
           last: last?.body ?? "",
           time: last ? formatRelativeTime(last.created_at) : "",
           unread: hasUnread ? 1 : 0,
@@ -191,6 +209,55 @@ export function useMarkConversationRead() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+/** 併せのグループチャットを開く（無ければ作成）。主催者か承認済み応募者のみ。
+ * サーバー側 RPC（0033）が主催＋承認済みメンバーを揃えて会話IDを返す。 */
+export function useAwaseGroupChat() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ awaseId }: { awaseId: string }): Promise<string> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.rpc("get_or_create_awase_group_chat", { p_awase: awaseId });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+export interface ConversationMeta {
+  isGroup: boolean;
+  title: string | null;
+  /** conversation members (including self) — id → display name */
+  memberNames: Map<string, string>;
+}
+
+/** 会話のメタ情報（グループ判定・タイトル・メンバー名）。グループチャットの
+ * ヘッダー表示と、発言者名の表示に使う。 */
+export function useConversationMeta(conversationId: string | null) {
+  return useQuery({
+    queryKey: ["conversation_meta", conversationId],
+    enabled: isSupabaseConfigured() && Boolean(conversationId),
+    queryFn: async (): Promise<ConversationMeta> => {
+      const supabase = getSupabaseBrowserClient();
+      const [{ data: conv, error: convErr }, { data: members, error: memErr }] = await Promise.all([
+        supabase.from("conversations").select("is_group, title").eq("id", conversationId!).maybeSingle(),
+        supabase
+          .from("conversation_members")
+          .select("user_id, profiles(display_name)")
+          .eq("conversation_id", conversationId!),
+      ]);
+      if (convErr) throw convErr;
+      if (memErr) throw memErr;
+      const rows = (members ?? []) as unknown as { user_id: string; profiles: { display_name: string } | null }[];
+      return {
+        isGroup: Boolean((conv as { is_group?: boolean } | null)?.is_group),
+        title: ((conv as { title?: string | null } | null)?.title ?? null) as string | null,
+        memberNames: new Map(rows.map((r) => [r.user_id, r.profiles?.display_name ?? "不明"])),
+      };
+    },
   });
 }
 
