@@ -72,7 +72,7 @@ export function CreateScreen() {
   const [workId, setWorkId] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [region, setRegion] = useState("");
-  const [womenOnly, setWomenOnly] = useState(true);
+  const [womenOnly, setWomenOnly] = useState(false);
   const [beginnerOk, setBeginnerOk] = useState(false);
   const [acceptWaitlist, setAcceptWaitlist] = useState(false);
   const [worldTags, setWorldTags] = useState<string[]>([]);
