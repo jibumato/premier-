@@ -59,6 +59,8 @@ select
      where table_name='messages' and column_name='image_url')) as chat_images,   -- false → 0034 未適用（チャット画像）
   (select to_regprocedure('public.admin_delete_qa_question(uuid)') is not null)
                                                          as qa_delete_policy,     -- false → 0035 未適用（知恵袋の削除方針）
+  (select to_regclass('public.home_pickups') is not null)
+                                                         as home_pickups_table,   -- false → 0036 未適用（トップのピックアップ）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -86,6 +88,7 @@ select
 - `group_chat_fn` が `false` → **ステップ 2u**（0033・併せグループチャット）
 - `chat_images` が `false` → **ステップ 2v**（0034・チャット画像）
 - `qa_delete_policy` が `false` → **ステップ 2w**（0035・知恵袋の削除方針）
+- `home_pickups_table` が `false` → **ステップ 2x**（0036・トップのピックアップ）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -447,6 +450,48 @@ delete from qa_answers where id = '回答のID';
 ```
 
 冪等・再実行安全。
+
+---
+
+## ☐ ステップ 2x: トップの「プルミエ！ピックアップ」（マイグレーション 0036）
+
+`home_pickups_table` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0036_home_pickups.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ トップページに「プルミエ！ピックアップ」コーナー（運営がキュレーションした
+レイヤーさん写真のショーケース）が出せるようになります。**タップ導線はなく、
+見せるだけ**のコーナーです。
+
+### 写真の登録方法
+
+**必ず本人の同意を得た写真だけ**を登録してください（著作権・肖像権対策）。
+表示枚数は「**8枚あれば8枚、4〜7枚なら4枚、4枚未満なら非表示**」に自動で
+出し分きます。まずは **4枚か8枚** を目安に登録するのがおすすめです。
+
+1. 画像を公開URLで用意する（例: Cloudflare R2 の公開バケットにアップロードして
+   公開URLを取得。他の許諾済みホスティングURLでも可）。
+2. `PASTE_URL_n` を実際の画像URLに置き換えて実行（`caption` は任意。レイヤー名や
+   作品名など。今はタップしても遷移しないので装飾用途）。
+
+```sql
+insert into home_pickups (image_url, caption, sort) values
+  ('PASTE_URL_1', null, 1),
+  ('PASTE_URL_2', null, 2),
+  ('PASTE_URL_3', null, 3),
+  ('PASTE_URL_4', null, 4),
+  ('PASTE_URL_5', null, 5),
+  ('PASTE_URL_6', null, 6),
+  ('PASTE_URL_7', null, 7),
+  ('PASTE_URL_8', null, 8);
+```
+
+- 並び順は `sort`（小さいほど先）。一時的に隠したい写真は
+  `update home_pickups set is_active = false where id = '対象のID';`。
+- 差し替えは行を消して入れ直すか、`image_url` を更新するだけ。
+
+冪等・再実行安全（テーブル作成は 0036、写真の登録は上記INSERTを必要な分だけ）。
 
 ---
 
