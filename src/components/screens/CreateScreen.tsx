@@ -50,6 +50,44 @@ function localToIso(v: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+// 併せ作成フォームの下書き。スタジオ検索などへ一時的に離れても入力が消えないよう
+// sessionStorage に保存し、戻ったときに復元する。公開成功で破棄する。
+const DRAFT_KEY = "premier:awase-create-draft";
+interface CreateDraft {
+  title: string;
+  workId: string;
+  eventDate: string;
+  region: string;
+  womenOnly: boolean;
+  beginnerOk: boolean;
+  acceptWaitlist: boolean;
+  worldTags: string[];
+  place: string;
+  feeText: string;
+  capacity: string;
+  body: string;
+  publishAt: string;
+  applicationDeadline: string;
+  images: { key: string; url: string | null }[];
+}
+function readDraft(): Partial<CreateDraft> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.sessionStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Partial<CreateDraft>) : {};
+  } catch {
+    return {};
+  }
+}
+function clearDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function CreateScreen() {
   const { nav, duplicateAwaseId } = useRouter();
   const { user } = useAuth();
@@ -68,25 +106,70 @@ export function CreateScreen() {
     ? (worksQuery.data ?? []).map((w) => ({ id: w.id, name: w.name }))
     : mockWorks.map((w) => ({ id: w.key, name: w.name }));
 
-  const [title, setTitle] = useState("");
-  const [workId, setWorkId] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [region, setRegion] = useState("");
-  const [womenOnly, setWomenOnly] = useState(false);
-  const [beginnerOk, setBeginnerOk] = useState(false);
-  const [acceptWaitlist, setAcceptWaitlist] = useState(false);
-  const [worldTags, setWorldTags] = useState<string[]>([]);
-  const [place, setPlace] = useState("");
-  const [feeText, setFeeText] = useState("");
-  const [capacity, setCapacity] = useState("");
-  const [body, setBody] = useState("");
-  const [publishAt, setPublishAt] = useState("");
-  const [applicationDeadline, setApplicationDeadline] = useState("");
+  // マウント時に一度だけ下書きを読み込み、各フィールドの初期値にする。
+  const [draft] = useState<Partial<CreateDraft>>(() => readDraft());
+  const [title, setTitle] = useState(draft.title ?? "");
+  const [workId, setWorkId] = useState(draft.workId ?? "");
+  const [eventDate, setEventDate] = useState(draft.eventDate ?? "");
+  const [region, setRegion] = useState(draft.region ?? "");
+  const [womenOnly, setWomenOnly] = useState(draft.womenOnly ?? false);
+  const [beginnerOk, setBeginnerOk] = useState(draft.beginnerOk ?? false);
+  const [acceptWaitlist, setAcceptWaitlist] = useState(draft.acceptWaitlist ?? false);
+  const [worldTags, setWorldTags] = useState<string[]>(draft.worldTags ?? []);
+  const [place, setPlace] = useState(draft.place ?? "");
+  const [feeText, setFeeText] = useState(draft.feeText ?? "");
+  const [capacity, setCapacity] = useState(draft.capacity ?? "");
+  const [body, setBody] = useState(draft.body ?? "");
+  const [publishAt, setPublishAt] = useState(draft.publishAt ?? "");
+  const [applicationDeadline, setApplicationDeadline] = useState(draft.applicationDeadline ?? "");
   const [templateName, setTemplateName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [images, setImages] = useState<{ key: string; url: string | null }[]>([]);
+  const [images, setImages] = useState<{ key: string; url: string | null }[]>(draft.images ?? []);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // 入力が変わるたびに下書きを保存（スタジオ検索などへ離れても復元できるように）。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const d: CreateDraft = {
+      title,
+      workId,
+      eventDate,
+      region,
+      womenOnly,
+      beginnerOk,
+      acceptWaitlist,
+      worldTags,
+      place,
+      feeText,
+      capacity,
+      body,
+      publishAt,
+      applicationDeadline,
+      images,
+    };
+    try {
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
+  }, [
+    title,
+    workId,
+    eventDate,
+    region,
+    womenOnly,
+    beginnerOk,
+    acceptWaitlist,
+    worldTags,
+    place,
+    feeText,
+    capacity,
+    body,
+    publishAt,
+    applicationDeadline,
+    images,
+  ]);
 
   // 募集の複製: 既存併せの内容をフォームに一度だけ差し込む（画像は引き継がない）。
   const prefilledRef = useRef(false);
@@ -195,6 +278,7 @@ export function CreateScreen() {
           acceptWaitlist,
           imageKeys: images.map((img) => img.key),
         });
+        clearDraft();
         nav("created");
       } catch (e) {
         setError(e instanceof Error ? e.message : "公開に失敗しました");
@@ -203,6 +287,7 @@ export function CreateScreen() {
       }
       return;
     }
+    clearDraft();
     nav("created"); // prototype mode: no backend to persist to
   };
 
@@ -218,7 +303,10 @@ export function CreateScreen() {
         }}
       >
         <button
-          onClick={() => nav("home", "home")}
+          onClick={() => {
+            clearDraft(); // 明示的なキャンセルは下書きを破棄（スタジオ検索への遷移は保持）
+            nav("home", "home");
+          }}
           style={{
             background: "none",
             border: "none",
