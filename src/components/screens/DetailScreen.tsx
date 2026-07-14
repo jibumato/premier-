@@ -27,6 +27,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { workGradient } from "../WorkCover";
 import { AwaseCover } from "../AwaseCover";
+import { ScheduleSection } from "../ScheduleSection";
 import { siteTagline } from "@/lib/data";
 
 const EDIT_WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
@@ -613,6 +614,16 @@ export function DetailScreen() {
           {bodyText}
         </p>
       </div>
+
+      {/* 日程調整（調整さん風の○△×投票）— 実データ接続時のみ */}
+      {real && (
+        <ScheduleSection
+          awaseId={real.id}
+          isHost={isHost}
+          canVote={isHost || myAppStatus === "accepted" || myAppStatus === "done"}
+          userId={user?.id}
+        />
+      )}
 
       {/* roles */}
       <div style={{ padding: "22px 22px 26px" }}>

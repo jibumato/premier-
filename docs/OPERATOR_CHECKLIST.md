@@ -65,6 +65,8 @@ select
      where tablename='home_pickups' and policyname='home_pickups_admin_insert'))
                                                          as home_pickups_admin,    -- false → 0037 未適用（運営画面から管理）
   (select count(*) from studios where region='中部')      as studios_chubu,         -- 0 → 0038 未適用（名古屋スタジオ）
+  (select to_regclass('public.awase_schedule_options') is not null)
+                                                         as awase_schedule,         -- false → 0039 未適用（日程調整）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -95,6 +97,7 @@ select
 - `home_pickups_table` が `false` → **ステップ 2x**（0036・トップのピックアップ）
 - `home_pickups_admin` が `false` → **ステップ 2y**（0037・ピックアップを運営画面から管理）
 - `studios_chubu` が `0` → **ステップ 2z**（0038・撮影スタジオに中部/名古屋を追加）
+- `awase_schedule` が `false` → **ステップ 2aa**（0039・併せの日程調整）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -538,6 +541,27 @@ insert into home_pickups (image_url, caption, sort) values
 - 追加・変更したいスタジオは、SQL Editor から `studios` に直接 INSERT/UPDATE
   してください（例のフォーマットは 0038 と 0020 を参照）。料金は変動するため
   `price_text` は「時間制（公式サイト参照）」のように公式サイト参照に留めるのが安全です。
+
+---
+
+## ☐ ステップ 2aa: 併せの日程調整（マイグレーション 0039）
+
+`awase_schedule` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0039_awase_schedule.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 併せ詳細ページに「**日程調整**」セクション（調整さん風の○△×投票）が
+使えるようになります。
+
+- **候補日の追加・削除・確定**はホストのみ（「この日に確定」で候補をハイライト）
+- **○△×の回答**はホスト＋承認済みメンバー（accepted/done）のみ。RLS でも強制
+- 回答すると**ホストにおしらせ通知**が届き（初回回答時のみ）、タップでその併せに飛べます
+- 回答は Realtime で他のメンバーの画面にも即時反映されます
+
+未適用の間も既存画面は壊れません（日程調整セクションが表示されないだけ）。
+冪等ではないため**実行は1回だけ**にしてください（`already exists` エラーが
+出たら適用済みです）。
 
 ---
 
