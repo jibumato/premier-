@@ -55,8 +55,8 @@ export interface Database {
         Relationships: [];
       };
       works: {
-        Row: { id: string; name: string; created_at: string };
-        Insert: { id?: string; name: string; created_at?: string };
+        Row: { id: string; name: string; reading: string | null; created_at: string };
+        Insert: { id?: string; name: string; reading?: string | null; created_at?: string };
         Update: Partial<Database["public"]["Tables"]["works"]["Insert"]>;
         Relationships: [];
       };

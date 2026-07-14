@@ -17,6 +17,7 @@ import {
   type AwaseTemplate,
 } from "@/lib/queries/awase";
 import { useWorks } from "@/lib/queries/works";
+import { WorkPicker } from "../WorkPicker";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -467,14 +468,7 @@ export function CreateScreen() {
         </div>
         <div>
           <label style={label}>作品 *</label>
-          <select style={{ ...inputBox, appearance: "none" }} value={workId} onChange={(e) => setWorkId(e.target.value)}>
-            <option value="">選択してください</option>
-            {works.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
+          <WorkPicker works={works} value={workId} onChange={setWorkId} triggerStyle={{ ...inputBox, appearance: "none" }} />
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
