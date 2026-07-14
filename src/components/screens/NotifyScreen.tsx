@@ -12,7 +12,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
 
 export function NotifyScreen() {
-  const { back, openAwase } = useRouter();
+  const { back, nav, openAwase } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   const notifsQuery = useNotifications(user?.id);
@@ -55,7 +55,13 @@ export function NotifyScreen() {
         {notifications.map((n) => {
           // 通知の種別に応じた遷移先。応募関連は該当の併せ詳細へ
           // （主催者はそこから「応募者を見る」で承認画面に進める）。
-          const goTo = n.kind === "application" && n.entityId ? () => openAwase(n.entityId!) : null;
+          // 本人確認の承認/却下（badge）はマイページでバッジ・結果を確認できるように。
+          const goTo =
+            n.kind === "application" && n.entityId
+              ? () => openAwase(n.entityId!)
+              : n.kind === "badge"
+                ? () => nav("profile", "mypage")
+                : null;
           const inner = (
             <>
               <div
