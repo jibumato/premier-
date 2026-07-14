@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { deleteUploadedKey } from "@/lib/queries/upload";
+import { readingMatch } from "@/lib/reading";
 import type { AwaseCard, DetailRole, SearchResult } from "@/lib/types";
 
 /** Build a public R2 URL from a stored object key (null if R2 isn't configured). */
@@ -214,25 +215,30 @@ export interface AwaseSearchOptions {
   womenOnly?: boolean;
 }
 
-/** Open 併せ filtered by region / keyword / women-only, for the search screen. */
+/** Open 併せ filtered by region / keyword / women-only, for the search screen.
+ *
+ * キーワードは「読み一致」で絞り込む（ナルト/naruto/なると が同じヒット）ため、
+ * server 側の ilike ではなく、region/女性限定だけで取った一覧を client 側で
+ * readingMatch にかける。基準リストは region/女性限定ごとに React Query が
+ * キャッシュし、キーワードは `select` で当てるので打鍵ごとの再取得はしない。
+ * 件数は当面 200 件で頭打ち（ローンチ規模では十分。将来は全文検索へ）。 */
 export function useAwaseSearch(opts: AwaseSearchOptions, filter?: AwaseFeedFilter) {
   const { region, keyword, womenOnly } = opts;
   const kw = keyword?.trim() ?? "";
   return useQuery({
-    queryKey: ["awase_search", region, kw, Boolean(womenOnly), filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
+    queryKey: ["awase_search", region, Boolean(womenOnly), filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
     enabled: isSupabaseConfigured(),
     queryFn: async (): Promise<SearchResult[]> => {
       const supabase = getSupabaseBrowserClient();
       let query = supabase.from("awase").select(AWASE_LIST_SELECT).eq("status", "open");
       if (region !== "すべて") query = query.eq("region", region);
       if (womenOnly) query = query.eq("women_only", true);
-      // Keyword matches the 併せ title (case-insensitive). Titles usually carry
-      // the work/character name, so this covers the "作品・キャラで探す" flow.
-      if (kw) query = query.ilike("title", `%${kw}%`);
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data, error } = await query.order("created_at", { ascending: false }).limit(200);
       if (error) throw error;
       return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toSearchResult);
     },
+    // 読み一致でタイトル・作品名を絞り込む（キャッシュ済みの基準リストに当てる）。
+    select: (rows) => (kw ? rows.filter((r) => readingMatch(r.title, kw) || readingMatch(r.work, kw)) : rows),
   });
 }
 

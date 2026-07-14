@@ -10,6 +10,7 @@ import { useAwaseSearch } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { readingMatch } from "@/lib/reading";
 
 export function SearchScreen() {
   const { back, nav, openAwase, region, setRegion } = useRouter();
@@ -22,21 +23,22 @@ export function SearchScreen() {
 
   // Mock mode filters the sample list client-side so the same controls work
   // without a backend; configured mode gets already-filtered rows from the query.
-  const kw = keyword.trim().toLowerCase();
+  // キーワードは「読み一致」（ナルト/naruto/なると が同じヒット）で絞り込む。
+  const kw = keyword.trim();
   const mockFiltered = searchResults.filter(
     (r) =>
       (region === "すべて" || r.region === region) &&
       (!womenOnly || r.womenOnly) &&
-      (!kw || r.title.toLowerCase().includes(kw) || r.work.toLowerCase().includes(kw)),
+      (!kw || readingMatch(r.title, kw) || readingMatch(r.work, kw)),
   );
   const filtered = configured ? (results.data ?? []) : mockFiltered;
   const loading = configured && results.isPending && !results.data;
   const isEmpty = !loading && filtered.length === 0;
 
-  // Keyword suggestions: popular works matching what's typed (excluding an
-  // exact match). Empty input shows the whole popular list as quick picks.
+  // Keyword suggestions: popular works matching what's typed (読み一致・完全一致は除外)。
+  // Empty input shows the whole popular list as quick picks.
   const suggestions = kw
-    ? popularWorks.filter((w) => w.toLowerCase().includes(kw) && w.toLowerCase() !== kw)
+    ? popularWorks.filter((w) => readingMatch(w, kw) && w.toLowerCase() !== kw.toLowerCase())
     : [];
 
   return (
