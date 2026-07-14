@@ -17,6 +17,7 @@ import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
 import { WelcomeBanner } from "../WelcomeBanner";
 import { WorkCover } from "../WorkCover";
+import { AwaseCover } from "../AwaseCover";
 import { StarterGuide } from "../StarterGuide";
 import { SafetySection } from "../SafetySection";
 import type { Screen } from "@/lib/types";
@@ -311,7 +312,7 @@ export function HomeScreen() {
                 }}
               >
                 <div style={{ height: 96, position: "relative" }}>
-                  <ImageSlot radius={12} src={a.coverUrl ?? undefined} />
+                  <AwaseCover radius={12} coverUrl={a.coverUrl} work={a.work} />
                   <span
                     style={{
                       position: "absolute",
@@ -417,7 +418,7 @@ export function HomeScreen() {
               }}
             >
               <div style={{ flex: "0 0 84px", height: 84 }}>
-                <ImageSlot radius={13} src={a.coverUrl ?? undefined} />
+                <AwaseCover radius={13} coverUrl={a.coverUrl} work={a.work} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div

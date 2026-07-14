@@ -26,6 +26,7 @@ import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { workGradient } from "../WorkCover";
+import { AwaseCover } from "../AwaseCover";
 import { siteTagline } from "@/lib/data";
 
 const EDIT_WORLD_TAGS = ["透明感", "ファンタジー", "和風", "サイバー", "ナチュラル", "ダーク", "かわいい系", "クール系"];
@@ -455,7 +456,7 @@ export function DetailScreen() {
       {/* hero */}
       <div style={{ position: "relative", padding: "6px 22px 0" }}>
         <div style={{ height: 194 }}>
-          <ImageSlot radius={18} src={heroUrl} />
+          <AwaseCover radius={18} coverUrl={heroUrl} work={workName} />
         </div>
         <span
           style={{
