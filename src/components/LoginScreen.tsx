@@ -10,6 +10,33 @@ import { PrivacyContent } from "./PrivacyContent";
 
 type Mode = "signIn" | "signUp";
 
+/** Supabase 認証エラーを日本語の分かりやすい文言に変換。未知のものは実メッセージを添える。 */
+function friendlyAuthError(e: unknown, mode: Mode): string {
+  const err = e as { message?: string; code?: string; status?: number };
+  const msg = (err?.message ?? "").toString();
+  const m = msg.toLowerCase();
+  const code = (err?.code ?? "").toString();
+  const status = err?.status;
+  if (m.includes("already registered") || code === "user_already_exists")
+    return "このメールアドレスは既に登録されています。ログインをお試しください。";
+  if (m.includes("rate limit") || status === 429 || code.includes("rate_limit"))
+    return "確認メールの送信が一時的に制限されています。数分おいてから再度お試しください。";
+  if (m.includes("invalid login") || code === "invalid_credentials")
+    return "メールアドレスまたはパスワードが正しくありません。";
+  if (m.includes("email not confirmed") || code === "email_not_confirmed")
+    return "メールアドレスの確認が完了していません。届いた確認メールのリンクを開いてください。";
+  if (m.includes("password") && (m.includes("6") || m.includes("at least")))
+    return "パスワードは6文字以上で入力してください。";
+  if (m.includes("password"))
+    return "パスワードの条件を満たしていません。もう少し長く・複雑にしてください。";
+  if (m.includes("invalid") && m.includes("email"))
+    return "メールアドレスの形式が正しくありません。";
+  if (m.includes("signups not allowed") || m.includes("signup is disabled") || m.includes("email logins are disabled") || m.includes("signups are disabled"))
+    return "現在、新規登録を受け付けていません（運営の設定をご確認ください）。";
+  const action = mode === "signUp" ? "登録" : "ログイン";
+  return msg ? `${action}に失敗しました：${msg}` : `${action}に失敗しました。時間をおいて再度お試しください。`;
+}
+
 /**
  * Auth gate screen shown when Supabase is configured but no session exists.
  * Not part of the screen router (no back-stack): AuthGate swaps it in/out
@@ -58,7 +85,8 @@ export function LoginScreen() {
         setSignedUpNotice(true);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "エラーが発生しました");
+      console.error("auth error", e);
+      setError(friendlyAuthError(e, mode));
     } finally {
       setSubmitting(false);
     }
