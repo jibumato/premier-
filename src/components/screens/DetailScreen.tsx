@@ -173,9 +173,19 @@ export function DetailScreen() {
       {
         onSuccess: () => nav("applied"),
         onError: (e) => {
-          const msg = (e as { code?: string })?.code === "23505"
-            ? "すでにこの併せに応募済みです。"
-            : "応募に失敗しました。通信環境を確認して、もう一度お試しください。";
+          const err = e as { code?: string; message?: string };
+          // 診断用: 実際のエラーをコンソールに残す
+          console.error("apply failed", err);
+          let msg: string;
+          if (err.code === "23505") {
+            msg = "すでにこの併せに応募済みです。";
+          } else if (err.code === "42501") {
+            // RLS 違反 = 応募条件を満たさない
+            msg =
+              "応募条件を満たしていないため応募できませんでした。\n（募集終了・応募締切・公開前、または女性限定募集で本人確認が未完了の可能性があります）";
+          } else {
+            msg = `応募に失敗しました。もう一度お試しください。\n(${err.code ?? "?"}: ${err.message ?? "unknown"})`;
+          }
           alert(msg);
         },
       },
