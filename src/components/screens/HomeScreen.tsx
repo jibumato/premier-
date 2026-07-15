@@ -518,27 +518,23 @@ export function HomeScreen() {
                   width: "100%",
                 }}
               >
-                <div
-                  style={{
-                    flex: "0 0 54px",
-                    height: 54,
-                    borderRadius: 13,
-                    background: "linear-gradient(155deg,#F2EDFB,#F7EEF6)",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: colors.primary,
-                  }}
-                >
-                  <CalendarIcon size={16} />
-                  <span style={{ fontSize: 9.5, fontWeight: 700, marginTop: 2 }}>{ev.date.split("(")[0]}</span>
+                {/* サムネイル — 許諾済みの画像 or イベント名から生成したデザイン */}
+                <div style={{ flex: "0 0 54px", width: 54, height: 54, borderRadius: 13, overflow: "hidden" }}>
+                  {ev.imageUrl ? (
+                    <ImageSlot radius={13} src={ev.imageUrl} />
+                  ) : (
+                    <WorkCover name={ev.name} radius={13} showName={false} />
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {ev.name}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 11, color: "#877FA0" }}>
+                    <CalendarIcon size={12} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.date}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, color: "#877FA0" }}>
                     <PinIcon />
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.venue}</span>
                   </div>

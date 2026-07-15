@@ -4,6 +4,7 @@ import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
+import { WorkCover } from "../WorkCover";
 import { AppBar, PrimaryButton, SectionHeading } from "../ui";
 import { CheckIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -68,7 +69,13 @@ export function EventDetailScreen() {
 
       <div style={{ padding: "6px 22px 0", position: "relative" }}>
         <div style={{ height: 180 }}>
-          <ImageSlot radius={18} />
+          {/* 許諾を得た公式画像があればそれを、無ければイベント名から生成した
+              デザイン（権利リスクなし）を表示する */}
+          {real?.imageUrl ? (
+            <ImageSlot radius={18} src={real.imageUrl} />
+          ) : (
+            <WorkCover name={name} radius={18} showName={false} />
+          )}
         </div>
         <span
           style={{

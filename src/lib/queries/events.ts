@@ -14,6 +14,8 @@ export interface EventListItem {
   tag: string;
   /** 並べ替え・近日判定用の開始日 (YYYY-MM-DD)。未設定なら null。 */
   startsOn: string | null;
+  /** サムネイル画像URL（許諾を得た画像のみ）。無ければ生成デザインで表示。 */
+  imageUrl: string | null;
 }
 
 export interface EventDetail {
@@ -26,6 +28,7 @@ export interface EventDetail {
   feeText: string | null;
   body: string | null;
   going: number;
+  imageUrl: string | null;
 }
 
 /** Event calendar list, with real RSVP counts. */
@@ -37,7 +40,7 @@ export function useEvents() {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, venue, region, tag, starts_on, event_rsvps(count)")
+        .select("id, name, event_date, venue, region, tag, starts_on, image_url, event_rsvps(count)")
         .order("starts_on", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -49,6 +52,7 @@ export function useEvents() {
         region: string;
         tag: string;
         starts_on: string | null;
+        image_url: string | null;
         event_rsvps: { count: number }[];
       }[];
       return rows.map((r) => ({
@@ -60,6 +64,7 @@ export function useEvents() {
         going: r.event_rsvps?.[0]?.count ?? 0,
         tag: r.tag,
         startsOn: r.starts_on,
+        imageUrl: r.image_url,
       }));
     },
   });
@@ -74,7 +79,7 @@ export function useEvent(eventId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, venue, region, tag, fee_text, body, event_rsvps(count)")
+        .select("id, name, event_date, venue, region, tag, fee_text, body, image_url, event_rsvps(count)")
         .eq("id", eventId!)
         .maybeSingle();
       if (error) throw error;
@@ -88,6 +93,7 @@ export function useEvent(eventId: string | null) {
         tag: string;
         fee_text: string | null;
         body: string | null;
+        image_url: string | null;
         event_rsvps: { count: number }[];
       };
       return {
@@ -100,6 +106,7 @@ export function useEvent(eventId: string | null) {
         feeText: row.fee_text,
         body: row.body,
         going: row.event_rsvps?.[0]?.count ?? 0,
+        imageUrl: row.image_url,
       };
     },
   });

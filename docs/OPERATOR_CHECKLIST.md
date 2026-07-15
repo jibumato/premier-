@@ -73,6 +73,9 @@ select
                                                          as follow_notify,         -- false → 0041 未適用（フォロー通知）
   (select to_regprocedure('public.sync_role_assignment()') is not null)
                                                          as role_assignment,       -- false → 0042 未適用（希望キャラの自動確定）
+  (select exists(select 1 from information_schema.columns
+     where table_name='events' and column_name='image_url'))
+                                                         as event_images,          -- false → 0043 未適用（イベントのサムネ）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -107,6 +110,7 @@ select
 - `works_reading` が `false` → **ステップ 2ab**（0040・作品をあいうえお順に）
 - `follow_notify` が `false` → **ステップ 2ac**（0041・フォロー機能の通知）
 - `role_assignment` が `false` → **ステップ 2ad**（0042・希望キャラの承認で自動確定）
+- `event_images` が `false` → **ステップ 2ae**（0043・イベントのサムネイル）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -626,6 +630,43 @@ insert into home_pickups (image_url, caption, sort) values
 - **未適用でも壊れません**：応募時の希望キャラ選択・主催の一覧での希望表示や
   かぶり警告は動きます（承認しても担当キャラが自動確定しないだけ）。
 - 応募側UI（希望キャラ選択）・主催側UI（希望表示・かぶり警告）にはマイグレーション不要。
+
+---
+
+## ☐ ステップ 2ae: イベントのサムネイル（マイグレーション 0043）
+
+`event_images` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0043_event_images.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ `events.image_url` にURLを入れたイベントは、一覧・ホーム・詳細で
+その画像がサムネイル表示されます。**未設定のイベントはイベント名から
+生成したデザイン**（作品カバーと同方式・権利リスクなし）で表示されるので、
+空のままでも見栄えは保たれます。冪等（`add column if not exists`）。
+
+### ⚠️ 画像の入手について（重要）
+
+大型イベントの**公式ロゴ・キービジュアルは自由に使えません**。プレス素材は
+審査制の取材申請を通した報道機関向けで、無許諾でのアプリ掲載は
+著作権・商標のリスクがあります。入れてよいのは次のいずれかだけです:
+
+- **主催から掲載許諾を得た画像**（各公式サイトのプレス／お問い合わせ窓口から
+  「イベント情報アプリへのロゴ掲載可否」を打診。例: コスサミは
+  worldcosplaysummit.jp/press/、コミケは comiket.co.jp、acosta! は
+  hacosta 社の問い合わせ窓口）
+- **運営が自分で撮影した会場・雰囲気写真**（写り込んだ人物が特定できない
+  もの、または本人の同意があるもの）
+
+### 画像URLの入れ方（許諾を得た後）
+
+R2 の公開バケット等にアップロードして、公開URLを設定します:
+
+```sql
+update events set image_url = '画像の公開URL' where name = '世界コスプレサミット2026';
+```
+
+外したいときは `update events set image_url = null where name = '...';`
 
 ---
 

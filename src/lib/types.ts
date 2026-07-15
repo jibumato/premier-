@@ -145,6 +145,8 @@ export interface EventItem {
   tag: string;
   /** 近日判定用の開始日 (YYYY-MM-DD)。モックでは省略可。 */
   startsOn?: string | null;
+  /** サムネイル画像URL（主催の許諾を得た画像のみ）。無ければ生成デザインで表示。 */
+  imageUrl?: string | null;
 }
 
 export interface QaItem {

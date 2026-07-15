@@ -5,6 +5,8 @@ import { events as mockEvents } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AppBar } from "../ui";
 import { CalendarIcon, PinIcon } from "../icons";
+import { ImageSlot } from "../ImageSlot";
+import { WorkCover } from "../WorkCover";
 import { useEvents } from "@/lib/queries/events";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -51,22 +53,13 @@ export function EventsScreen() {
               width: "100%",
             }}
           >
-            {/* date chip */}
-            <div
-              style={{
-                flex: "0 0 58px",
-                height: 58,
-                borderRadius: 14,
-                background: "linear-gradient(155deg,#F2EDFB,#F7EEF6)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                color: colors.primary,
-              }}
-            >
-              <CalendarIcon size={18} />
-              <span style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>{ev.date.split("(")[0]}</span>
+            {/* thumbnail — 許諾済みの画像 or イベント名から生成したデザイン */}
+            <div style={{ flex: "0 0 64px", width: 64, height: 64, borderRadius: 14, overflow: "hidden" }}>
+              {ev.imageUrl ? (
+                <ImageSlot radius={14} src={ev.imageUrl} />
+              ) : (
+                <WorkCover name={ev.name} radius={14} showName={false} />
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -85,6 +78,10 @@ export function EventsScreen() {
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, fontSize: 11, color: "#877FA0" }}>
+                <CalendarIcon size={12} />
+                {ev.date}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, color: "#877FA0" }}>
                 <PinIcon />
                 {ev.venue}
               </div>
