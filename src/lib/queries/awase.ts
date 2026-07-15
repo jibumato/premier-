@@ -124,6 +124,28 @@ export function useBeginnerAwase(filter?: AwaseFeedFilter) {
   });
 }
 
+/** サミット関連の open 併せ — サミット特集ページの「一緒に回る仲間募集」レーン用。
+ * タイトルに「サミット」「コスサミ」を含む募集を新着順で拾う（運営が募集タイトルに
+ * これらの語を入れる運用を想定。語彙はここを直せば増やせる）。 */
+export function useSummitAwase(filter?: AwaseFeedFilter) {
+  return useQuery({
+    queryKey: ["awase_summit", filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
+    enabled: isSupabaseConfigured(),
+    queryFn: async (): Promise<AwaseCard[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase")
+        .select(AWASE_LIST_SELECT)
+        .eq("status", "open")
+        .or("title.ilike.%サミット%,title.ilike.%コスサミ%")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toAwaseCard);
+    },
+  });
+}
+
 /** How many awase the user has applied to — home「はじめてガイド」の③判定用。 */
 export function useMyApplicationCount(userId: string | undefined) {
   return useQuery({

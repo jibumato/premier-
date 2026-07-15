@@ -25,6 +25,7 @@ import { StudiosScreen } from "./screens/StudiosScreen";
 import { QaScreen } from "./screens/QaScreen";
 import { QaDetailScreen } from "./screens/QaDetailScreen";
 import { LoungeScreen } from "./screens/LoungeScreen";
+import { SummitScreen } from "./screens/SummitScreen";
 import { ReportScreen } from "./screens/ReportScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { AdminVerificationScreen } from "./screens/AdminVerificationScreen";
@@ -69,6 +70,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   qa: QaScreen,
   qaDetail: QaDetailScreen,
   lounge: LoungeScreen,
+  summit: SummitScreen,
   report: ReportScreen,
   settings: SettingsScreen,
   adminVerify: AdminVerificationScreen,
