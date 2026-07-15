@@ -9,7 +9,7 @@ import { ChevronRightIcon } from "../icons";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useProfile } from "@/lib/queries/profile";
+import { useProfile, useUpdatePrivacy } from "@/lib/queries/profile";
 import { useDeleteAccount } from "@/lib/queries/account";
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -88,10 +88,18 @@ export function SettingsScreen() {
   const profile = useProfile(user?.id);
   const isAdmin = Boolean(isSupabaseConfigured() && profile.data?.is_admin);
   const deleteAccount = useDeleteAccount();
-  const [pushApply, setPushApply] = useState(true);
-  const [pushMsg, setPushMsg] = useState(true);
-  const [pushLike, setPushLike] = useState(false);
-  const [privateAccount, setPrivateAccount] = useState(false);
+  const updatePrivacy = useUpdatePrivacy();
+  // 非公開アカウント: 本番は profiles.is_private に保存。プロトタイプはローカルのみ。
+  const [mockPrivate, setMockPrivate] = useState(false);
+  const configured = isSupabaseConfigured();
+  const privateOn = configured ? Boolean(profile.data?.is_private) : mockPrivate;
+  const handlePrivateChange = (on: boolean) => {
+    if (configured && user) {
+      updatePrivacy.mutate({ userId: user.id, isPrivate: on });
+    } else {
+      setMockPrivate(on);
+    }
+  };
   const [showDelete, setShowDelete] = useState(false);
 
   const handleDeleteAccount = async () => {
@@ -123,18 +131,15 @@ export function SettingsScreen() {
     <div style={{ paddingBottom: 30 }}>
       <AppBar title="設定" onBack={back} />
 
-      <Group title="通知">
-        <ToggleRow title="応募・参加の通知" on={pushApply} onChange={setPushApply} />
-        <ToggleRow title="メッセージの通知" on={pushMsg} onChange={setPushMsg} />
-        <ToggleRow title="いいね・フォローの通知" on={pushLike} onChange={setPushLike} last />
-      </Group>
+      {/* 通知設定のトグルは、プッシュ通知基盤が未実装のため撤去した。
+          （保存もされないダミーだった）実装時にここへ「通知」グループを戻す。 */}
 
       <Group title="プライバシー">
         <ToggleRow
           title="非公開アカウント"
-          desc="承認した相手だけがプロフィールを見られます"
-          on={privateAccount}
-          onChange={setPrivateAccount}
+          desc="プロフィールをフォロワー以外に表示しません"
+          on={privateOn}
+          onChange={handlePrivateChange}
           last
         />
       </Group>

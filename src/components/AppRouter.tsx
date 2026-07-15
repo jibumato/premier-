@@ -26,6 +26,8 @@ interface RouterState {
   screen: Screen;
   tab: Tab;
   region: string;
+  /** 検索画面の初期キーワード（作品チップ等から渡す）。SearchScreen が初期値に使う。 */
+  searchKeyword: string;
   /** awase.id backing the current `detail` screen, once a backend is connected. */
   selectedAwaseId: string | null;
   /** conversation.id backing the current `chat` screen, once a backend is connected. */
@@ -53,6 +55,8 @@ interface RouterApi extends RouterState {
   /** pop the back stack (bottom-nav-aware, mirrors prototype back()) */
   back: () => void;
   setRegion: (r: string) => void;
+  /** navigate to `search` with an initial keyword (作品チップ等からの導線) */
+  openSearch: (keyword: string) => void;
   /** navigate to `detail` for a specific real awase row */
   openAwase: (awaseId: string) => void;
   /** navigate to `chat` for a specific real conversation row */
@@ -86,6 +90,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     screen: "home",
     tab: "home",
     region: "すべて",
+    searchKeyword: "",
     selectedAwaseId: null,
     selectedConversationId: null,
     selectedProfileId: null,
@@ -136,6 +141,8 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
           screen,
           tab: tab ?? s.tab,
           selectedProfileId: screen === "profile" ? null : s.selectedProfileId,
+          // 検索へ普通に遷移したときは初期キーワードなし（作品チップ経由は openSearch）
+          searchKeyword: screen === "search" ? "" : s.searchKeyword,
           // reaching the create form any other way (e.g. sidebar) means a blank form
           duplicateAwaseId: screen === "create" ? null : s.duplicateAwaseId,
           reportTarget: screen === "report" ? null : s.reportTarget,
@@ -165,6 +172,17 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
   const setRegion = useCallback((region: string) => {
     setState((s) => ({ ...s, region }));
   }, []);
+
+  const openSearch = useCallback(
+    (keyword: string) => {
+      setState((s) => {
+        historyRef.current = [...historyRef.current, s.screen];
+        return { ...s, screen: "search", tab: "search", searchKeyword: keyword };
+      });
+      resetScroll();
+    },
+    [resetScroll]
+  );
 
   const openAwase = useCallback(
     (awaseId: string) => {
@@ -260,6 +278,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       nav,
       back,
       setRegion,
+      openSearch,
       openAwase,
       openChat,
       openProfile,
@@ -275,6 +294,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       nav,
       back,
       setRegion,
+      openSearch,
       openAwase,
       openChat,
       openProfile,

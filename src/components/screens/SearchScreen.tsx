@@ -13,10 +13,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { readingMatch } from "@/lib/reading";
 
 export function SearchScreen() {
-  const { back, nav, openAwase, region, setRegion } = useRouter();
+  const { back, nav, openAwase, region, setRegion, searchKeyword } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
-  const [keyword, setKeyword] = useState("");
+  // 作品チップ等から渡された初期キーワード（openSearch）で開始。画面はナビごとに
+  // マウントし直されるため、初期値としての useState で十分。
+  const [keyword, setKeyword] = useState(searchKeyword);
   const [womenOnly, setWomenOnly] = useState(false);
   const moderation = useModerationFilter(user?.id);
   const results = useAwaseSearch({ region, keyword, womenOnly }, moderation.data);

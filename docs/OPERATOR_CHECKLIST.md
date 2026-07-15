@@ -69,6 +69,8 @@ select
                                                          as awase_schedule,         -- false → 0039 未適用（日程調整）
   (select exists(select 1 from information_schema.columns
      where table_name='works' and column_name='reading')) as works_reading,        -- false → 0040 未適用（作品のあいうえお順）
+  (select to_regprocedure('public.notify_on_follow()') is not null)
+                                                         as follow_notify,         -- false → 0041 未適用（フォロー通知）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -101,6 +103,7 @@ select
 - `studios_chubu` が `0` → **ステップ 2z**（0038・撮影スタジオに中部/名古屋を追加）
 - `awase_schedule` が `false` → **ステップ 2aa**（0039・併せの日程調整）
 - `works_reading` が `false` → **ステップ 2ab**（0040・作品をあいうえお順に）
+- `follow_notify` が `false` → **ステップ 2ac**（0041・フォロー機能の通知）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -583,6 +586,25 @@ insert into home_pickups (image_url, caption, sort) values
 - **今後 works に作品を追加**したら、あわせて読みも入れると並びが崩れません:
   `update works set reading = 'よみ' where name = '作品名';`
   （読み未設定でも致命的ではなく、その作品だけ名前基準で並びます）
+
+---
+
+## ☐ ステップ 2ac: フォロー機能の通知（マイグレーション 0041）
+
+`follow_notify` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0041_follow_notify.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ プロフィールの「フォローする」ボタンに合わせて、**フォローされた相手に
+おしらせ通知**が届くようになります（タップでフォロワーのプロフィールへ）。
+フォロー自体（follows テーブル・RLS）は 0001 で実装済みなので、**未適用でも
+フォロー/解除とフォロワー数は動きます**（通知が届かないだけ）。
+
+- あわせてこのリリースで、設定の「非公開アカウント」トグルが実際に
+  `profiles.is_private` へ保存されるようになりました（ONにするとプロフィールが
+  本人とフォロワー以外から見えなくなります）。DB側は 0001 実装済みのため
+  マイグレーション不要です。
 
 ---
 

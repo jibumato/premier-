@@ -33,7 +33,7 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function HomeScreen() {
-  const { nav, openAwase, openEvent } = useRouter();
+  const { nav, openAwase, openEvent, openSearch } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   const moderation = useModerationFilter(user?.id);
@@ -273,7 +273,7 @@ export function HomeScreen() {
           {popularWorks.map((w) => (
             <button
               key={w}
-              onClick={() => nav("search", "search")}
+              onClick={() => openSearch(w)}
               style={{
                 flex: "0 0 auto",
                 width: 128,

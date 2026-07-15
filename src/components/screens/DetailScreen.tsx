@@ -631,6 +631,10 @@ export function DetailScreen() {
 
       {/* roles */}
       <div style={{ padding: "22px 22px 26px" }}>
+        {/* 募集キャラはホストが登録した場合のみ表示（登録UIは未提供のため、
+            実データで空のときは見出しごと出さない）。 */}
+        {roles.length > 0 && (
+        <>
         <SectionHeading size={15}>募集キャラ</SectionHeading>
         <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
           {roles.map((ro) => {
@@ -683,6 +687,8 @@ export function DetailScreen() {
             );
           })}
         </div>
+        </>
+        )}
         {isHost ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 22 }}>
             <div style={{ textAlign: "center", fontSize: 11.5, color: colors.textMutedAlt }}>
