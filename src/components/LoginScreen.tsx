@@ -65,6 +65,7 @@ export function LoginScreen() {
   const [mode, setMode] = useState<Mode>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedUpNotice, setSignedUpNotice] = useState(false);
@@ -190,25 +191,48 @@ export function LoginScreen() {
         </div>
         <div>
           <label style={{ fontSize: 12.5, fontWeight: 700, color: "#3A3548" }}>パスワード</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="8文字以上"
-            autoComplete={mode === "signIn" ? "current-password" : "new-password"}
-            style={{
-              width: "100%",
-              marginTop: 8,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 13,
-              padding: "13px 15px",
-              fontSize: 13.5,
-              fontFamily: "inherit",
-              color: colors.textPrimary,
-              outline: "none",
-              background: colors.primaryBg5,
-            }}
-          />
+          <div style={{ position: "relative", marginTop: 8 }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="8文字以上"
+              autoComplete={mode === "signIn" ? "current-password" : "new-password"}
+              style={{
+                width: "100%",
+                border: `1px solid ${colors.border}`,
+                borderRadius: 13,
+                padding: "13px 62px 13px 15px",
+                fontSize: 13.5,
+                fontFamily: "inherit",
+                color: colors.textPrimary,
+                outline: "none",
+                background: colors.primaryBg5,
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "パスワードを非表示にする" : "パスワードを表示する"}
+              aria-pressed={showPassword}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "none",
+                padding: "6px 8px",
+                fontFamily: "inherit",
+                fontSize: 12,
+                fontWeight: 700,
+                color: colors.primary,
+                cursor: "pointer",
+              }}
+            >
+              {showPassword ? "非表示" : "表示"}
+            </button>
+          </div>
         </div>
 
         {error && (
