@@ -169,7 +169,8 @@ export function SettingsScreen() {
           <LinkRow title="トップのピックアップ管理" onClick={() => nav("adminPickups")} />
           <LinkRow title="イベントのサムネイル管理" onClick={() => nav("adminEvents")} />
           <LinkRow title="要望の管理" onClick={() => nav("adminFeedback")} />
-          <LinkRow title="最近のうごきの管理" onClick={() => nav("adminActivity")} last />
+          <LinkRow title="最近のうごきの管理" onClick={() => nav("adminActivity")} />
+          <LinkRow title="アカウント対応（停止・解除）" onClick={() => nav("adminUsers")} last />
         </Group>
       )}
 

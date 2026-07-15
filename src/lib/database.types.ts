@@ -34,6 +34,9 @@ export interface Database {
           is_age_verified: boolean;
           is_private: boolean;
           is_admin: boolean;
+          is_suspended: boolean;
+          suspension_reason: string | null;
+          suspended_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -49,6 +52,9 @@ export interface Database {
           is_age_verified?: boolean;
           is_private?: boolean;
           is_admin?: boolean;
+          is_suspended?: boolean;
+          suspension_reason?: string | null;
+          suspended_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -607,6 +613,40 @@ export interface Database {
       trending_works: {
         Args: { p_days?: number; p_limit?: number };
         Returns: { work_id: string; name: string; awase_count: number }[];
+      };
+      admin_search_profiles: {
+        Args: { p_query: string; p_limit?: number };
+        Returns: {
+          id: string;
+          handle: string;
+          display_name: string;
+          avatar_url: string | null;
+          is_verified: boolean;
+          is_admin: boolean;
+          is_suspended: boolean;
+          suspension_reason: string | null;
+          suspended_at: string | null;
+          report_count: number;
+        }[];
+      };
+      admin_list_user_reports: {
+        Args: { p_user_id: string };
+        Returns: {
+          id: string;
+          reporter_id: string;
+          reporter_name: string;
+          reason: string;
+          detail: string | null;
+          created_at: string;
+        }[];
+      };
+      admin_suspend_user: {
+        Args: { p_user_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      admin_reinstate_user: {
+        Args: { p_user_id: string };
+        Returns: undefined;
       };
       find_direct_conversation: {
         Args: { user_a: string; user_b: string };
