@@ -10,27 +10,6 @@ import { PrivacyContent } from "./PrivacyContent";
 
 type Mode = "signIn" | "signUp";
 
-/** ログイン/新規登録画面に載せる、運営からのメッセージ（続き部分）。 */
-const FOUNDER_MESSAGE_REST = `シャッターを切ってくれる人。
-一緒に作品を作ってくれる人。
-イベントで笑い合える仲間。
-
-そんな出会いがあるから、この趣味はもっと楽しくなる。
-
-でも、
-「初めて声をかけるのは少し不安。」
-「安心できる相手と出会いたい。」
-
-そんな気持ちに応えたくて、プルミエ！を作りました。
-
-誰かと比べる場所ではなく、
-「好き」がきっかけで自然につながれる場所へ。
-
-あなたの次の作品も、その先の思い出も、
-素敵な出会いから始まりますように。
-
-好きでつながる。プルミエ！`;
-
 /** Supabase 認証エラーを日本語の分かりやすい文言に変換。未知のものは実メッセージを添える。 */
 function friendlyAuthError(e: unknown, mode: Mode): string {
   const err = e as { message?: string; code?: string; status?: number; name?: string };
@@ -89,9 +68,6 @@ export function LoginScreen() {
   const [agreed, setAgreed] = useState(false);
   // Which legal doc the overlay is showing (LoginScreen lives outside the router).
   const [overlay, setOverlay] = useState<null | "terms" | "privacy">(null);
-  // 運営からのメッセージ（続き）の開閉。新規登録に切り替えたときは自動で開く
-  // （出会いへのワクワク感を最初の一歩で伝えたいので）。ログイン時は閉じておく。
-  const [showMessage, setShowMessage] = useState(false);
 
   const switchMode = () => {
     const nextMode: Mode = mode === "signIn" ? "signUp" : "signIn";
@@ -99,7 +75,6 @@ export function LoginScreen() {
     setError(null);
     setSignedUpNotice(false);
     setAgreed(false);
-    setShowMessage(nextMode === "signUp");
   };
 
   const submit = async () => {
@@ -167,131 +142,6 @@ export function LoginScreen() {
             ? "メールアドレスでログインしてください。"
             : "メールアドレスでアカウントを作成します。"}
         </p>
-      </div>
-
-      {/* 運営からのメッセージ — 手書きのお手紙風カード。淡いクリーム地に便箋の
-          綴じ帯と切手風アクセントを添え、温かみのある一枚に。新規登録に切り替えた
-          ときは自動で開く（switchMode 参照）。ログイン時は閉じたままでも冒頭の
-          一行だけは常に見えるようにしてある。 */}
-      <div style={{ padding: "20px 22px 0" }}>
-        <div
-          style={{
-            position: "relative",
-            borderRadius: 20,
-            padding: "18px 18px 16px 22px",
-            background: "linear-gradient(165deg,#FFFDF9,#FDF4FA)",
-            border: "1px solid #F1E3EC",
-            boxShadow: "0 20px 38px -28px rgba(120,80,130,.4)",
-            overflow: "hidden",
-          }}
-        >
-          {/* 便箋の綴じ側っぽい淡いラベンダー〜ピンクの帯 */}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 5,
-              background: "linear-gradient(180deg,#D8A6C9,#B39BDC)",
-            }}
-          />
-          {/* 切手風の小さなアクセント（右上） */}
-          <div
-            style={{
-              position: "absolute",
-              right: 14,
-              top: 14,
-              width: 30,
-              height: 34,
-              borderRadius: 5,
-              background: "#FBEDF4",
-              border: "1.5px dashed #E4BBD3",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 15,
-            }}
-            aria-hidden
-          >
-            💌
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: colors.pinkText,
-                letterSpacing: ".08em",
-              }}
-            >
-              運営より
-            </span>
-          </div>
-          <p
-            style={{
-              margin: "8px 0 0",
-              paddingRight: 40,
-              fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
-              fontSize: 16,
-              fontWeight: 700,
-              lineHeight: 1.7,
-              color: colors.textPrimary,
-            }}
-          >
-            コスプレって、一人じゃ完成しない。
-          </p>
-          {showMessage && (
-            <>
-              <p
-                style={{
-                  margin: "13px 0 0",
-                  paddingTop: 13,
-                  borderTop: "1px dashed #EAD3E0",
-                  fontSize: 12.5,
-                  lineHeight: 2,
-                  color: colors.textSecondary,
-                  whiteSpace: "pre-line",
-                }}
-              >
-                {FOUNDER_MESSAGE_REST}
-              </p>
-              <div
-                style={{
-                  marginTop: 14,
-                  textAlign: "right",
-                  fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  color: colors.pinkText,
-                }}
-              >
-                — プルミエ！運営一同
-              </div>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => setShowMessage((v) => !v)}
-            aria-expanded={showMessage}
-            style={{
-              marginTop: 12,
-              background: "none",
-              border: "none",
-              padding: 0,
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: 700,
-              color: colors.pinkText,
-              textDecoration: "underline",
-              textUnderlineOffset: 2,
-              cursor: "pointer",
-            }}
-          >
-            {showMessage ? "閉じる" : "つづきを読む"}
-          </button>
-        </div>
       </div>
 
       <div style={{ padding: "26px 22px 0", display: "flex", flexDirection: "column", gap: 14 }}>
