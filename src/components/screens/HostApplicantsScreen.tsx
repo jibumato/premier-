@@ -103,6 +103,16 @@ export function HostApplicantsScreen() {
     if (!real) return;
     updateStatus.mutate({ id: a.id, awaseId: real.id, status });
   };
+  // 「応募中に戻す」は承認/見送りを取り消す操作。誤タップ防止のため確認を挟む。
+  const revertToApplied = (a: Applicant) => {
+    if (updateStatus.isPending) return;
+    const wasAccepted = a.status === "accepted";
+    const msg = wasAccepted
+      ? `${a.displayName}さんの承認を取り消して「応募中」に戻します。よろしいですか？`
+      : `${a.displayName}さんを「応募中」に戻します。よろしいですか？`;
+    if (!window.confirm(msg)) return;
+    setStatus(a, "applied");
+  };
   const toggleRecruit = () => {
     if (!real) return;
     setAwaseStatus.mutate({ awaseId: real.id, status: isClosed ? "open" : "closed" });
@@ -405,7 +415,7 @@ export function HostApplicantsScreen() {
                       </>
                     ) : (
                       <button
-                        onClick={() => setStatus(a, "applied")}
+                        onClick={() => revertToApplied(a)}
                         disabled={updateStatus.isPending}
                         style={{ flex: 1, border: `1px solid ${colors.border}`, background: colors.white, color: colors.textSecondary, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, padding: "10px 0", borderRadius: 11, cursor: "pointer" }}
                       >
