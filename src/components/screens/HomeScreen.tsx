@@ -1,7 +1,15 @@
 "use client";
 
 import { colors } from "@/lib/tokens";
-import { events as mockEvents, homeAwase, homePosts, popularWorks, siteTagline } from "@/lib/data";
+import {
+  events as mockEvents,
+  homeAwase,
+  homePosts,
+  mockActivity,
+  mockTrendingWorks,
+  popularWorks,
+  siteTagline,
+} from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
@@ -10,6 +18,8 @@ import { useAwaseFeed, useBeginnerAwase } from "@/lib/queries/awase";
 import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAnnouncements } from "@/lib/queries/announcements";
+import { useRecentActivity, useTodayStats, useTrendingWorks } from "@/lib/queries/activity";
+import { usePresenceCount } from "@/lib/queries/presence";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
@@ -48,6 +58,21 @@ export function HomeScreen() {
   const announcementsQuery = useAnnouncements();
   const announcementList = configured ? (announcementsQuery.data ?? []) : mockAnnouncements;
   const latestAnnouncement = announcementList[0];
+
+  // トップの「にぎわい」— 同時接続人数・今日の新着・最近のうごき・急上昇作品。
+  // いずれも実データが無い/空でも嘘の数字は出さず、正直な0や実カウントを表示する。
+  const presenceCount = usePresenceCount(user?.id);
+  const viewerCount = configured ? (presenceCount ?? 1) : 8;
+  const todayStatsQuery = useTodayStats();
+  const todayStats = configured ? (todayStatsQuery.data ?? { newAwase: 0, newRsvps: 0 }) : { newAwase: 3, newRsvps: 14 };
+  const activityQuery = useRecentActivity(6);
+  const activityList = configured
+    ? (activityQuery.data ?? []).map((a) => ({ key: a.id, headline: a.headline, timeLabel: formatRelativeTime(a.createdAt) }))
+    : mockActivity;
+  const trendingQuery = useTrendingWorks();
+  const trendingList = configured
+    ? (trendingQuery.data ?? []).map((w) => ({ key: w.workId, name: w.name, count: w.awaseCount }))
+    : mockTrendingWorks;
   // Nearest upcoming events. The query returns them ordered by start date
   // (starts_on asc), so after dropping ones already past we can take the first
   // few — that's the "近日開催" list. Mock events (no startsOn) are kept as-is.
@@ -216,6 +241,106 @@ export function HomeScreen() {
               {formatRelativeTime(latestAnnouncement.publishedAt)}
             </span>
           </button>
+        </div>
+      )}
+
+      {/* にぎわい — 同時接続人数・今日の新着・最近のうごき */}
+      <div style={{ padding: "16px 22px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: colors.positive,
+                display: "inline-block",
+              }}
+            />
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>
+              いま{viewerCount}人が見ています
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: colors.textMutedAlt }}>
+            今日 併せ{todayStats.newAwase}件・参加{todayStats.newRsvps}件
+          </span>
+        </div>
+
+        {activityList.length > 0 && (
+          <div
+            style={{
+              marginTop: 10,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 14,
+              padding: "4px 13px",
+              background: colors.primaryBg5,
+            }}
+          >
+            {activityList.slice(0, 4).map((a) => (
+              <div
+                key={a.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 0",
+                  borderTop: `1px solid ${colors.borderSofter}`,
+                }}
+              >
+                <span
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {a.headline}
+                </span>
+                <span style={{ flex: "0 0 auto", fontSize: 10, color: colors.textMutedAlt }}>{a.timeLabel}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 急上昇の作品 — 直近7日で新規募集が多い作品 */}
+      {trendingList.length > 0 && (
+        <div style={{ padding: "18px 0 0" }}>
+          <div style={{ padding: "0 22px", fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
+            急上昇の作品
+          </div>
+          <div
+            className="noscroll"
+            style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 22px 0" }}
+          >
+            {trendingList.map((w, i) => (
+              <button
+                key={w.key}
+                onClick={() => openSearch(w.name)}
+                style={{
+                  flex: "0 0 auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  background: colors.white,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 700, color: colors.pinkText }}>{i + 1}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{w.name}</span>
+                <span style={{ fontSize: 10.5, color: colors.textMutedAlt }}>{w.count}件</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
