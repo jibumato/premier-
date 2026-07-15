@@ -28,7 +28,18 @@ export const PUBLIC_SCREENS: ReadonlySet<Screen> = new Set<Screen>([
   "login",
 ]);
 
-/** その画面が未ログインでも閲覧できるか。 */
+/** その画面が未ログインでも閲覧できるか（画面種別のみで判定）。 */
 export function isPublicScreen(screen: Screen): boolean {
+  return PUBLIC_SCREENS.has(screen);
+}
+
+/**
+ * ルーターの現在状態から、未ログインで閲覧してよいかを判定する。
+ * `profile` は特別扱い: 他人のプロフィール（selectedProfileId あり）は
+ * ぼかし閲覧を許可するが、自分のマイページ（selectedProfileId なし）は
+ * 登録必須のまま。それ以外は PUBLIC_SCREENS に従う。
+ */
+export function isPublicView(screen: Screen, selectedProfileId: string | null): boolean {
+  if (screen === "profile") return Boolean(selectedProfileId);
   return PUBLIC_SCREENS.has(screen);
 }
