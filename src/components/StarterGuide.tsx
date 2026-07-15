@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "./AppRouter";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -8,6 +9,11 @@ import { useFollowedWorks } from "@/lib/queries/works";
 import { useMyApplicationCount } from "@/lib/queries/awase";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Screen } from "@/lib/types";
+
+/** タップで閉じたときの「このタブでは出さない」用（ブラウザを閉じるまで）。
+ * チェックボックスで「今後は表示しない」を選ぶと localStorage に永続化される。 */
+const SESSION_DISMISS_KEY = "pt_starter_guide_dismissed_session";
+const PERMANENT_DISMISS_KEY = "pt_starter_guide_hidden_v1";
 
 interface Step {
   label: string;
@@ -39,6 +45,34 @@ export function StarterGuide() {
   const followed = useFollowedWorks(user?.id);
   const applied = useMyApplicationCount(user?.id);
 
+  // 閉じた状態の判定。サーバー描画時と一致させるため、初期値は「まだ確認していない
+  // （= 表示しない）」にしておき、確認が取れたら（dismissed=false なら）表示する。
+  const [dismissed, setDismissed] = useState<boolean | null>(null);
+  const [neverShowAgain, setNeverShowAgain] = useState(false);
+
+  useEffect(() => {
+    try {
+      const permanent = localStorage.getItem(PERMANENT_DISMISS_KEY) === "1";
+      const session = sessionStorage.getItem(SESSION_DISMISS_KEY) === "1";
+      setDismissed(permanent || session);
+    } catch {
+      setDismissed(false);
+    }
+  }, []);
+
+  const handleDismiss = () => {
+    try {
+      if (neverShowAgain) {
+        localStorage.setItem(PERMANENT_DISMISS_KEY, "1");
+      } else {
+        sessionStorage.setItem(SESSION_DISMISS_KEY, "1");
+      }
+    } catch {
+      /* ignore */
+    }
+    setDismissed(true);
+  };
+
   let steps: Step[];
   if (configured && user) {
     const p = profile.data;
@@ -64,19 +98,47 @@ export function StarterGuide() {
     return null; // configured だが未ログイン（ログインゲート表示中）
   }
 
+  // まだ localStorage/sessionStorage の確認が済んでいない、またはすでに閉じている
+  if (dismissed !== false) return null;
+
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
     <div style={{ padding: "16px 22px 0" }}>
       <div
         style={{
+          position: "relative",
           border: `1px solid ${colors.borderSoft}`,
           borderRadius: 18,
           background: "linear-gradient(160deg,#F6F1FD,#FCF2F8)",
           padding: "16px 16px 8px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button
+          onClick={handleDismiss}
+          aria-label="閉じる"
+          style={{
+            position: "absolute",
+            right: 10,
+            top: 10,
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            border: "none",
+            background: "rgba(90,70,120,.10)",
+            color: colors.textMutedAlt,
+            fontSize: 14,
+            lineHeight: 1,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          ×
+        </button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingRight: 22 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>はじめてガイド</div>
           <span style={{ fontSize: 11, fontWeight: 700, color: colors.primary }}>{doneCount}/3 完了</span>
         </div>
@@ -141,7 +203,26 @@ export function StarterGuide() {
             </button>
           ))}
         </div>
-        <div style={{ height: 8 }} />
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 12,
+            padding: "0 0 12px",
+            fontSize: 11,
+            color: colors.textMutedAlt,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={neverShowAgain}
+            onChange={(e) => setNeverShowAgain(e.target.checked)}
+            style={{ width: 14, height: 14, accentColor: colors.primary }}
+          />
+          今後は表示しない（× で閉じると適用されます）
+        </label>
       </div>
     </div>
   );
