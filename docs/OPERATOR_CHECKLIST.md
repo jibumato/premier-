@@ -91,6 +91,7 @@ select
   (select exists(select 1 from information_schema.columns
      where table_name='profiles' and column_name='is_suspended'))
                                                          as account_suspension,    -- false → 0049 未適用（違反アカウントの停止）
+  (select to_regclass('public.lounge_posts') is not null) as lounge_table,        -- false → 0050 未適用（談話室）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -132,6 +133,7 @@ select
 - `activity_events_admin` が `false` → **ステップ 2ai**（0047・うごきを運営画面から管理）
 - `announcements_admin` が `false` → **ステップ 2aj**（0048・お知らせを運営画面から管理）
 - `account_suspension` が `false` → **ステップ 2ak**（0049・違反アカウントの停止）
+- `lounge_table` が `false` → **ステップ 2al**（0050・談話室）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -823,6 +825,31 @@ SQL Editor から `insert into announcements ...` していた作業が、SQLを
 
 冪等ではないため（`create or replace function` 部分は再実行可、`alter table
 add column if not exists` も安全）、既に適用済みなら実行不要です。
+
+---
+
+## ☐ ステップ 2al: 談話室（マイグレーション 0050）
+
+`lounge_table` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0050_lounge.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ トップページに、誰でも気軽に投稿できる**「談話室」**セクションが追加され、
+全文表示・投稿は専用画面（もっと見る）から行えます。荒らし対策として、
+DBの制約・RLSレベルで以下を常に強制します（クライアントの実装に関わらず有効）。
+
+- 連投防止のクールダウン（20秒に1件まで）と、24時間あたりの投稿数上限（30件）
+- リンク投稿・同一文字の異常な連続・最低限の暴言ワードを check 制約で拒否
+  （`lounge_is_spammy()` は `create or replace function` で語彙を随時追加可能、
+  アプリの再デプロイ不要）
+- 既存の通報しきい値による自動非表示（`content_flags`、0010と同じ仕組み）と、
+  ブロックしたユーザーの投稿の除外
+- 運営はいつでも強制削除できます（設定→運営権限を持つアカウントで、投稿ごとの
+  「運営削除」ボタンから）
+
+冪等ではないため（テーブル新規作成・`alter table ... drop constraint if
+exists` は再実行可）、既に適用済みなら実行不要です。
 
 ---
 

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-export type ReportTargetType = "user" | "awase" | "market" | "qa";
+export type ReportTargetType = "user" | "awase" | "market" | "qa" | "lounge";
 
 /** Submit a report. The DB-side trigger auto-hides content once distinct
  * reporters cross the threshold — there is no manual review queue. */
@@ -57,6 +57,7 @@ export interface ModerationFilter {
   hiddenAwaseIds: string[];
   hiddenMarketIds: string[];
   hiddenQaIds: string[];
+  hiddenLoungeIds: string[];
 }
 
 /**
@@ -84,6 +85,7 @@ export function useModerationFilter(viewerId: string | undefined) {
         hiddenAwaseIds: flagsFor("awase"),
         hiddenMarketIds: flagsFor("market"),
         hiddenQaIds: flagsFor("qa"),
+        hiddenLoungeIds: flagsFor("lounge"),
       };
     },
   });
