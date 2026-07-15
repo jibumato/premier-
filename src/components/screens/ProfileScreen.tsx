@@ -8,7 +8,7 @@ import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useAwaseAchievementCount, useFollowerCount, useProfile, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
+import { useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
 import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostVisibility } from "@/lib/queries/posts";
 import { useAwaseHistory } from "@/lib/queries/awase";
@@ -69,6 +69,19 @@ export function ProfileScreen() {
   // React Query dedupes this with profileQuery when viewing one's own profile.
   const viewerProfileQuery = useProfile(user?.id);
   const followerCount = useFollowerCount(targetId);
+  // フォロー状態（他ユーザーのプロフィールを見ているときのみ有効）
+  const isFollowingQuery = useIsFollowing(user?.id, isOwnProfile ? undefined : targetId);
+  const toggleFollow = useToggleFollow();
+  const [mockFollowing, setMockFollowing] = useState(false); // プロトタイプ用
+  const following = configured ? Boolean(isFollowingQuery.data) : mockFollowing;
+  const handleFollow = () => {
+    if (configured && user && targetId && !isOwnProfile) {
+      if (toggleFollow.isPending) return;
+      toggleFollow.mutate({ viewerId: user.id, targetId, following });
+    } else {
+      setMockFollowing((f) => !f);
+    }
+  };
   const achievementCount = useAwaseAchievementCount(targetId);
   const reviewsReceived = useReviewsReceived(targetId);
   const postsQuery = usePosts(targetId);
@@ -388,6 +401,26 @@ export function ProfileScreen() {
           </button>
         ) : (
           <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
+            <button
+              onClick={handleFollow}
+              disabled={toggleFollow.isPending}
+              aria-pressed={following}
+              style={{
+                flex: 1,
+                border: following ? `1px solid ${colors.border}` : "none",
+                background: following ? colors.white : colors.pink,
+                color: following ? colors.textSecondary : colors.white,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "12px 0",
+                borderRadius: 13,
+                cursor: toggleFollow.isPending ? "default" : "pointer",
+                opacity: toggleFollow.isPending ? 0.6 : 1,
+              }}
+            >
+              {following ? "フォロー中" : "フォローする"}
+            </button>
             <button
               onClick={handleMessage}
               disabled={getOrCreateConversation.isPending}

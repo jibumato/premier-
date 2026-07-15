@@ -36,6 +36,76 @@ export function useUpdateProfileRole() {
   });
 }
 
+/** 設定「非公開アカウント」の保存。profiles.is_private を更新する（RLSで本人のみ）。
+ * true にするとプロフィールが本人＋フォロワー以外から見えなくなる（0001 の
+ * profiles_select ポリシー）。 */
+export function useUpdatePrivacy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, isPrivate }: { userId: string; isPrivate: boolean }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("profiles").update({ is_private: isPrivate }).eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { userId }) => qc.invalidateQueries({ queryKey: ["profile", userId] }),
+  });
+}
+
+/** 自分（viewer）が target をフォローしているか。 */
+export function useIsFollowing(viewerId: string | undefined, targetId: string | undefined) {
+  return useQuery({
+    queryKey: ["is_following", viewerId, targetId],
+    enabled: Boolean(viewerId) && Boolean(targetId) && viewerId !== targetId,
+    queryFn: async (): Promise<boolean> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("follower_id", viewerId!)
+        .eq("followee_id", targetId!)
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+  });
+}
+
+/** フォロー/フォロー解除（RLSで自分の行のみ）。フォロー時は相手に通知が入る（0041）。 */
+export function useToggleFollow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      viewerId,
+      targetId,
+      following,
+    }: {
+      viewerId: string;
+      targetId: string;
+      /** 現在フォロー中か（true なら解除する） */
+      following: boolean;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      if (following) {
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", viewerId)
+          .eq("followee_id", targetId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("follows")
+          .upsert({ follower_id: viewerId, followee_id: targetId }, { ignoreDuplicates: true });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, { viewerId, targetId }) => {
+      qc.invalidateQueries({ queryKey: ["is_following", viewerId, targetId] });
+      qc.invalidateQueries({ queryKey: ["follower_count", targetId] });
+    },
+  });
+}
+
 /** Number of followers (profile stats bar). */
 export function useFollowerCount(userId: string | undefined) {
   return useQuery({

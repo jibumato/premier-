@@ -12,7 +12,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
 
 export function NotifyScreen() {
-  const { back, nav, openAwase } = useRouter();
+  const { back, nav, openAwase, openProfile } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   const notifsQuery = useNotifications(user?.id);
@@ -61,7 +61,9 @@ export function NotifyScreen() {
               ? () => openAwase(n.entityId!)
               : n.kind === "badge"
                 ? () => nav("profile", "mypage")
-                : null;
+                : n.kind === "follow" && n.entityId
+                  ? () => openProfile(n.entityId!)
+                  : null;
           const inner = (
             <>
               <div

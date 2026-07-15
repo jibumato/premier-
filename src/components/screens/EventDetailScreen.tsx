@@ -43,7 +43,7 @@ export function EventDetailScreen() {
     : mockInfo;
   const bodyText =
     real?.body ||
-    "夏の大型コスプレイベント。屋内・屋外の撮影エリアあり、更衣室・荷物預かり完備。当日は会場での併せ集合もこのアプリで調整できます。参加表明をすると、同じイベントの併せ募集がホームに優先表示されます。";
+    "コスプレ参加可のイベントです。当日の併せ集合や日程調整はプルミエ！のメッセージ・日程調整機能が使えます。参加表明をすると、あなたが参加予定であることが人数に反映されます。";
 
   const handleRsvp = () => {
     if (real && user && selectedEventId) {
