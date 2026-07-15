@@ -38,6 +38,24 @@ export const popularWorks = [
   "ブルーアーカイブ",
 ];
 
+/** ホームの「最近のうごき」ティッカー用モック（プレビュー環境のみ）。実データは
+ * activity_events（0046）を Realtime 購読して取得する。 */
+export const mockActivity = [
+  { key: "ac1", headline: "「魔法学園 生徒会併せ」の併せ募集がはじまりました", timeLabel: "たった今" },
+  { key: "ac2", headline: "澪 / mioさんに新しいレビューが届きました", timeLabel: "3分前" },
+  { key: "ac3", headline: "世界コスプレサミット2026に参加希望が増えました", timeLabel: "12分前" },
+  { key: "ac4", headline: "「和風ファンタジー併せ」の併せ募集がはじまりました", timeLabel: "28分前" },
+];
+
+/** ホームの「急上昇作品」用モック（プレビュー環境のみ）。実データは
+ * trending_works() RPC（0046）から取得する。 */
+export const mockTrendingWorks = [
+  { key: "tw1", name: "葬送のフリーレン", count: 9 },
+  { key: "tw2", name: "【推しの子】", count: 6 },
+  { key: "tw3", name: "ダンダダン", count: 4 },
+  { key: "tw4", name: "呪術廻戦", count: 3 },
+];
+
 /** Region filter options (major Japanese cosplay-event cities). */
 export const regions = [
   "すべて",

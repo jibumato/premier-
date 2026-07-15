@@ -595,9 +595,19 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["awase_schedule_votes"]["Insert"]>;
         Relationships: [];
       };
+      activity_events: {
+        Row: { id: string; kind: string; headline: string; created_at: string };
+        Insert: { id?: string; kind: string; headline: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["activity_events"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
+      trending_works: {
+        Args: { p_days?: number; p_limit?: number };
+        Returns: { work_id: string; name: string; awase_count: number }[];
+      };
       find_direct_conversation: {
         Args: { user_a: string; user_b: string };
         Returns: string | null;
