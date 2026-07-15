@@ -1353,6 +1353,11 @@ export function DetailScreen() {
 
 const editInput: CSSProperties = {
   width: "100%",
+  // padding を含めても親幅を超えないように border-box。datetime-local など
+  // ネイティブ入力はモバイルで最小幅が広く、これと minWidth:0 が無いと
+  // flex セル（各50%）を突き抜けて横に大きくはみ出す。
+  boxSizing: "border-box",
+  minWidth: 0,
   marginTop: 6,
   border: "1px solid #E4DFEF",
   borderRadius: 12,
