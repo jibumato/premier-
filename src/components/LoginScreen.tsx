@@ -169,38 +169,107 @@ export function LoginScreen() {
         </p>
       </div>
 
-      {/* 運営からのメッセージ — 出会いへのワクワク感を伝える一枚。新規登録に
-          切り替えたときは自動で開く（switchMode 参照）。ログイン時は閉じたまま
-          でも冒頭の一行だけは常に見えるようにしてある。 */}
+      {/* 運営からのメッセージ — 手書きのお手紙風カード。淡いクリーム地に便箋の
+          綴じ帯と切手風アクセントを添え、温かみのある一枚に。新規登録に切り替えた
+          ときは自動で開く（switchMode 参照）。ログイン時は閉じたままでも冒頭の
+          一行だけは常に見えるようにしてある。 */}
       <div style={{ padding: "20px 22px 0" }}>
         <div
           style={{
-            borderRadius: 18,
-            padding: "18px 18px",
-            background: "linear-gradient(150deg,#6D5DAB,#4C3E82)",
-            color: colors.white,
+            position: "relative",
+            borderRadius: 20,
+            padding: "18px 18px 16px 22px",
+            background: "linear-gradient(165deg,#FFFDF9,#FDF4FA)",
+            border: "1px solid #F1E3EC",
+            boxShadow: "0 20px 38px -28px rgba(120,80,130,.4)",
+            overflow: "hidden",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, letterSpacing: ".02em" }}>
-            運営からのメッセージ
+          {/* 便箋の綴じ側っぽい淡いラベンダー〜ピンクの帯 */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 5,
+              background: "linear-gradient(180deg,#D8A6C9,#B39BDC)",
+            }}
+          />
+          {/* 切手風の小さなアクセント（右上） */}
+          <div
+            style={{
+              position: "absolute",
+              right: 14,
+              top: 14,
+              width: 30,
+              height: 34,
+              borderRadius: 5,
+              background: "#FBEDF4",
+              border: "1.5px dashed #E4BBD3",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 15,
+            }}
+            aria-hidden
+          >
+            💌
           </div>
-          <p style={{ margin: "9px 0 0", fontSize: 15, fontWeight: 700, lineHeight: 1.6 }}>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: colors.pinkText,
+                letterSpacing: ".08em",
+              }}
+            >
+              運営より
+            </span>
+          </div>
+          <p
+            style={{
+              margin: "8px 0 0",
+              paddingRight: 40,
+              fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
+              fontSize: 16,
+              fontWeight: 700,
+              lineHeight: 1.7,
+              color: colors.textPrimary,
+            }}
+          >
             コスプレって、一人じゃ完成しない。
           </p>
           {showMessage && (
-            <p
-              style={{
-                margin: "12px 0 0",
-                paddingTop: 12,
-                borderTop: "1px solid rgba(255,255,255,.22)",
-                fontSize: 12.5,
-                lineHeight: 2,
-                color: "rgba(255,255,255,.94)",
-                whiteSpace: "pre-line",
-              }}
-            >
-              {FOUNDER_MESSAGE_REST}
-            </p>
+            <>
+              <p
+                style={{
+                  margin: "13px 0 0",
+                  paddingTop: 13,
+                  borderTop: "1px dashed #EAD3E0",
+                  fontSize: 12.5,
+                  lineHeight: 2,
+                  color: colors.textSecondary,
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {FOUNDER_MESSAGE_REST}
+              </p>
+              <div
+                style={{
+                  marginTop: 14,
+                  textAlign: "right",
+                  fontFamily: '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: colors.pinkText,
+                }}
+              >
+                — プルミエ！運営一同
+              </div>
+            </>
           )}
           <button
             type="button"
@@ -214,12 +283,13 @@ export function LoginScreen() {
               fontFamily: "inherit",
               fontSize: 12,
               fontWeight: 700,
-              color: "rgba(255,255,255,.94)",
+              color: colors.pinkText,
               textDecoration: "underline",
+              textUnderlineOffset: 2,
               cursor: "pointer",
             }}
           >
-            {showMessage ? "閉じる" : "続きを読む"}
+            {showMessage ? "閉じる" : "つづきを読む"}
           </button>
         </div>
       </div>
