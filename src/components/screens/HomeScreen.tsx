@@ -698,16 +698,15 @@ export function HomeScreen() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {isNearest && (
                       <span
-                        className="pt-rainbow-border"
                         style={{
                           display: "inline-block",
                           fontSize: 9.5,
                           fontWeight: 700,
                           color: colors.white,
+                          background: colors.primary,
                           padding: "2px 8px",
                           borderRadius: 999,
                           marginBottom: 5,
-                          textShadow: "0 1px 2px rgba(0,0,0,.35)",
                         }}
                       >
                         いちばん近い開催
