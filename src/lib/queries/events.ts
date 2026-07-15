@@ -148,3 +148,71 @@ export function useRsvpEvent() {
     },
   });
 }
+
+// =============================================================================
+// 運営（is_admin）向け: イベントのサムネイル画像を管理する。
+// 書き込み（update）は RLS で is_admin() に限定（0044）。行の作成・削除は
+// SQL Editor（サービスロール）のみ ＝ ここでは image_url の差し替えだけができる。
+// =============================================================================
+
+/** 管理画面用の行（サムネイルの有無と基本情報だけ）。 */
+export interface AdminEvent {
+  id: string;
+  name: string;
+  date: string;
+  venue: string;
+  region: string;
+  tag: string;
+  imageUrl: string | null;
+}
+
+/** 管理画面用: 全イベントを開催日順で取得（サムネ設定の対象一覧）。 */
+export function useAdminEvents(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin_events"],
+    enabled: isSupabaseConfigured() && enabled,
+    queryFn: async (): Promise<AdminEvent[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, name, event_date, venue, region, tag, image_url")
+        .order("starts_on", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as {
+        id: string;
+        name: string;
+        event_date: string;
+        venue: string;
+        region: string;
+        tag: string;
+        image_url: string | null;
+      }[]).map((r) => ({
+        id: r.id,
+        name: r.name,
+        date: r.event_date,
+        venue: r.venue,
+        region: r.region,
+        tag: r.tag,
+        imageUrl: r.image_url,
+      }));
+    },
+  });
+}
+
+/** イベントのサムネイル画像URLを設定／解除する（null で解除＝生成デザインに戻る）。 */
+export function useSetEventImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ eventId, imageUrl }: { eventId: string; imageUrl: string | null }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("events").update({ image_url: imageUrl }).eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId }) => {
+      qc.invalidateQueries({ queryKey: ["admin_events"] });
+      qc.invalidateQueries({ queryKey: ["events"] });
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+    },
+  });
+}

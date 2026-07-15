@@ -76,6 +76,9 @@ select
   (select exists(select 1 from information_schema.columns
      where table_name='events' and column_name='image_url'))
                                                          as event_images,          -- false → 0043 未適用（イベントのサムネ）
+  (select exists(select 1 from pg_policies
+     where tablename='events' and policyname='events_admin_update'))
+                                                         as events_admin,          -- false → 0044 未適用（サムネを運営画面から管理）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -111,6 +114,7 @@ select
 - `follow_notify` が `false` → **ステップ 2ac**（0041・フォロー機能の通知）
 - `role_assignment` が `false` → **ステップ 2ad**（0042・希望キャラの承認で自動確定）
 - `event_images` が `false` → **ステップ 2ae**（0043・イベントのサムネイル）
+- `events_admin` が `false` → **ステップ 2af**（0044・サムネを運営画面から管理）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -667,6 +671,29 @@ update events set image_url = '画像の公開URL' where name = '世界コスプ
 ```
 
 外したいときは `update events set image_url = null where name = '...';`
+
+---
+
+## ☐ ステップ 2af: サムネを運営画面から管理（マイグレーション 0044）
+
+`events_admin` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0044_events_admin.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 運営アカウント（`profiles.is_admin = true`）が、アプリの
+**設定 → 運営 → 「イベントのサムネイル管理」**から各イベントのサムネイルを
+画像アップロードで設定・変更・解除できるようになります。ステップ 2ae のように
+SQL でURLを直接入れる必要はなくなります（SQLでの設定も引き続き可能）。
+
+- 追加された RLS は `events` の **update だけ**を `is_admin()` に開放するもので、
+  イベントの新規作成・削除はできません（＝運営が誤って消せない）。
+- 画像は R2 に `event/<運営のユーザーID>/<uuid>.<拡張子>` として保存されます。
+- **掲載してよいのは主催から許諾を得た画像／運営が自ら撮影した会場写真だけ**
+  （公式ロゴ・キービジュアルは不可。ステップ 2ae の注意書きと同じ）。
+
+冪等ではないため（`create policy`）、既に適用済みなら実行不要です。再実行すると
+「policy already exists」エラーになりますが無害です。
 
 ---
 
