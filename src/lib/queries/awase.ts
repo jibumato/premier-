@@ -686,6 +686,7 @@ export interface AwaseImage {
   id: string;
   storagePath: string;
   url: string | null;
+  sort: number;
 }
 
 /** Images attached to an awase, in display order (detail hero + edit). */
@@ -705,7 +706,33 @@ export function useAwaseImages(awaseId: string | null) {
         id: r.id,
         storagePath: r.storage_path,
         url: r2PublicUrl(r.storage_path),
+        sort: r.sort,
       }));
+    },
+  });
+}
+
+/**
+ * 主催が、あわせに付けた画像のうち任意の1枚をサムネイル（カバー）にする。
+ * 一覧・ホーム・詳細のカバーは sort 昇順の先頭（images[0]）なので、選んだ画像の
+ * sort を現在の最小値より小さくして先頭に持ってくるだけでよい。RLS の
+ * awase_images_write（主催のみ・for all）で更新が許可されている。
+ */
+export function useSetAwaseCover() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ awaseId, imageId, minSort }: { awaseId: string; imageId: string; minSort: number }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("awase_images")
+        .update({ sort: minSort - 1 })
+        .eq("id", imageId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_images", awaseId] });
+      qc.invalidateQueries({ queryKey: ["awase_feed"] });
+      qc.invalidateQueries({ queryKey: ["awase_search"] });
     },
   });
 }
