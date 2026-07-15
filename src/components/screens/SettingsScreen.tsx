@@ -165,6 +165,7 @@ export function SettingsScreen() {
       {isAdmin && (
         <Group title="運営">
           <LinkRow title="本人確認の承認" onClick={() => nav("adminVerify")} />
+          <LinkRow title="お知らせの管理" onClick={() => nav("adminAnnouncements")} />
           <LinkRow title="トップのピックアップ管理" onClick={() => nav("adminPickups")} />
           <LinkRow title="イベントのサムネイル管理" onClick={() => nav("adminEvents")} />
           <LinkRow title="要望の管理" onClick={() => nav("adminFeedback")} />
