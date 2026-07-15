@@ -7,6 +7,7 @@ import { siteTagline } from "@/lib/data";
 import { PrimaryButton } from "./ui";
 import { TermsContent } from "./TermsContent";
 import { PrivacyContent } from "./PrivacyContent";
+import { useRouter } from "./AppRouter";
 
 type Mode = "signIn" | "signUp";
 
@@ -52,13 +53,15 @@ function friendlyAuthError(e: unknown, mode: Mode): string {
 }
 
 /**
- * Auth gate screen shown when Supabase is configured but no session exists.
- * Not part of the screen router (no back-stack): AuthGate swaps it in/out
- * purely based on auth state, so a successful sign-in/up simply reveals the
- * app underneath once onAuthStateChange fires. Because it lives outside the
- * router, the terms are shown via an in-screen overlay rather than nav().
+ * Login/signup screen. Shown two ways: (1) AuthGate swaps it in when a
+ * signed-out visitor reaches a screen that needs an account, and (2) it is a
+ * routable screen ("login") reached from the browse CTAs in the hybrid model.
+ * A successful sign-in/up flips auth state and reveals the intended screen via
+ * onAuthStateChange. Terms/privacy are shown via an in-screen overlay; a
+ * "見てまわる →" link lets visitors return to browsing without registering.
  */
 export function LoginScreen() {
+  const { nav } = useRouter();
   const [mode, setMode] = useState<Mode>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -116,6 +119,24 @@ export function LoginScreen() {
 
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* 未ログインでも中を見てまわれるハイブリッド。登録せずホームへ戻れる導線。 */}
+      <div style={{ position: "absolute", top: 14, right: 16, zIndex: 2 }}>
+        <button
+          onClick={() => nav("home", "home")}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "6px 4px",
+            fontFamily: "inherit",
+            fontSize: 12,
+            fontWeight: 700,
+            color: colors.textMutedAlt,
+            cursor: "pointer",
+          }}
+        >
+          見てまわる →
+        </button>
+      </div>
       <div style={{ padding: "58px 26px 0" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

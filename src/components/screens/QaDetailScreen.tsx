@@ -54,7 +54,7 @@ const initialAnswers: Answer[] = [
 ];
 
 export function QaDetailScreen() {
-  const { back, selectedQaQuestionId } = useRouter();
+  const { back, nav, selectedQaQuestionId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -104,6 +104,10 @@ export function QaDetailScreen() {
   const solved = answers ? answers.some((a) => a.best) : !configured;
 
   const handleLike = (answerId: string, liked: boolean) => {
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
     if (real && selectedQaQuestionId && user) {
       toggleLike.mutate({ answerId, userId: user.id, liked, questionId: selectedQaQuestionId });
     } else {
@@ -165,6 +169,10 @@ export function QaDetailScreen() {
   const post = () => {
     const text = draft.trim();
     if (!text) return;
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
     if (real && selectedQaQuestionId && user) {
       createAnswer.mutate({ questionId: selectedQaQuestionId, authorId: user.id, body: text });
     } else {

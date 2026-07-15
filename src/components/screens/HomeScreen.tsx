@@ -48,6 +48,8 @@ export function HomeScreen() {
   const { nav, openAwase, openEvent, openSearch } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
+  // 接続済みだが未ログイン: コンテンツは見せつつ、登録導線を前面に出す
+  const signedOut = configured && !user;
   const moderation = useModerationFilter(user?.id);
   const feed = useAwaseFeed(moderation.data);
   // Real feed once connected and loaded; the handoff's mock list otherwise —
@@ -151,23 +153,117 @@ export function HomeScreen() {
             </span>
           </div>
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <button
-            onClick={() => nav("messages")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-            aria-label="メッセージ"
-          >
-            <MessageIcon />
-          </button>
-          <button
-            onClick={() => nav("notify", "notify")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-            aria-label="おしらせ"
-          >
-            <BellIcon />
-          </button>
-        </div>
+        {signedOut ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => nav("login")}
+              style={{
+                background: "none",
+                border: `1px solid ${colors.border}`,
+                borderRadius: 999,
+                padding: "7px 13px",
+                fontFamily: "inherit",
+                fontSize: 12,
+                fontWeight: 700,
+                color: colors.textSecondary,
+                cursor: "pointer",
+              }}
+            >
+              ログイン
+            </button>
+            <button
+              onClick={() => nav("login")}
+              style={{
+                background: colors.primary,
+                border: "none",
+                borderRadius: 999,
+                padding: "8px 14px",
+                fontFamily: "inherit",
+                fontSize: 12,
+                fontWeight: 700,
+                color: colors.white,
+                cursor: "pointer",
+              }}
+            >
+              無料登録
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <button
+              onClick={() => nav("messages")}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              aria-label="メッセージ"
+            >
+              <MessageIcon />
+            </button>
+            <button
+              onClick={() => nav("notify", "notify")}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              aria-label="おしらせ"
+            >
+              <BellIcon />
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* 未ログイン向けの登録CTA — コンテンツは自由に見てもらいつつ、参加は登録から */}
+      {signedOut && (
+        <div style={{ padding: "12px 22px 0" }}>
+          <div
+            style={{
+              borderRadius: 18,
+              padding: "16px 18px",
+              background: "linear-gradient(150deg,#6D5DAB,#4C3E82)",
+              color: colors.white,
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.6 }}>
+              好きな作品で、コスプレ仲間とつながろう
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: 11.5, lineHeight: 1.7, color: "rgba(255,255,255,.9)" }}>
+              閲覧は登録なしでOK。応募・投稿・メッセージは無料登録から（1分で完了）。
+            </p>
+            <div style={{ display: "flex", gap: 9, marginTop: 13 }}>
+              <button
+                onClick={() => nav("login")}
+                style={{
+                  flex: 1,
+                  border: "none",
+                  background: colors.white,
+                  color: colors.primary,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "11px 0",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                }}
+              >
+                無料で登録する
+              </button>
+              <button
+                onClick={() => nav("login")}
+                style={{
+                  flex: "0 0 auto",
+                  border: "1px solid rgba(255,255,255,.6)",
+                  background: "none",
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "11px 18px",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                }}
+              >
+                ログイン
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* welcome banner — first-visit greeting, dismissible */}
       <WelcomeBanner />

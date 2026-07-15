@@ -7,7 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { useRouter } from "./AppRouter";
 
 /** Pre-login / full-bleed screens that hide the bottom tab bar. */
-const CHROMELESS = new Set(["onboardRole", "onboardWorks", "onboardVerify"]);
+const CHROMELESS = new Set(["onboardRole", "onboardWorks", "onboardVerify", "login"]);
 
 /**
  * Responsive app shell.

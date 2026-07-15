@@ -26,6 +26,7 @@ export type Screen =
   | "qa"
   | "qaDetail"
   | "lounge"
+  | "login"
   | "report"
   | "settings"
   | "adminVerify"

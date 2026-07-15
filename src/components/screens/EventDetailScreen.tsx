@@ -47,6 +47,11 @@ export function EventDetailScreen() {
     "コスプレ参加可のイベントです。当日の併せ集合や日程調整はプルミエ！のメッセージ・日程調整機能が使えます。参加表明をすると、あなたが参加予定であることが人数に反映されます。";
 
   const handleRsvp = () => {
+    if (configured && !user) {
+      // 接続済みだが未ログイン → 参加表明には登録が必要
+      nav("login");
+      return;
+    }
     if (real && user && selectedEventId) {
       rsvp.mutate({ eventId: selectedEventId, userId: user.id });
     } else {

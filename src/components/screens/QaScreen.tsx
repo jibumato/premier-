@@ -31,6 +31,11 @@ export function QaScreen() {
   const isEmpty = Boolean(real) && questions.length === 0 && !asking;
 
   const handleAskClick = () => {
+    if (configured && !user) {
+      // 接続済みだが未ログイン → 質問投稿には登録が必要
+      nav("login");
+      return;
+    }
     if (configured && user) {
       setAsking(true);
     } else {

@@ -44,6 +44,8 @@ import { OnboardRoleScreen } from "./screens/OnboardRoleScreen";
 import { OnboardWorksScreen } from "./screens/OnboardWorksScreen";
 import { OnboardVerifyScreen } from "./screens/OnboardVerifyScreen";
 import { PhotographerProfileScreen } from "./screens/PhotographerProfileScreen";
+import { LoginScreen } from "./LoginScreen";
+import { isPublicScreen } from "@/lib/auth/publicScreens";
 import type { Screen } from "@/lib/types";
 
 const screens: Record<Screen, () => React.ReactElement> = {
@@ -86,6 +88,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   onboardWorks: OnboardWorksScreen,
   onboardVerify: OnboardVerifyScreen,
   photographerProfile: PhotographerProfileScreen,
+  login: LoginScreen,
 };
 
 function CurrentScreen() {
@@ -95,14 +98,21 @@ function CurrentScreen() {
 }
 
 function FramedApp() {
-  // Only used to decide whether the login/suspended gate (chromeless) is
-  // showing; AuthGate itself owns the actual gating logic.
+  // Decides whether the chromeless (no bottom-nav) login/suspended gate is
+  // showing; AuthGate itself owns the actual gating logic. In the hybrid model
+  // a signed-out visitor still gets the bottom nav on *public* screens so they
+  // can browse; the login form (chromeless) only appears when they reach a
+  // protected screen or an account is suspended.
   const { user, loading, configured } = useAuth();
+  const { screen } = useRouter();
   const profile = useProfile(configured ? user?.id : undefined);
-  const showingLogin = configured && !loading && (!user || Boolean(profile.data?.is_suspended));
+  const showingLoginForm =
+    configured &&
+    !loading &&
+    ((!user && !isPublicScreen(screen)) || Boolean(profile.data?.is_suspended));
 
   return (
-    <PhoneFrame forceChromeless={showingLogin}>
+    <PhoneFrame forceChromeless={showingLoginForm}>
       <AuthGate>
         <CurrentScreen />
       </AuthGate>

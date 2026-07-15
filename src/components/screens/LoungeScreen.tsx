@@ -21,9 +21,11 @@ import { EmptyState } from "../EmptyState";
 const MAX_LEN = 300;
 
 export function LoungeScreen() {
-  const { back, openReport } = useRouter();
+  const { back, nav, openReport } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
+  // 接続済みだが未ログイン: 閲覧はできるが投稿には登録が必要
+  const needsLogin = configured && !user;
   const profile = useProfile(user?.id);
   const isAdmin = Boolean(configured && profile.data?.is_admin);
 
@@ -42,6 +44,10 @@ export function LoungeScreen() {
   const isEmpty = Boolean(real) && posts.length === 0;
 
   const handleSubmit = () => {
+    if (needsLogin) {
+      nav("login");
+      return;
+    }
     if (!user || !body.trim()) return;
     setError(null);
     createPost.mutate(
@@ -86,8 +92,14 @@ export function LoungeScreen() {
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
-            placeholder={configured ? "いま思っていることを書いてみましょう" : "プレビュー環境（未接続）では投稿できません。"}
-            disabled={!configured}
+            placeholder={
+              needsLogin
+                ? "談話室に投稿するには無料登録が必要です。閲覧はどなたでもできます。"
+                : configured
+                  ? "いま思っていることを書いてみましょう"
+                  : "プレビュー環境（未接続）では投稿できません。"
+            }
+            disabled={!configured || needsLogin}
             rows={3}
             style={{
               border: `1px solid ${colors.border}`,
@@ -98,32 +110,51 @@ export function LoungeScreen() {
               lineHeight: 1.7,
               resize: "none",
               outline: "none",
-              background: configured ? colors.white : colors.primaryBg1,
+              background: configured && !needsLogin ? colors.white : colors.primaryBg1,
               color: colors.textPrimary,
             }}
           />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 10.5, color: colors.textMutedAlt }}>
-              {body.length}/{MAX_LEN}
+              {needsLogin ? "" : `${body.length}/${MAX_LEN}`}
             </span>
-            <button
-              onClick={handleSubmit}
-              disabled={!configured || !user || !body.trim() || createPost.isPending}
-              style={{
-                border: "none",
-                background: colors.primary,
-                color: colors.white,
-                fontFamily: "inherit",
-                fontSize: 12.5,
-                fontWeight: 700,
-                padding: "9px 18px",
-                borderRadius: 999,
-                cursor: "pointer",
-                opacity: configured && user && body.trim() && !createPost.isPending ? 1 : 0.5,
-              }}
-            >
-              {createPost.isPending ? "投稿中…" : "投稿する"}
-            </button>
+            {needsLogin ? (
+              <button
+                onClick={() => nav("login")}
+                style={{
+                  border: "none",
+                  background: colors.primary,
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  padding: "9px 18px",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                }}
+              >
+                登録して投稿する
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!configured || !user || !body.trim() || createPost.isPending}
+                style={{
+                  border: "none",
+                  background: colors.primary,
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  padding: "9px 18px",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  opacity: configured && user && body.trim() && !createPost.isPending ? 1 : 0.5,
+                }}
+              >
+                {createPost.isPending ? "投稿中…" : "投稿する"}
+              </button>
+            )}
           </div>
           {error && <p style={{ margin: 0, fontSize: 11.5, color: "#B23543" }}>{error}</p>}
         </div>

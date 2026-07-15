@@ -5,8 +5,9 @@ import { colors, shadow } from "@/lib/tokens";
 import { useRouter } from "./AppRouter";
 import { BellIcon, HomeIcon, PlusIcon, SearchIcon, UserIcon } from "./icons";
 import { useAuth } from "@/lib/auth/useAuth";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useNotifications } from "@/lib/queries/notifications";
-import type { Tab } from "@/lib/types";
+import type { Screen, Tab } from "@/lib/types";
 
 const navBtn: React.CSSProperties = {
   background: "none",
@@ -74,8 +75,19 @@ export function BottomNav() {
   const { tab, nav } = useRouter();
   const is = (t: Tab) => tab === t;
   const { user } = useAuth();
+  const configured = isSupabaseConfigured();
   const notifs = useNotifications(user?.id);
   const unread = notifs.data?.filter((n) => n.unread).length ?? 0;
+
+  // 未ログイン（接続済）は、作成・おしらせ・マイページのような要ログイン導線を
+  // 押した瞬間にログイン画面へ誘導する。ホーム・さがすは誰でも使える。
+  const navGuarded = (screen: Screen, t?: Tab) => {
+    if (configured && !user) {
+      nav("login");
+    } else {
+      nav(screen, t);
+    }
+  };
 
   return (
     <div
@@ -106,7 +118,7 @@ export function BottomNav() {
         icon={(c) => <SearchIcon size={23} color={c} />}
       />
       {/* center FAB */}
-      <button onClick={() => nav("create")} style={navBtn} aria-label="併せ募集を作成">
+      <button onClick={() => navGuarded("create")} style={navBtn} aria-label="併せ募集を作成">
         <span
           style={{
             width: 46,
@@ -125,14 +137,14 @@ export function BottomNav() {
       <NavItem
         active={is("notify")}
         label="おしらせ"
-        onClick={() => nav("notify", "notify")}
+        onClick={() => navGuarded("notify", "notify")}
         icon={(c) => <BellIcon color={c} />}
         badge={unread}
       />
       <NavItem
         active={is("mypage")}
         label="マイページ"
-        onClick={() => nav("profile", "mypage")}
+        onClick={() => navGuarded("profile", "mypage")}
         icon={(c) => <UserIcon color={c} />}
       />
     </div>
