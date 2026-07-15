@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { colors, shadow } from "@/lib/tokens";
 import { siteTagline } from "@/lib/data";
 import { useRouter } from "./AppRouter";
-import { BellIcon, CalendarIcon, HelpIcon, HomeIcon, PlusIcon, SearchIcon, UserIcon } from "./icons";
+import { BellIcon, CalendarIcon, HelpIcon, HomeIcon, PlusIcon, SearchIcon, SendIcon, UserIcon } from "./icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useNotifications } from "@/lib/queries/notifications";
 import type { Screen, Tab } from "@/lib/types";
@@ -210,6 +210,22 @@ export function Sidebar() {
             onClick={() => nav(it.screen)}
           />
         ))}
+      </div>
+
+      {/* 最下部: 運営へ要望（モバイルでは 設定 → 運営へ要望を送る） */}
+      <div
+        style={{
+          marginTop: "auto",
+          paddingTop: 16,
+          borderTop: `1px solid ${colors.borderSofter}`,
+        }}
+      >
+        <Row
+          active={screen === "feedback"}
+          label="運営へ要望"
+          icon={(c) => <SendIcon size={18} color={c} />}
+          onClick={() => nav("feedback")}
+        />
       </div>
     </nav>
   );

@@ -481,6 +481,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["corporate_leads"]["Insert"]>;
         Relationships: [];
       };
+      feedback: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          category: string;
+          body: string;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          category: string;
+          body: string;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["feedback"]["Insert"]>;
+        Relationships: [];
+      };
       verification_requests: {
         Row: {
           id: string;
