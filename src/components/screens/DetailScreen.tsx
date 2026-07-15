@@ -18,6 +18,7 @@ import {
   useDeleteAwase,
   useMyApplication,
   useRemoveAwaseImage,
+  useSetAwaseRoles,
   useUpdateAwase,
 } from "@/lib/queries/awase";
 import { useAwaseAchievementCount, useProfile } from "@/lib/queries/profile";
@@ -70,6 +71,7 @@ export function DetailScreen() {
   const rolesQuery = useAwaseRoles(selectedAwaseId);
   const apply = useApply();
   const updateAwase = useUpdateAwase();
+  const setRoles = useSetAwaseRoles();
   const deleteAwase = useDeleteAwase();
   const imagesQuery = useAwaseImages(selectedAwaseId);
   const addImage = useAddAwaseImage();
@@ -153,6 +155,7 @@ export function DetailScreen() {
   const [eTags, setETags] = useState<string[]>([]);
   const [ePublishAt, setEPublishAt] = useState("");
   const [eDeadline, setEDeadline] = useState("");
+  const [eRoles, setERoles] = useState<string[]>([]); // 募集キャラ（char_name のリスト）
 
   const title = real?.title ?? "魔法学園シリーズ 生徒会併せ";
   const workName = real?.works?.name ?? "葬送のフリーレン";
@@ -226,16 +229,17 @@ export function DetailScreen() {
     setETags(real.world_tags ?? []);
     setEPublishAt(isoToLocalInput(real.publish_at));
     setEDeadline(isoToLocalInput(real.application_deadline));
+    setERoles((rolesQuery.data ?? []).map((r) => r.char));
     setEditing(true);
   };
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!real || !eTitle.trim() || !eDate.trim() || !eRegion) return;
     const cap = eCapacity.trim() ? Number(eCapacity) : null;
     const pubIso = localToIso(ePublishAt);
     const deadIso = localToIso(eDeadline);
     if (pubIso && deadIso && deadIso <= pubIso) return;
-    updateAwase.mutate(
-      {
+    try {
+      await updateAwase.mutateAsync({
         awaseId: real.id,
         title: eTitle.trim(),
         eventDate: eDate.trim(),
@@ -250,9 +254,15 @@ export function DetailScreen() {
         publishAt: pubIso,
         applicationDeadline: deadIso,
         acceptWaitlist: eWaitlist,
-      },
-      { onSuccess: () => setEditing(false) },
-    );
+      });
+      await setRoles.mutateAsync({
+        awaseId: real.id,
+        charNames: eRoles.map((s) => s.trim()).filter(Boolean),
+      });
+      setEditing(false);
+    } catch {
+      // エラーは updateAwase.isError / setRoles.isError で表示
+    }
   };
   const doDelete = () => {
     if (!real) return;
@@ -1059,6 +1069,55 @@ export function DetailScreen() {
               <Field label="募集内容">
                 <textarea value={eBody} onChange={(e) => setEBody(e.target.value)} rows={4} style={{ ...editInput, resize: "none", lineHeight: 1.7 }} placeholder="どんな併せか、集合や費用の目安など" />
               </Field>
+              <Field label="募集キャラ（任意）">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {eRoles.map((name, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={name}
+                        onChange={(e) => setERoles((r) => r.map((v, idx) => (idx === i ? e.target.value : v)))}
+                        style={{ ...editInput, flex: 1 }}
+                        placeholder="例：フリーレン"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setERoles((r) => r.filter((_, idx) => idx !== i))}
+                        aria-label="キャラを削除"
+                        style={{
+                          flex: "0 0 auto",
+                          width: 44,
+                          border: `1px solid ${colors.border}`,
+                          background: colors.white,
+                          color: colors.textMutedAlt,
+                          borderRadius: 11,
+                          fontSize: 16,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setERoles((r) => [...r, ""])}
+                    style={{
+                      alignSelf: "flex-start",
+                      border: `1px dashed ${colors.border}`,
+                      background: colors.primaryBg5,
+                      color: colors.primary,
+                      borderRadius: 11,
+                      padding: "9px 16px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ＋ キャラを追加
+                  </button>
+                </div>
+              </Field>
               <div style={{ display: "flex", gap: 10 }}>
                 <Field label="日程 *" flex>
                   <input value={eDate} onChange={(e) => setEDate(e.target.value)} style={editInput} placeholder="例：7/26(日)" />
@@ -1121,7 +1180,7 @@ export function DetailScreen() {
               <EditToggle label="女性限定で募集" on={eWomenOnly} onChange={setEWomenOnly} />
               <EditToggle label="初心者歓迎" on={eBeginnerOk} onChange={setEBeginnerOk} />
               <EditToggle label="満員後もキャンセル待ちを受付" on={eWaitlist} onChange={setEWaitlist} />
-              {updateAwase.isError && (
+              {(updateAwase.isError || setRoles.isError) && (
                 <div style={{ fontSize: 12, color: "#C0453F" }}>保存に失敗しました。時間をおいて再度お試しください。</div>
               )}
             </div>
@@ -1134,7 +1193,7 @@ export function DetailScreen() {
               </button>
               <button
                 onClick={saveEdit}
-                disabled={!eTitle.trim() || !eDate.trim() || !eRegion || updateAwase.isPending}
+                disabled={!eTitle.trim() || !eDate.trim() || !eRegion || updateAwase.isPending || setRoles.isPending}
                 style={{
                   flex: 2,
                   border: "none",
@@ -1146,10 +1205,10 @@ export function DetailScreen() {
                   padding: "12px 0",
                   borderRadius: 12,
                   cursor: "pointer",
-                  opacity: eTitle.trim() && eDate.trim() && eRegion && !updateAwase.isPending ? 1 : 0.5,
+                  opacity: eTitle.trim() && eDate.trim() && eRegion && !updateAwase.isPending && !setRoles.isPending ? 1 : 0.5,
                 }}
               >
-                {updateAwase.isPending ? "保存中…" : "保存する"}
+                {updateAwase.isPending || setRoles.isPending ? "保存中…" : "保存する"}
               </button>
             </div>
           </div>
