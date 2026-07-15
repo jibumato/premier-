@@ -195,6 +195,11 @@ export function DetailScreen() {
 
   const handleApply = () => {
     setConfirmApply(false);
+    // 接続済みだが未ログイン → 応募には登録が必要なのでログインへ誘導
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
     if (!real || !user) {
       // プロトタイプ（未接続）は従来どおり応募完了画面へ
       nav("applied");
@@ -881,7 +886,17 @@ export function DetailScreen() {
                 <PrimaryButton onClick={() => nav("verify")}>本人確認をして応募する</PrimaryButton>
               </div>
             ) : (
-              <PrimaryButton onClick={() => { setApplyRoleId(null); setConfirmApply(true); }} style={{ marginTop: 22 }}>
+              <PrimaryButton
+                onClick={() => {
+                  if (configured && !user) {
+                    nav("login");
+                    return;
+                  }
+                  setApplyRoleId(null);
+                  setConfirmApply(true);
+                }}
+                style={{ marginTop: 22 }}
+              >
                 この併せに応募する
               </PrimaryButton>
             )}
