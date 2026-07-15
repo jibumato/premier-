@@ -42,6 +42,29 @@ a:hover {
   scrollbar-width: none;
 }
 
+/* いちばん近い開催のハイライト用「虹色に光る枠」（ゲーミングデバイス風）。
+   グラデーションの枠を hue-rotate で回して色が巡回して見えるようにする。 */
+@keyframes pt-rainbow-spin {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.pt-rainbow-border {
+  background: linear-gradient(120deg, #ff3d68, #ff9f1c, #ffe14d, #33e07a, #2fb6ff, #8a6bff, #ff3d68);
+  background-size: 200% 200%;
+  animation: pt-rainbow-spin 3.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-rainbow-border {
+    animation: none;
+  }
+}
+
 /*
  * Responsive app shell.
  * Desktop (≥641px): a centered app window with a left sidebar + wide content

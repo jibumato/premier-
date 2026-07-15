@@ -668,63 +668,72 @@ export function HomeScreen() {
             {homeEvents.map((ev, i) => {
               // 先頭が最も直近（starts_on 昇順・過去除外済み）。1枚だけハイライトする。
               const isNearest = i === 0;
-              return (
-              <button
-                key={ev.key}
-                onClick={() => (eventsReal ? openEvent(ev.key) : nav("eventDetail"))}
-                style={{
-                  display: "flex",
-                  gap: 13,
-                  alignItems: "center",
-                  border: isNearest ? `1.5px solid ${colors.primary}` : `1px solid ${colors.borderSoft}`,
-                  borderRadius: 16,
-                  padding: isNearest ? 12.5 : 13,
-                  background: isNearest ? colors.primaryBg5 : colors.white,
-                  boxShadow: isNearest ? "0 4px 14px rgba(109,93,171,.14)" : "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                  width: "100%",
-                }}
-              >
-                {/* サムネイル — 許諾済みの画像 or イベント名から生成したデザイン */}
-                <div style={{ flex: "0 0 54px", width: 54, height: 54, borderRadius: 13, overflow: "hidden" }}>
-                  {ev.imageUrl ? (
-                    <ImageSlot radius={13} src={ev.imageUrl} />
-                  ) : (
-                    <WorkCover name={ev.name} radius={13} showName={false} />
-                  )}
+              const card = (
+                <button
+                  key={ev.key}
+                  onClick={() => (eventsReal ? openEvent(ev.key) : nav("eventDetail"))}
+                  style={{
+                    display: "flex",
+                    gap: 13,
+                    alignItems: "center",
+                    border: isNearest ? "none" : `1px solid ${colors.borderSoft}`,
+                    borderRadius: isNearest ? 14 : 16,
+                    padding: 13,
+                    background: isNearest ? colors.primaryBg5 : colors.white,
+                    boxShadow: isNearest ? "0 4px 14px rgba(109,93,171,.14)" : "none",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    textAlign: "left",
+                    width: "100%",
+                  }}
+                >
+                  {/* サムネイル — 許諾済みの画像 or イベント名から生成したデザイン */}
+                  <div style={{ flex: "0 0 54px", width: 54, height: 54, borderRadius: 13, overflow: "hidden" }}>
+                    {ev.imageUrl ? (
+                      <ImageSlot radius={13} src={ev.imageUrl} />
+                    ) : (
+                      <WorkCover name={ev.name} radius={13} showName={false} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {isNearest && (
+                      <span
+                        className="pt-rainbow-border"
+                        style={{
+                          display: "inline-block",
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          color: colors.white,
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          marginBottom: 5,
+                          textShadow: "0 1px 2px rgba(0,0,0,.35)",
+                        }}
+                      >
+                        いちばん近い開催
+                      </span>
+                    )}
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {ev.name}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 11, color: "#877FA0" }}>
+                      <CalendarIcon size={12} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.date}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, color: "#877FA0" }}>
+                      <PinIcon />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.venue}</span>
+                    </div>
+                  </div>
+                </button>
+              );
+              // 「いちばん近い開催」だけ、虹色に光る枠（ゲーミングデバイス風）で包む。
+              return isNearest ? (
+                <div key={ev.key} className="pt-rainbow-border" style={{ borderRadius: 17, padding: 2 }}>
+                  {card}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {isNearest && (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        fontSize: 9.5,
-                        fontWeight: 700,
-                        color: colors.white,
-                        background: colors.primary,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        marginBottom: 5,
-                      }}
-                    >
-                      いちばん近い開催
-                    </span>
-                  )}
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {ev.name}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 11, color: "#877FA0" }}>
-                    <CalendarIcon size={12} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.date}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, color: "#877FA0" }}>
-                    <PinIcon />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.venue}</span>
-                  </div>
-                </div>
-              </button>
+              ) : (
+                card
               );
             })}
           </div>
