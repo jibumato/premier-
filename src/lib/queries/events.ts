@@ -206,8 +206,22 @@ export function useSetEventImage() {
   return useMutation({
     mutationFn: async ({ eventId, imageUrl }: { eventId: string; imageUrl: string | null }) => {
       const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.from("events").update({ image_url: imageUrl }).eq("id", eventId);
+      // .select() で更新できた行を返してもらう。RLS で更新が許可されていないと
+      // Postgres はエラーではなく「0行更新」になり、error は null のまま成功扱いに
+      // なってしまう（＝設定しても何も変わらない）。0行なら明示的にエラーにして、
+      // 運営に「マイグレーション0044（events_admin_update）未適用 or 運営権限なし」を
+      // 気づけるようにする。
+      const { data, error } = await supabase
+        .from("events")
+        .update({ image_url: imageUrl })
+        .eq("id", eventId)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          "サムネイルを更新できませんでした。運営アカウントで、マイグレーション0044（events_admin_update）が適用済みかご確認ください。",
+        );
+      }
     },
     onSuccess: (_d, { eventId }) => {
       qc.invalidateQueries({ queryKey: ["admin_events"] });
