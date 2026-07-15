@@ -49,6 +49,8 @@ export interface AwaseCard {
   title: string;
   work: string;
   tag: string;
+  /** 開催エリア（検索の地域フィルタキーと同じ）。カードにタグ表示する。 */
+  region: string;
   date: string;
   place: string;
   members: string;
