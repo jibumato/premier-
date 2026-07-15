@@ -75,6 +75,10 @@ export function ProfileScreen() {
   const [mockFollowing, setMockFollowing] = useState(false); // プロトタイプ用
   const following = configured ? Boolean(isFollowingQuery.data) : mockFollowing;
   const handleFollow = () => {
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
     if (configured && user && targetId && !isOwnProfile) {
       if (toggleFollow.isPending) return;
       toggleFollow.mutate({ viewerId: user.id, targetId, following });
@@ -112,6 +116,11 @@ export function ProfileScreen() {
   // mode falls back to the demo placeholder text. This prevents a brand-new
   // account from showing another persona's sample bio/name/title.
   const displayName = real ? real.display_name : "澪 / mio";
+  // ハイブリッド公開: 未ログインで他人のプロフィールを見ているとき、個人情報
+  // （本名級の表示名・アイコン・カバー・写真・口コミ）を保護し、登録に誘導する。
+  const signedOut = configured && !user;
+  const maskIdentity = signedOut && !isOwnProfile;
+  const shownName = maskIdentity ? `${displayName.slice(0, 1)}◦◦` : displayName;
   const bio = real ? (real.bio ?? "") : "ファンタジー系と和風がすき。透明感のある世界観で活動中。併せ・撮影のお声がけ歓迎です◎";
   const isVerified = real?.is_verified ?? true;
   // Zoning: show external support links only to an age-verified viewer. When
@@ -146,6 +155,10 @@ export function ProfileScreen() {
   };
 
   const handleMessage = () => {
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
     if (real && user && targetId && !isOwnProfile) {
       if (getOrCreateConversation.isPending) return; // 二重タップ防止
       getOrCreateConversation.mutate(
@@ -196,7 +209,7 @@ export function ProfileScreen() {
           disabled={!canEdit}
           style={{ display: "block", width: "100%", height: 140, padding: 0, border: "none", cursor: canEdit ? "pointer" : "default" }}
         >
-          <ImageSlot radius={0} src={real?.cover_url} />
+          <ImageSlot radius={0} src={maskIdentity ? undefined : real?.cover_url} />
         </button>
         <input ref={coverInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelected("cover_url", e)} style={{ display: "none" }} />
         <button
@@ -266,7 +279,7 @@ export function ProfileScreen() {
               overflow: "hidden",
             }}
           >
-            <ImageSlot circle src={real?.avatar_url} />
+            <ImageSlot circle src={maskIdentity ? undefined : real?.avatar_url} />
           </div>
         </button>
         <input ref={avatarInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelected("avatar_url", e)} style={{ display: "none" }} />
@@ -275,7 +288,7 @@ export function ProfileScreen() {
       {/* identity */}
       <div style={{ padding: "46px 22px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{displayName}</h2>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{shownName}</h2>
           {isVerified ? (
             // 本人確認済エンブレム（アップロード画像）。極小だと文字がつぶれるため、
             // プロフィールでは視認できるサイズで表示する。
@@ -398,6 +411,25 @@ export function ProfileScreen() {
             }}
           >
             プロフィールを編集
+          </button>
+        ) : maskIdentity ? (
+          <button
+            onClick={() => nav("login")}
+            style={{
+              width: "100%",
+              marginTop: 14,
+              border: "none",
+              background: colors.pink,
+              color: colors.white,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "12px 0",
+              borderRadius: 13,
+              cursor: "pointer",
+            }}
+          >
+            登録してフォロー・メッセージ
           </button>
         ) : (
           <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
@@ -653,8 +685,8 @@ export function ProfileScreen() {
         </div>
       )}
 
-      {/* reviews received */}
-      {real && reviewsReceived.data && reviewsReceived.data.count > 0 && (
+      {/* reviews received — 未ログインには口コミ（他ユーザー名を含む）を出さない */}
+      {!maskIdentity && real && reviewsReceived.data && reviewsReceived.data.count > 0 && (
         <div style={{ padding: "26px 22px 0" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <SectionHeading size={15}>受け取ったレビュー</SectionHeading>
@@ -814,6 +846,26 @@ export function ProfileScreen() {
             ← → で並び替え、× で削除。左上のボタンで公開範囲（🌐 全体公開 / 🔒 併せ仲間のみ）を切り替えられます。
           </p>
         )}
+        {maskIdentity ? (
+          <button
+            onClick={() => nav("login")}
+            style={{
+              width: "100%",
+              marginTop: 13,
+              padding: "26px 0",
+              borderRadius: 14,
+              border: `1.5px dashed ${colors.border}`,
+              background: colors.primaryBg5,
+              color: colors.textSecondary,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            🔒 登録して写真を見る
+          </button>
+        ) : (
         <div
           style={{
             display: "grid",
@@ -953,14 +1005,17 @@ export function ProfileScreen() {
             ))
           )}
         </div>
+        )}
         <input ref={postInputRef} type="file" accept="image/*" onChange={handleAddPost} style={{ display: "none" }} />
 
         {/* report — only meaningful for another user's profile */}
         <button
           onClick={() =>
-            real && targetId && !isOwnProfile
-              ? openReport({ type: "user", id: targetId, userId: targetId })
-              : nav("report")
+            signedOut
+              ? nav("login")
+              : real && targetId && !isOwnProfile
+                ? openReport({ type: "user", id: targetId, userId: targetId })
+                : nav("report")
           }
           style={{
             display: "flex",

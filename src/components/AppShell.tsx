@@ -45,7 +45,7 @@ import { OnboardWorksScreen } from "./screens/OnboardWorksScreen";
 import { OnboardVerifyScreen } from "./screens/OnboardVerifyScreen";
 import { PhotographerProfileScreen } from "./screens/PhotographerProfileScreen";
 import { LoginScreen } from "./LoginScreen";
-import { isPublicScreen } from "@/lib/auth/publicScreens";
+import { isPublicView } from "@/lib/auth/publicScreens";
 import type { Screen } from "@/lib/types";
 
 const screens: Record<Screen, () => React.ReactElement> = {
@@ -104,12 +104,12 @@ function FramedApp() {
   // can browse; the login form (chromeless) only appears when they reach a
   // protected screen or an account is suspended.
   const { user, loading, configured } = useAuth();
-  const { screen } = useRouter();
+  const { screen, selectedProfileId } = useRouter();
   const profile = useProfile(configured ? user?.id : undefined);
   const showingLoginForm =
     configured &&
     !loading &&
-    ((!user && !isPublicScreen(screen)) || Boolean(profile.data?.is_suspended));
+    ((!user && !isPublicView(screen, selectedProfileId)) || Boolean(profile.data?.is_suspended));
 
   return (
     <PhoneFrame forceChromeless={showingLoginForm}>

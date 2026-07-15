@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useProfile } from "@/lib/queries/profile";
 import { useRouter } from "./AppRouter";
-import { isPublicScreen } from "@/lib/auth/publicScreens";
+import { isPublicView } from "@/lib/auth/publicScreens";
 import { LoginScreen } from "./LoginScreen";
 import { SuspendedScreen } from "./SuspendedScreen";
 
@@ -27,7 +27,7 @@ import { SuspendedScreen } from "./SuspendedScreen";
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading, configured } = useAuth();
-  const { screen } = useRouter();
+  const { screen, selectedProfileId } = useRouter();
   const profile = useProfile(configured ? user?.id : undefined);
 
   if (!configured) return <>{children}</>;
@@ -36,6 +36,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return <SuspendedScreen reason={profile.data.suspension_reason} />;
   }
   // 未ログインでも公開画面はそのまま見せる。登録が必要な画面だけログインに差し替える。
-  if (!user && !isPublicScreen(screen)) return <LoginScreen />;
+  if (!user && !isPublicView(screen, selectedProfileId)) return <LoginScreen />;
   return <>{children}</>;
 }
