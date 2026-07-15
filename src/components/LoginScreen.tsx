@@ -10,6 +10,27 @@ import { PrivacyContent } from "./PrivacyContent";
 
 type Mode = "signIn" | "signUp";
 
+/** ログイン/新規登録画面に載せる、運営からのメッセージ（続き部分）。 */
+const FOUNDER_MESSAGE_REST = `シャッターを切ってくれる人。
+一緒に作品を作ってくれる人。
+イベントで笑い合える仲間。
+
+そんな出会いがあるから、この趣味はもっと楽しくなる。
+
+でも、
+「初めて声をかけるのは少し不安。」
+「安心できる相手と出会いたい。」
+
+そんな気持ちに応えたくて、プルミエ！を作りました。
+
+誰かと比べる場所ではなく、
+「好き」がきっかけで自然につながれる場所へ。
+
+あなたの次の作品も、その先の思い出も、
+素敵な出会いから始まりますように。
+
+好きでつながる。プルミエ！`;
+
 /** Supabase 認証エラーを日本語の分かりやすい文言に変換。未知のものは実メッセージを添える。 */
 function friendlyAuthError(e: unknown, mode: Mode): string {
   const err = e as { message?: string; code?: string; status?: number; name?: string };
@@ -68,6 +89,18 @@ export function LoginScreen() {
   const [agreed, setAgreed] = useState(false);
   // Which legal doc the overlay is showing (LoginScreen lives outside the router).
   const [overlay, setOverlay] = useState<null | "terms" | "privacy">(null);
+  // 運営からのメッセージ（続き）の開閉。新規登録に切り替えたときは自動で開く
+  // （出会いへのワクワク感を最初の一歩で伝えたいので）。ログイン時は閉じておく。
+  const [showMessage, setShowMessage] = useState(false);
+
+  const switchMode = () => {
+    const nextMode: Mode = mode === "signIn" ? "signUp" : "signIn";
+    setMode(nextMode);
+    setError(null);
+    setSignedUpNotice(false);
+    setAgreed(false);
+    setShowMessage(nextMode === "signUp");
+  };
 
   const submit = async () => {
     setError(null);
@@ -134,6 +167,61 @@ export function LoginScreen() {
             ? "メールアドレスでログインしてください。"
             : "メールアドレスでアカウントを作成します。"}
         </p>
+      </div>
+
+      {/* 運営からのメッセージ — 出会いへのワクワク感を伝える一枚。新規登録に
+          切り替えたときは自動で開く（switchMode 参照）。ログイン時は閉じたまま
+          でも冒頭の一行だけは常に見えるようにしてある。 */}
+      <div style={{ padding: "20px 22px 0" }}>
+        <div
+          style={{
+            borderRadius: 18,
+            padding: "18px 18px",
+            background: "linear-gradient(150deg,#6D5DAB,#4C3E82)",
+            color: colors.white,
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, letterSpacing: ".02em" }}>
+            運営からのメッセージ
+          </div>
+          <p style={{ margin: "9px 0 0", fontSize: 15, fontWeight: 700, lineHeight: 1.6 }}>
+            コスプレって、一人じゃ完成しない。
+          </p>
+          {showMessage && (
+            <p
+              style={{
+                margin: "12px 0 0",
+                paddingTop: 12,
+                borderTop: "1px solid rgba(255,255,255,.22)",
+                fontSize: 12.5,
+                lineHeight: 2,
+                color: "rgba(255,255,255,.94)",
+                whiteSpace: "pre-line",
+              }}
+            >
+              {FOUNDER_MESSAGE_REST}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowMessage((v) => !v)}
+            aria-expanded={showMessage}
+            style={{
+              marginTop: 12,
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 700,
+              color: "rgba(255,255,255,.94)",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            {showMessage ? "閉じる" : "続きを読む"}
+          </button>
+        </div>
       </div>
 
       <div style={{ padding: "26px 22px 0", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -249,12 +337,7 @@ export function LoginScreen() {
 
       <div style={{ padding: "16px 22px 30px", textAlign: "center", marginTop: "auto" }}>
         <button
-          onClick={() => {
-            setMode((m) => (m === "signIn" ? "signUp" : "signIn"));
-            setError(null);
-            setSignedUpNotice(false);
-            setAgreed(false);
-          }}
+          onClick={switchMode}
           style={{ background: "none", border: "none", fontFamily: "inherit", fontSize: 12.5, color: colors.textMutedAlt, cursor: "pointer" }}
         >
           {mode === "signIn" ? "アカウントをお持ちでない方はこちら" : "すでにアカウントをお持ちの方はこちら"}
