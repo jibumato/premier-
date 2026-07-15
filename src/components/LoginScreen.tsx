@@ -10,27 +10,6 @@ import { PrivacyContent } from "./PrivacyContent";
 
 type Mode = "signIn" | "signUp";
 
-/** ログイン/新規登録画面に載せる、運営からのメッセージ（続き部分）。 */
-const FOUNDER_MESSAGE_REST = `シャッターを切ってくれる人。
-一緒に作品を作ってくれる人。
-イベントで笑い合える仲間。
-
-そんな出会いがあるから、この趣味はもっと楽しくなる。
-
-でも、
-「初めて声をかけるのは少し不安。」
-「安心できる相手と出会いたい。」
-
-そんな気持ちに応えたくて、プルミエ！を作りました。
-
-誰かと比べる場所ではなく、
-「好き」がきっかけで自然につながれる場所へ。
-
-あなたの次の作品も、その先の思い出も、
-素敵な出会いから始まりますように。
-
-好きでつながる。プルミエ！`;
-
 /** Supabase 認証エラーを日本語の分かりやすい文言に変換。未知のものは実メッセージを添える。 */
 function friendlyAuthError(e: unknown, mode: Mode): string {
   const err = e as { message?: string; code?: string; status?: number; name?: string };
@@ -169,59 +148,63 @@ export function LoginScreen() {
         </p>
       </div>
 
-      {/* 運営からのメッセージ — 出会いへのワクワク感を伝える一枚。新規登録に
-          切り替えたときは自動で開く（switchMode 参照）。ログイン時は閉じたまま
-          でも冒頭の一行だけは常に見えるようにしてある。 */}
+      {/* 運営からのメッセージ — 出会いへのワクワク感を伝える一枚（運営制作の画像）。
+          新規登録に切り替えたときは自動で開く（switchMode 参照）。ログイン時は
+          閉じたまま、短いカードから「続きを読む」で開ける。 */}
       <div style={{ padding: "20px 22px 0" }}>
-        <div
-          style={{
-            borderRadius: 18,
-            padding: "18px 18px",
-            background: "linear-gradient(150deg,#6D5DAB,#4C3E82)",
-            color: colors.white,
-          }}
-        >
-          <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, letterSpacing: ".02em" }}>
-            運営からのメッセージ
-          </div>
-          <p style={{ margin: "9px 0 0", fontSize: 15, fontWeight: 700, lineHeight: 1.6 }}>
-            コスプレって、一人じゃ完成しない。
-          </p>
-          {showMessage && (
-            <p
+        {showMessage ? (
+          <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/founder-message.png"
+              alt="運営からのメッセージ：コスプレって、一人じゃ完成しない。好きでつながる、プルミエ！"
+              style={{ width: "100%", height: "auto", borderRadius: 18, display: "block" }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowMessage(false)}
+              aria-expanded={showMessage}
               style={{
-                margin: "12px 0 0",
-                paddingTop: 12,
-                borderTop: "1px solid rgba(255,255,255,.22)",
-                fontSize: 12.5,
-                lineHeight: 2,
-                color: "rgba(255,255,255,.94)",
-                whiteSpace: "pre-line",
+                display: "block",
+                margin: "10px auto 0",
+                background: "none",
+                border: "none",
+                fontFamily: "inherit",
+                fontSize: 12,
+                fontWeight: 700,
+                color: colors.textMutedAlt,
+                textDecoration: "underline",
+                cursor: "pointer",
               }}
             >
-              {FOUNDER_MESSAGE_REST}
-            </p>
-          )}
+              閉じる
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={() => setShowMessage((v) => !v)}
+            onClick={() => setShowMessage(true)}
             aria-expanded={showMessage}
             style={{
-              marginTop: 12,
-              background: "none",
-              border: "none",
-              padding: 0,
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: 700,
-              color: "rgba(255,255,255,.94)",
-              textDecoration: "underline",
+              width: "100%",
+              textAlign: "left",
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 14,
+              padding: "14px 16px",
+              background: colors.primaryBg5,
               cursor: "pointer",
+              fontFamily: "inherit",
             }}
           >
-            {showMessage ? "閉じる" : "続きを読む"}
+            <div style={{ fontSize: 11, fontWeight: 700, color: colors.primary, letterSpacing: ".02em" }}>
+              運営からのメッセージ
+            </div>
+            <div style={{ marginTop: 6, fontSize: 14, fontWeight: 700, lineHeight: 1.6, color: colors.textPrimary }}>
+              コスプレって、一人じゃ完成しない。
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: colors.primary }}>続きを読む →</div>
           </button>
-        </div>
+        )}
       </div>
 
       <div style={{ padding: "26px 22px 0", display: "flex", flexDirection: "column", gap: 14 }}>
