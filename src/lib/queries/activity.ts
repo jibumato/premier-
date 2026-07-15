@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -11,6 +11,12 @@ export interface ActivityEvent {
   headline: string;
   createdAt: string;
 }
+
+export const ACTIVITY_KIND_LABELS: Record<ActivityEvent["kind"], string> = {
+  awase_created: "併せ募集",
+  review_posted: "レビュー",
+  event_rsvp: "参加表明",
+};
 
 /**
  * ホームの「最近のうごき」ティッカー用。併せの新規募集・レビュー投稿・イベント
@@ -102,5 +108,75 @@ export function useTodayStats() {
       if (rsvpRes.error) throw rsvpRes.error;
       return { newAwase: awaseRes.count ?? 0, newRsvps: rsvpRes.count ?? 0 };
     },
+  });
+}
+
+// =============================================================================
+// 運営（is_admin）向け: 「最近のうごき」の一覧・個別削除・古い行の一括整理。
+// 削除は RLS で is_admin() に限定（0047）。行の内容自体はトリガー生成のみで
+// 運営でも書き換えできない（insert/update ポリシーは無い）。
+// =============================================================================
+
+/** 管理画面用: 直近の行を新しい順で取得（公開側より多めに、最大100件）。 */
+export function useAdminActivity(enabled: boolean, limit = 100) {
+  return useQuery({
+    queryKey: ["admin_activity_events", limit],
+    enabled: isSupabaseConfigured() && enabled,
+    queryFn: async (): Promise<ActivityEvent[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("activity_events")
+        .select("id, kind, headline, created_at")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return ((data ?? []) as { id: string; kind: string; headline: string; created_at: string }[]).map((r) => ({
+        id: r.id,
+        kind: r.kind as ActivityEvent["kind"],
+        headline: r.headline,
+        createdAt: r.created_at,
+      }));
+    },
+  });
+}
+
+function invalidateActivity(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["admin_activity_events"] });
+  qc.invalidateQueries({ queryKey: ["activity_events"] });
+}
+
+/** 個別の行を削除（誤った/不適切な見出しの削除用）。 */
+export function useDeleteActivityEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.from("activity_events").delete().eq("id", id).select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("削除できませんでした。マイグレーション0047の適用をご確認ください。");
+      }
+    },
+    onSuccess: () => invalidateActivity(qc),
+  });
+}
+
+/** 指定日数より古い行をまとめて削除（表の肥大化対策）。削除件数を返す。 */
+export function useCleanupOldActivity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ olderThanDays }: { olderThanDays: number }): Promise<number> => {
+      const supabase = getSupabaseBrowserClient();
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - olderThanDays);
+      const { data, error } = await supabase
+        .from("activity_events")
+        .delete()
+        .lt("created_at", cutoff.toISOString())
+        .select("id");
+      if (error) throw error;
+      return data?.length ?? 0;
+    },
+    onSuccess: () => invalidateActivity(qc),
   });
 }

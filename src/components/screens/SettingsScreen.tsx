@@ -167,7 +167,8 @@ export function SettingsScreen() {
           <LinkRow title="本人確認の承認" onClick={() => nav("adminVerify")} />
           <LinkRow title="トップのピックアップ管理" onClick={() => nav("adminPickups")} />
           <LinkRow title="イベントのサムネイル管理" onClick={() => nav("adminEvents")} />
-          <LinkRow title="要望の管理" onClick={() => nav("adminFeedback")} last />
+          <LinkRow title="要望の管理" onClick={() => nav("adminFeedback")} />
+          <LinkRow title="最近のうごきの管理" onClick={() => nav("adminActivity")} last />
         </Group>
       )}
 

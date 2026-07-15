@@ -31,6 +31,7 @@ export type Screen =
   | "adminPickups"
   | "adminEvents"
   | "adminFeedback"
+  | "adminActivity"
   | "feedback"
   | "corporate"
   | "verify"
