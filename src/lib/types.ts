@@ -32,6 +32,7 @@ export type Screen =
   | "adminEvents"
   | "adminFeedback"
   | "adminActivity"
+  | "adminAnnouncements"
   | "feedback"
   | "corporate"
   | "verify"

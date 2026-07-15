@@ -85,6 +85,9 @@ select
   (select exists(select 1 from pg_policies
      where tablename='activity_events' and policyname='activity_events_admin_delete'))
                                                          as activity_events_admin, -- false → 0047 未適用（うごきを運営画面から管理）
+  (select exists(select 1 from pg_policies
+     where tablename='announcements' and policyname='announcements_admin_insert'))
+                                                         as announcements_admin,   -- false → 0048 未適用（お知らせを運営画面から管理）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -124,6 +127,7 @@ select
 - `feedback_table` が `false` → **ステップ 2ag**（0045・運営へ要望フォーム）
 - `activity_events_table` が `false` → **ステップ 2ah**（0046・ホームのにぎわい）
 - `activity_events_admin` が `false` → **ステップ 2ai**（0047・うごきを運営画面から管理）
+- `announcements_admin` が `false` → **ステップ 2aj**（0048・お知らせを運営画面から管理）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -767,6 +771,27 @@ SQL を書かずにこの画面から行えます。
 - 追加された RLS は `activity_events` の **delete だけ**を `is_admin()` に
   開放するもので、行の内容（見出し文）は引き続きトリガー生成のみ・
   運営でも書き換えはできません。
+
+冪等ではないため（`create policy`）、既に適用済みなら実行不要です。再実行すると
+「policy already exists」エラーになりますが無害です。
+
+---
+
+## ☐ ステップ 2aj: お知らせを運営画面から管理（マイグレーション 0048）
+
+`announcements_admin` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0048_announcements_admin.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 運営アカウントが、アプリの**設定 → 運営 → 「お知らせの管理」**から
+お知らせ・更新履歴を**投稿・編集・削除**できるようになります。これまで
+SQL Editor から `insert into announcements ...` していた作業が、SQLを書かずに
+画面から行えるようになります（種別は お知らせ／アップデート／メンテナンス）。
+
+- 投稿するとホームの最新1件と「お知らせ・更新履歴」画面に即反映されます。
+- 追加された RLS は `announcements` の insert/update/delete を `is_admin()` に
+  限定するもので、閲覧は従来どおり全員可のままです。
 
 冪等ではないため（`create policy`）、既に適用済みなら実行不要です。再実行すると
 「policy already exists」エラーになりますが無害です。

@@ -30,6 +30,7 @@ import { AdminPickupsScreen } from "./screens/AdminPickupsScreen";
 import { AdminEventsScreen } from "./screens/AdminEventsScreen";
 import { AdminFeedbackScreen } from "./screens/AdminFeedbackScreen";
 import { AdminActivityScreen } from "./screens/AdminActivityScreen";
+import { AdminAnnouncementsScreen } from "./screens/AdminAnnouncementsScreen";
 import { FeedbackScreen } from "./screens/FeedbackScreen";
 import { CorporateScreen } from "./screens/CorporateScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
@@ -69,6 +70,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   adminEvents: AdminEventsScreen,
   adminFeedback: AdminFeedbackScreen,
   adminActivity: AdminActivityScreen,
+  adminAnnouncements: AdminAnnouncementsScreen,
   feedback: FeedbackScreen,
   corporate: CorporateScreen,
   verify: VerifyScreen,
