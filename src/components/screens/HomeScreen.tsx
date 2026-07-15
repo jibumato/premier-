@@ -6,6 +6,7 @@ import {
   homeAwase,
   homePosts,
   mockActivity,
+  mockLoungePosts,
   mockTrendingWorks,
   popularWorks,
   siteTagline,
@@ -19,6 +20,7 @@ import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAnnouncements } from "@/lib/queries/announcements";
 import { useRecentActivity, useTodayStats, useTrendingWorks } from "@/lib/queries/activity";
+import { useLoungePosts } from "@/lib/queries/lounge";
 import { usePresenceCount } from "@/lib/queries/presence";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -92,6 +94,10 @@ export function HomeScreen() {
     : beginnerFromMock.length
       ? beginnerFromMock
       : homeAwase.slice(0, 4);
+
+  // 談話室 — トップページのプレビュー（最新4件）。全件・投稿・削除・通報は lounge 画面で行う。
+  const loungeQuery = useLoungePosts(moderation.data, 4);
+  const loungePreview = configured ? (loungeQuery.data ?? []) : mockLoungePosts.slice(0, 4);
 
   return (
     <div>
@@ -343,6 +349,96 @@ export function HomeScreen() {
           </div>
         </div>
       )}
+
+      {/* 談話室 — 誰でも気軽に投稿できる交流の場（プレビュー） */}
+      <div style={{ padding: "18px 0 0" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 22px",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>談話室</div>
+          <button
+            onClick={() => nav("lounge")}
+            style={{
+              border: "none",
+              background: "none",
+              color: colors.primary,
+              fontFamily: "inherit",
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            もっと見る →
+          </button>
+        </div>
+        <div style={{ padding: "10px 22px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+          {loungePreview.length === 0 && (
+            <div style={{ fontSize: 12, color: colors.textMutedAlt, padding: "4px 2px" }}>
+              まだ投稿がありません。最初のひとことを書いてみましょう。
+            </div>
+          )}
+          {loungePreview.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => nav("lounge")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                border: `1px solid ${colors.borderSoft}`,
+                borderRadius: 14,
+                padding: "11px 13px",
+                background: colors.white,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                textAlign: "left",
+                width: "100%",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: colors.textPrimary }}>{p.authorName}</span>
+                <span style={{ fontSize: 10, color: colors.textMutedAlt }}>{p.time}</span>
+              </div>
+              <span
+                style={{
+                  fontSize: 12.5,
+                  color: colors.textSecondary,
+                  lineHeight: 1.6,
+                  overflow: "hidden",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                }}
+              >
+                {p.body}
+              </span>
+            </button>
+          ))}
+          <button
+            onClick={() => nav("lounge")}
+            style={{
+              border: `1px dashed ${colors.borderSoft}`,
+              borderRadius: 14,
+              padding: "11px 13px",
+              background: colors.primaryBg5,
+              color: colors.textMutedAlt,
+              fontFamily: "inherit",
+              fontSize: 12,
+              cursor: "pointer",
+              textAlign: "left",
+              width: "100%",
+            }}
+          >
+            いま思っていることを投稿する…
+          </button>
+        </div>
+      </div>
 
       {/* feature shortcuts */}
       <div style={{ display: "flex", gap: 10, padding: "16px 22px 0" }}>

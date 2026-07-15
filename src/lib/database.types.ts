@@ -507,6 +507,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["feedback"]["Insert"]>;
         Relationships: [];
       };
+      lounge_posts: {
+        Row: {
+          id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["lounge_posts"]["Insert"]>;
+        Relationships: [];
+      };
       verification_requests: {
         Row: {
           id: string;
@@ -689,6 +705,10 @@ export interface Database {
       };
       admin_delete_qa_question: {
         Args: { p_question_id: string };
+        Returns: undefined;
+      };
+      admin_delete_lounge_post: {
+        Args: { p_post_id: string };
         Returns: undefined;
       };
       admin_delete_qa_answer: {

@@ -56,6 +56,14 @@ export const mockTrendingWorks = [
   { key: "tw4", name: "呪術廻戦", count: 3 },
 ];
 
+/** 談話室のモック投稿（プレビュー環境のみ）。実データは lounge_posts（0050）から取得する。 */
+export const mockLoungePosts = [
+  { key: "lp1", authorId: "u_mio", authorName: "澪 / mio", authorAvatarUrl: null, body: "初めての併せ、緊張するけど楽しみ！みなさんよろしくお願いします〜", time: "5分前" },
+  { key: "lp2", authorId: "u_kana", authorName: "かな", authorAvatarUrl: null, body: "今日のスタジオ撮影、光の入り方が最高でした✨", time: "22分前" },
+  { key: "lp3", authorId: "u_ren", authorName: "レン", authorAvatarUrl: null, body: "ウィッグのセット、良いスプレーがあれば教えてほしいです", time: "1時間前" },
+  { key: "lp4", authorId: "u_hina", authorName: "ひな", authorAvatarUrl: null, body: "次のイベント、楽しみにしてる方いますか？", time: "3時間前" },
+];
+
 /** Region filter options (major Japanese cosplay-event cities). */
 export const regions = [
   "すべて",
