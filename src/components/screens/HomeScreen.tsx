@@ -500,7 +500,10 @@ export function HomeScreen() {
             </SectionHeading>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px 22px 0" }}>
-            {homeEvents.map((ev) => (
+            {homeEvents.map((ev, i) => {
+              // 先頭が最も直近（starts_on 昇順・過去除外済み）。1枚だけハイライトする。
+              const isNearest = i === 0;
+              return (
               <button
                 key={ev.key}
                 onClick={() => (eventsReal ? openEvent(ev.key) : nav("eventDetail"))}
@@ -508,10 +511,11 @@ export function HomeScreen() {
                   display: "flex",
                   gap: 13,
                   alignItems: "center",
-                  border: `1px solid ${colors.borderSoft}`,
+                  border: isNearest ? `1.5px solid ${colors.primary}` : `1px solid ${colors.borderSoft}`,
                   borderRadius: 16,
-                  padding: 13,
-                  background: colors.white,
+                  padding: isNearest ? 12.5 : 13,
+                  background: isNearest ? colors.primaryBg5 : colors.white,
+                  boxShadow: isNearest ? "0 4px 14px rgba(109,93,171,.14)" : "none",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "left",
@@ -527,6 +531,22 @@ export function HomeScreen() {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
+                  {isNearest && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        color: colors.white,
+                        background: colors.primary,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        marginBottom: 5,
+                      }}
+                    >
+                      いちばん近い開催
+                    </span>
+                  )}
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {ev.name}
                   </div>
@@ -540,7 +560,8 @@ export function HomeScreen() {
                   </div>
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
