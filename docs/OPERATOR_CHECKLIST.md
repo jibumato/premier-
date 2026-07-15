@@ -71,6 +71,8 @@ select
      where table_name='works' and column_name='reading')) as works_reading,        -- false → 0040 未適用（作品のあいうえお順）
   (select to_regprocedure('public.notify_on_follow()') is not null)
                                                          as follow_notify,         -- false → 0041 未適用（フォロー通知）
+  (select to_regprocedure('public.sync_role_assignment()') is not null)
+                                                         as role_assignment,       -- false → 0042 未適用（希望キャラの自動確定）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -104,6 +106,7 @@ select
 - `awase_schedule` が `false` → **ステップ 2aa**（0039・併せの日程調整）
 - `works_reading` が `false` → **ステップ 2ab**（0040・作品をあいうえお順に）
 - `follow_notify` が `false` → **ステップ 2ac**（0041・フォロー機能の通知）
+- `role_assignment` が `false` → **ステップ 2ad**（0042・希望キャラの承認で自動確定）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -605,6 +608,24 @@ insert into home_pickups (image_url, caption, sort) values
   `profiles.is_private` へ保存されるようになりました（ONにするとプロフィールが
   本人とフォロワー以外から見えなくなります）。DB側は 0001 実装済みのため
   マイグレーション不要です。
+
+---
+
+## ☐ ステップ 2ad: 希望キャラの承認で自動確定（マイグレーション 0042）
+
+`role_assignment` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0042_role_assignment.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 応募時に選んだ「希望キャラ」（`awase_applications.role_id`）が、主催の
+**承認で自動的に担当キャラとして確定**します（`awase_roles` の担当者・状態を更新）。
+承認を外す（辞退/差し戻し）と枠が解放されます。トリガーのみで、
+`role_id`・`awase_roles` は 0001 実装済み。
+
+- **未適用でも壊れません**：応募時の希望キャラ選択・主催の一覧での希望表示や
+  かぶり警告は動きます（承認しても担当キャラが自動確定しないだけ）。
+- 応募側UI（希望キャラ選択）・主催側UI（希望表示・かぶり警告）にはマイグレーション不要。
 
 ---
 

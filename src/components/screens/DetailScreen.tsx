@@ -140,6 +140,7 @@ export function DetailScreen() {
   };
 
   const [confirmApply, setConfirmApply] = useState(false);
+  const [applyRoleId, setApplyRoleId] = useState<string | null>(null); // 応募時の希望キャラ
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const [eTitle, setETitle] = useState("");
@@ -191,7 +192,7 @@ export function DetailScreen() {
     }
     if (apply.isPending) return;
     apply.mutate(
-      { awaseId: real.id, applicantId: user.id },
+      { awaseId: real.id, applicantId: user.id, roleId: applyRoleId },
       {
         onSuccess: () => nav("applied"),
         onError: (e) => {
@@ -870,7 +871,7 @@ export function DetailScreen() {
                 <PrimaryButton onClick={() => nav("verify")}>本人確認をして応募する</PrimaryButton>
               </div>
             ) : (
-              <PrimaryButton onClick={() => setConfirmApply(true)} style={{ marginTop: 22 }}>
+              <PrimaryButton onClick={() => { setApplyRoleId(null); setConfirmApply(true); }} style={{ marginTop: 22 }}>
                 この併せに応募する
               </PrimaryButton>
             )}
@@ -954,15 +955,94 @@ export function DetailScreen() {
         </p>
       </div>
 
-      {/* apply confirmation — avoids accidental taps */}
+      {/* apply confirmation — 希望キャラ選択つき（キャラ登録済みの併せのみ） */}
       {confirmApply && (
-        <ConfirmDialog
-          title="この併せに応募しますか？"
-          body="主催者にあなたのプロフィールが通知されます。"
-          confirmLabel="応募する"
-          onConfirm={handleApply}
-          onCancel={() => setConfirmApply(false)}
-        />
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 95, background: "rgba(20,14,28,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 22 }}
+          onClick={() => setConfirmApply(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 380, maxHeight: "84vh", overflowY: "auto", background: colors.white, borderRadius: 18, padding: "22px 20px 20px" }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary }}>この併せに応募しますか？</div>
+            <div style={{ fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.7, marginTop: 8 }}>
+              主催者にあなたのプロフィールが通知されます。
+            </div>
+
+            {roles.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>希望キャラ（任意）</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                  {roles.map((ro) => {
+                    const taken = ro.status === "確定";
+                    const on = applyRoleId === ro.key;
+                    return (
+                      <button
+                        key={ro.key}
+                        type="button"
+                        disabled={taken}
+                        onClick={() => setApplyRoleId(on ? null : ro.key)}
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: on ? 700 : 500,
+                          color: taken ? colors.textMutedSoft : on ? colors.white : colors.textSecondary,
+                          background: on ? colors.primary : colors.white,
+                          border: `1px solid ${on ? colors.primary : colors.border}`,
+                          padding: "8px 13px",
+                          borderRadius: 999,
+                          cursor: taken ? "not-allowed" : "pointer",
+                          fontFamily: "inherit",
+                          opacity: taken ? 0.55 : 1,
+                        }}
+                      >
+                        {ro.char}
+                        {taken ? "（確定済み）" : ""}
+                      </button>
+                    );
+                  })}
+                  {/* 相談して決める＝希望なし */}
+                  <button
+                    type="button"
+                    onClick={() => setApplyRoleId(null)}
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: applyRoleId === null ? 700 : 500,
+                      color: applyRoleId === null ? colors.white : colors.textSecondary,
+                      background: applyRoleId === null ? colors.primary : colors.white,
+                      border: `1px solid ${applyRoleId === null ? colors.primary : colors.border}`,
+                      padding: "8px 13px",
+                      borderRadius: 999,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    相談して決める
+                  </button>
+                </div>
+                <div style={{ fontSize: 10.5, color: colors.textMutedSoft, marginTop: 8, lineHeight: 1.6 }}>
+                  承認されると希望キャラが確定します。細かい希望はメッセージで相談できます。
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+              <button
+                onClick={() => setConfirmApply(false)}
+                style={{ flex: 1, border: `1px solid ${colors.border}`, background: colors.white, color: colors.textSecondary, fontFamily: "inherit", fontSize: 13, fontWeight: 600, padding: "12px 0", borderRadius: 12, cursor: "pointer" }}
+              >
+                やめる
+              </button>
+              <button
+                onClick={handleApply}
+                disabled={apply.isPending}
+                style={{ flex: 2, border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13, fontWeight: 700, padding: "12px 0", borderRadius: 12, cursor: "pointer", opacity: apply.isPending ? 0.6 : 1 }}
+              >
+                {apply.isPending ? "応募中…" : "応募する"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* delete confirmation (host) */}

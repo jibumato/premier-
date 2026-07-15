@@ -475,15 +475,24 @@ export function useSetAwaseRoles() {
   });
 }
 
-/** Apply to an awase (detail screen's 応募する button). */
+/** Apply to an awase (detail screen's 応募する button).
+ * roleId: 希望キャラ（awase_roles.id）。任意（未指定は「相談して決める」）。 */
 export function useApply() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ awaseId, applicantId }: { awaseId: string; applicantId: string }) => {
+    mutationFn: async ({
+      awaseId,
+      applicantId,
+      roleId,
+    }: {
+      awaseId: string;
+      applicantId: string;
+      roleId?: string | null;
+    }) => {
       const supabase = getSupabaseBrowserClient();
       const { error } = await supabase
         .from("awase_applications")
-        .insert({ awase_id: awaseId, applicant_id: applicantId });
+        .insert({ awase_id: awaseId, applicant_id: applicantId, role_id: roleId ?? null });
       if (error) throw error;
     },
     onSuccess: (_d, { awaseId, applicantId }) => {
@@ -547,6 +556,8 @@ export interface Applicant {
   message: string;
   status: ApplicationStatus;
   createdAt: string;
+  /** 応募者が選んだ希望キャラ（awase_roles.id）。未選択なら null。 */
+  roleId: string | null;
 }
 
 /** Applicants to an awase, newest first — for the host's 応募者管理 screen
@@ -561,13 +572,14 @@ export function useAwaseApplicants(awaseId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("awase_applications")
-        .select("id, applicant_id, message, status, created_at, profiles(display_name, avatar_url, is_verified)")
+        .select("id, applicant_id, role_id, message, status, created_at, profiles(display_name, avatar_url, is_verified)")
         .eq("awase_id", awaseId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       type Row = {
         id: string;
         applicant_id: string;
+        role_id: string | null;
         message: string | null;
         status: ApplicationStatus;
         created_at: string;
@@ -582,6 +594,7 @@ export function useAwaseApplicants(awaseId: string | null) {
         message: r.message ?? "",
         status: r.status,
         createdAt: r.created_at,
+        roleId: r.role_id,
       }));
     },
   });

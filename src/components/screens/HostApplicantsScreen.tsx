@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
@@ -11,6 +11,7 @@ import {
   useAwase,
   useAwaseApplicants,
   useAwaseApplicantCount,
+  useAwaseRoles,
   useUpdateApplicationStatus,
   useSetAwaseStatus,
   type ApplicationStatus,
@@ -21,11 +22,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /** Mock applicants so the screen is meaningful in prototype/mock mode. */
 const mockApplicants: Applicant[] = [
-  { id: "m1", applicantId: "u1", displayName: "澪 / mio", avatarUrl: null, isVerified: true, message: "フリーレン役で参加したいです！経験ありますので当日よろしくお願いします。", status: "applied", createdAt: "" },
-  { id: "m2", applicantId: "u2", displayName: "ひなた", avatarUrl: null, isVerified: false, message: "はじめまして。初心者ですが精一杯がんばります◎", status: "accepted", createdAt: "" },
-  { id: "m3", applicantId: "u3", displayName: "さく", avatarUrl: null, isVerified: true, message: "カメラマンとして参加希望です。", status: "applied", createdAt: "" },
-  { id: "m4", applicantId: "u4", displayName: "れい", avatarUrl: null, isVerified: false, message: "日程が合わずでした、また今度お願いします。", status: "rejected", createdAt: "" },
+  { id: "m1", applicantId: "u1", displayName: "澪 / mio", avatarUrl: null, isVerified: true, message: "フリーレン役で参加したいです！経験ありますので当日よろしくお願いします。", status: "applied", createdAt: "", roleId: null },
+  { id: "m2", applicantId: "u2", displayName: "ひなた", avatarUrl: null, isVerified: false, message: "はじめまして。初心者ですが精一杯がんばります◎", status: "accepted", createdAt: "", roleId: null },
+  { id: "m3", applicantId: "u3", displayName: "さく", avatarUrl: null, isVerified: true, message: "カメラマンとして参加希望です。", status: "applied", createdAt: "", roleId: null },
+  { id: "m4", applicantId: "u4", displayName: "れい", avatarUrl: null, isVerified: false, message: "日程が合わずでした、また今度お願いします。", status: "rejected", createdAt: "", roleId: null },
 ];
+
+/** 安定参照（configured & 空データ時の再レンダー抑止）。 */
+const EMPTY_APPLICANTS: Applicant[] = [];
 
 const statusChip: Record<ApplicationStatus, { label: string; color: string; bg: string }> = {
   applied: { label: "応募中", color: colors.pinkText, bg: colors.pinkBg1 },
@@ -61,7 +65,11 @@ export function HostApplicantsScreen() {
 
   const real = configured && selectedAwaseId ? awaseQuery.data : undefined;
   const loading = configured && Boolean(selectedAwaseId) && awaseQuery.isPending && !awaseQuery.data;
-  const applicants = real ? (applicantsQuery.data ?? []) : mockApplicants;
+  const applicantsData = applicantsQuery.data;
+  const applicants = useMemo(
+    () => (real ? (applicantsData ?? EMPTY_APPLICANTS) : mockApplicants),
+    [real, applicantsData],
+  );
 
   const title = real?.title ?? "魔法学園シリーズ 生徒会併せ";
   const capacity = real ? real.capacity : 6;
@@ -70,6 +78,21 @@ export function HostApplicantsScreen() {
   const acceptWaitlist = real ? real.accept_waitlist : false;
   const isFull = capacity != null && accepted >= capacity;
   const acceptedList = applicants.filter((a) => a.status === "accepted");
+
+  // 希望キャラ: roleId → キャラ名 のマップと、辞退を除いた希望のかぶり集計
+  const rolesQuery = useAwaseRoles(selectedAwaseId);
+  const roleName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of rolesQuery.data ?? []) m.set(r.key, r.char);
+    return m;
+  }, [rolesQuery.data]);
+  const roleWantCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of applicants) {
+      if (a.roleId && a.status !== "rejected") m.set(a.roleId, (m.get(a.roleId) ?? 0) + 1);
+    }
+    return m;
+  }, [applicants]);
 
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
@@ -328,6 +351,33 @@ export function HostApplicantsScreen() {
                       </button>
                     )}
                   </div>
+
+                  {a.roleId && roleName.has(a.roleId) && (
+                    (() => {
+                      const clash = (roleWantCount.get(a.roleId) ?? 0) > 1 && a.status !== "rejected";
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 9, flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: clash ? colors.pinkText : colors.primary,
+                              background: clash ? colors.pinkBg1 : colors.primaryBg1,
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                            }}
+                          >
+                            希望：{roleName.get(a.roleId)}
+                          </span>
+                          {clash && (
+                            <span style={{ fontSize: 10.5, color: colors.pinkText, fontWeight: 600 }}>
+                              ⚠ 他の応募者と希望がかぶっています
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()
+                  )}
 
                   {a.message && (
                     <p style={{ margin: "10px 0 0", fontSize: 12.5, color: colors.textSecondary, lineHeight: 1.7 }}>
