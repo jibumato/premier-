@@ -21,6 +21,7 @@ export const PUBLIC_SCREENS: ReadonlySet<Screen> = new Set<Screen>([
   "qa",
   "qaDetail",
   "lounge",
+  "summit",
   "announcements",
   "corporate",
   "terms",

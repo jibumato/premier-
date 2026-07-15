@@ -293,6 +293,43 @@ export function HomeScreen() {
         </button>
       </div>
 
+      {/* サミット2026 カウントダウン導線 — 特集ページへ（開催まで everyone に表示） */}
+      {(() => {
+        const daysLeft = Math.ceil((new Date("2026-07-31T00:00:00+09:00").getTime() - Date.now()) / 86_400_000);
+        if (daysLeft < 0) return null;
+        return (
+          <div style={{ padding: "12px 22px 0" }}>
+            <button
+              onClick={() => nav("summit")}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                border: "none",
+                borderRadius: 14,
+                padding: "12px 15px",
+                background: "linear-gradient(135deg,#6D5DAB,#B0538D)",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                textAlign: "left",
+              }}
+            >
+              <span style={{ fontSize: 20, flex: "0 0 auto" }}>🎉</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: colors.white, lineHeight: 1.4 }}>
+                  世界コスプレサミット2026{daysLeft > 0 ? `まであと${daysLeft}日` : " 開催中！"}
+                </span>
+                <span style={{ display: "block", fontSize: 10.5, color: "rgba(255,255,255,.85)", marginTop: 2 }}>
+                  一緒に回る仲間・撮影相手を今から探そう
+                </span>
+              </span>
+              <span style={{ flex: "0 0 auto", fontSize: 12, fontWeight: 700, color: colors.white }}>特集 →</span>
+            </button>
+          </div>
+        );
+      })()}
+
       {/* latest announcement strip — conveys the service is actively operated */}
       {latestAnnouncement && (
         <div style={{ padding: "12px 22px 0" }}>
