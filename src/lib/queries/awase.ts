@@ -60,6 +60,7 @@ function toAwaseCard(row: AwaseRow): AwaseCard {
     title: row.title,
     work: row.works?.name ?? "オリジナル",
     tag: tagFor(row),
+    region: row.region,
     date: row.event_date,
     place: row.place ?? "",
     members: row.capacity ? `定員${row.capacity}名` : "参加者募集中",

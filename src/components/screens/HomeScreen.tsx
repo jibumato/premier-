@@ -339,7 +339,27 @@ export function HomeScreen() {
                 <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {a.work}
                 </div>
-                <div style={{ fontSize: 11, color: colors.textSecondaryAlt, marginTop: 6 }}>{a.date}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, flexWrap: "wrap" }}>
+                  {a.region && (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: colors.primary,
+                        background: colors.primaryBg5,
+                        padding: "2px 8px 2px 6px",
+                        borderRadius: 999,
+                      }}
+                    >
+                      <PinIcon />
+                      {a.region}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 11, color: colors.textSecondaryAlt }}>{a.date}</span>
+                </div>
               </button>
             ))}
           </div>
@@ -456,12 +476,32 @@ export function HomeScreen() {
                 <div
                   style={{
                     display: "flex",
-                    gap: 12,
+                    alignItems: "center",
+                    gap: 8,
                     marginTop: 8,
                     fontSize: 11,
                     color: colors.textSecondaryAlt,
+                    flexWrap: "wrap",
                   }}
                 >
+                  {a.region && (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: colors.primary,
+                        background: colors.primaryBg5,
+                        padding: "3px 8px 3px 6px",
+                        borderRadius: 999,
+                      }}
+                    >
+                      <PinIcon />
+                      {a.region}
+                    </span>
+                  )}
                   <span>{a.date}</span>
                   <span>{a.place}</span>
                 </div>
