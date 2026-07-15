@@ -299,6 +299,37 @@ export function useDeleteQaAnswer() {
   });
 }
 
+/** 運営による質問の強制削除（回答の有無・投稿者に関わらず）。
+ * admin_delete_qa_question RPC は内部で is_admin() を確認する（0035）。 */
+export function useAdminDeleteQaQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ questionId }: { questionId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.rpc("admin_delete_qa_question", { p_question_id: questionId });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["qa_questions"] }),
+  });
+}
+
+/** 運営による回答の強制削除（ベストアンサー・回答者に関わらず）。
+ * admin_delete_qa_answer RPC は内部で is_admin() を確認する（0035）。 */
+export function useAdminDeleteQaAnswer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ answerId }: { answerId: string; questionId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.rpc("admin_delete_qa_answer", { p_answer_id: answerId });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { questionId }) => {
+      qc.invalidateQueries({ queryKey: ["qa_answers", questionId] });
+      qc.invalidateQueries({ queryKey: ["qa_questions"] });
+    },
+  });
+}
+
 /** Marks an answer as the best one — RLS-less RPC that itself checks the
  * caller is the question's author (see mark_best_answer() in the migration). */
 export function useMarkBestAnswer() {

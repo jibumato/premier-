@@ -7,6 +7,8 @@ import { ImageSlot } from "../ImageSlot";
 import { AppBar, PrimaryButton } from "../ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
+  useAdminDeleteQaAnswer,
+  useAdminDeleteQaQuestion,
   useCreateQaAnswer,
   useDeleteQaAnswer,
   useDeleteQaQuestion,
@@ -16,6 +18,7 @@ import {
   useToggleQaLike,
 } from "@/lib/queries/qa";
 import { useModerationFilter } from "@/lib/queries/moderation";
+import { useProfile } from "@/lib/queries/profile";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 interface Answer {
@@ -63,6 +66,10 @@ export function QaDetailScreen() {
   const markBest = useMarkBestAnswer();
   const deleteQuestion = useDeleteQaQuestion();
   const deleteAnswer = useDeleteQaAnswer();
+  const adminDeleteQuestion = useAdminDeleteQaQuestion();
+  const adminDeleteAnswer = useAdminDeleteQaAnswer();
+  const viewerProfile = useProfile(user?.id);
+  const isAdmin = Boolean(configured && viewerProfile.data?.is_admin);
 
   const [mockAnswers, setMockAnswers] = useState(initialAnswers);
   const [draft, setDraft] = useState("");
@@ -133,6 +140,28 @@ export function QaDetailScreen() {
     );
   };
 
+  // 運営による強制削除（回答の有無・投稿者を問わず）。RPCが is_admin() を確認する。
+  const handleAdminDeleteQuestion = () => {
+    if (!selectedQaQuestionId || adminDeleteQuestion.isPending) return;
+    if (!window.confirm("【運営】この質問を回答ごと削除します。よろしいですか？")) return;
+    adminDeleteQuestion.mutate(
+      { questionId: selectedQaQuestionId },
+      {
+        onSuccess: () => back(),
+        onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました"),
+      },
+    );
+  };
+
+  const handleAdminDeleteAnswer = (answerId: string) => {
+    if (!selectedQaQuestionId || adminDeleteAnswer.isPending) return;
+    if (!window.confirm("【運営】この回答を削除します。よろしいですか？")) return;
+    adminDeleteAnswer.mutate(
+      { answerId, questionId: selectedQaQuestionId },
+      { onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました") },
+    );
+  };
+
   const post = () => {
     const text = draft.trim();
     if (!text) return;
@@ -194,6 +223,24 @@ export function QaDetailScreen() {
               }}
             >
               この質問を削除
+            </button>
+          )}
+          {isAdmin && real && !canDeleteQuestion && (
+            <button
+              onClick={handleAdminDeleteQuestion}
+              style={{
+                border: "1px solid #E1B4BA",
+                background: "#FBEBED",
+                color: "#B23543",
+                borderRadius: 999,
+                padding: "5px 12px",
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              運営削除
             </button>
           )}
         </div>
@@ -280,6 +327,25 @@ export function QaDetailScreen() {
                     }}
                   >
                     削除
+                  </button>
+                )}
+                {isAdmin && real && !(user && a.authorId === user.id && !a.best) && (
+                  <button
+                    onClick={() => handleAdminDeleteAnswer(a.key)}
+                    style={{
+                      border: "1px solid #E1B4BA",
+                      background: "#FBEBED",
+                      color: "#B23543",
+                      borderRadius: 999,
+                      padding: "5px 12px",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    運営削除
                   </button>
                 )}
               </div>
