@@ -151,7 +151,8 @@ export function SettingsScreen() {
       <Group title="安全とサポート">
         <LinkRow title="ブロックしたユーザー" onClick={() => nav("report")} />
         <LinkRow title="本人確認" onClick={() => nav("verify")} />
-        <LinkRow title="ヘルプ・お問い合わせ" onClick={() => nav("qa")} last />
+        <LinkRow title="ヘルプ・お問い合わせ" onClick={() => nav("qa")} />
+        <LinkRow title="運営へ要望を送る" onClick={() => nav("feedback")} last />
       </Group>
 
       <Group title="サービス">
@@ -165,7 +166,8 @@ export function SettingsScreen() {
         <Group title="運営">
           <LinkRow title="本人確認の承認" onClick={() => nav("adminVerify")} />
           <LinkRow title="トップのピックアップ管理" onClick={() => nav("adminPickups")} />
-          <LinkRow title="イベントのサムネイル管理" onClick={() => nav("adminEvents")} last />
+          <LinkRow title="イベントのサムネイル管理" onClick={() => nav("adminEvents")} />
+          <LinkRow title="要望の管理" onClick={() => nav("adminFeedback")} last />
         </Group>
       )}
 
