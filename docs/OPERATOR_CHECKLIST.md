@@ -88,6 +88,9 @@ select
   (select exists(select 1 from pg_policies
      where tablename='announcements' and policyname='announcements_admin_insert'))
                                                          as announcements_admin,   -- false → 0048 未適用（お知らせを運営画面から管理）
+  (select exists(select 1 from information_schema.columns
+     where table_name='profiles' and column_name='is_suspended'))
+                                                         as account_suspension,    -- false → 0049 未適用（違反アカウントの停止）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -128,6 +131,7 @@ select
 - `activity_events_table` が `false` → **ステップ 2ah**（0046・ホームのにぎわい）
 - `activity_events_admin` が `false` → **ステップ 2ai**（0047・うごきを運営画面から管理）
 - `announcements_admin` が `false` → **ステップ 2aj**（0048・お知らせを運営画面から管理）
+- `account_suspension` が `false` → **ステップ 2ak**（0049・違反アカウントの停止）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -795,6 +799,30 @@ SQL Editor から `insert into announcements ...` していた作業が、SQLを
 
 冪等ではないため（`create policy`）、既に適用済みなら実行不要です。再実行すると
 「policy already exists」エラーになりますが無害です。
+
+---
+
+## ☐ ステップ 2ak: 違反アカウントの停止（マイグレーション 0049）
+
+`account_suspension` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0049_account_suspension.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 運営アカウントが、アプリの**設定 → 運営 → 「アカウント対応（停止・解除）」**
+から、規約違反などのあったアカウントを**検索 → 届いている通報を確認 →
+利用停止**できるようになります。停止中のアカウントは、ログインはできても
+アプリの中身には一切アクセスできず、停止理由と問い合わせ先だけを表示する
+専用画面が出ます。
+
+- 検索・通報一覧・停止・解除はすべて `is_admin()` を内部チェックする
+  SECURITY DEFINER 関数経由で、`profiles` への一般ユーザー向け update
+  ポリシーは追加していません（本人が自分の停止状態を書き換えることはできない）。
+- 運営アカウント同士は停止できません（自分自身も不可）。
+- 停止・解除は理由つきで記録され、本人にも表示されます。
+
+冪等ではないため（`create or replace function` 部分は再実行可、`alter table
+add column if not exists` も安全）、既に適用済みなら実行不要です。
 
 ---
 

@@ -4,6 +4,7 @@ import { AppRouterProvider, useRouter } from "./AppRouter";
 import { PhoneFrame } from "./PhoneFrame";
 import { AuthGate } from "./AuthGate";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useProfile } from "@/lib/queries/profile";
 import { HomeScreen } from "./screens/HomeScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { DetailScreen } from "./screens/DetailScreen";
@@ -31,6 +32,7 @@ import { AdminEventsScreen } from "./screens/AdminEventsScreen";
 import { AdminFeedbackScreen } from "./screens/AdminFeedbackScreen";
 import { AdminActivityScreen } from "./screens/AdminActivityScreen";
 import { AdminAnnouncementsScreen } from "./screens/AdminAnnouncementsScreen";
+import { AdminUsersScreen } from "./screens/AdminUsersScreen";
 import { FeedbackScreen } from "./screens/FeedbackScreen";
 import { CorporateScreen } from "./screens/CorporateScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
@@ -71,6 +73,7 @@ const screens: Record<Screen, () => React.ReactElement> = {
   adminFeedback: AdminFeedbackScreen,
   adminActivity: AdminActivityScreen,
   adminAnnouncements: AdminAnnouncementsScreen,
+  adminUsers: AdminUsersScreen,
   feedback: FeedbackScreen,
   corporate: CorporateScreen,
   verify: VerifyScreen,
@@ -90,10 +93,11 @@ function CurrentScreen() {
 }
 
 function FramedApp() {
-  // Only used to decide whether the login gate (chromeless) is showing;
-  // AuthGate itself owns the actual gating logic.
+  // Only used to decide whether the login/suspended gate (chromeless) is
+  // showing; AuthGate itself owns the actual gating logic.
   const { user, loading, configured } = useAuth();
-  const showingLogin = configured && !loading && !user;
+  const profile = useProfile(configured ? user?.id : undefined);
+  const showingLogin = configured && !loading && (!user || Boolean(profile.data?.is_suspended));
 
   return (
     <PhoneFrame forceChromeless={showingLogin}>
