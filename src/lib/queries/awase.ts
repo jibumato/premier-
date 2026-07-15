@@ -454,6 +454,27 @@ export function useCreateAwase() {
   });
 }
 
+/** 募集キャラ（awase_roles）を丸ごと入れ替える（ホストの編集用）。
+ * 担当者の割り当てUIはまだ無く status/assignee は既定値のみのため、
+ * 差分計算せず「全削除→現在のリストを挿入」で単純化している。書き込みは
+ * RLS で主催のみ（0001 の awase_roles_write）。 */
+export function useSetAwaseRoles() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ awaseId, charNames }: { awaseId: string; charNames: string[] }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error: delErr } = await supabase.from("awase_roles").delete().eq("awase_id", awaseId);
+      if (delErr) throw delErr;
+      if (charNames.length) {
+        const rows = charNames.map((char_name, sort) => ({ awase_id: awaseId, char_name, sort }));
+        const { error: insErr } = await supabase.from("awase_roles").insert(rows);
+        if (insErr) throw insErr;
+      }
+    },
+    onSuccess: (_d, { awaseId }) => qc.invalidateQueries({ queryKey: ["awase_roles", awaseId] }),
+  });
+}
+
 /** Apply to an awase (detail screen's 応募する button). */
 export function useApply() {
   const qc = useQueryClient();
