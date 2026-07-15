@@ -371,6 +371,7 @@ export interface Database {
           fee_text?: string | null;
           body?: string | null;
           starts_on?: string | null;
+          image_url?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;

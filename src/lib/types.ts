@@ -29,6 +29,7 @@ export type Screen =
   | "settings"
   | "adminVerify"
   | "adminPickups"
+  | "adminEvents"
   | "corporate"
   | "verify"
   | "terms"
