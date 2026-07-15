@@ -18,6 +18,7 @@ import {
   useDeleteAwase,
   useMyApplication,
   useRemoveAwaseImage,
+  useSetAwaseCover,
   useSetAwaseRoles,
   useUpdateAwase,
 } from "@/lib/queries/awase";
@@ -76,6 +77,7 @@ export function DetailScreen() {
   const imagesQuery = useAwaseImages(selectedAwaseId);
   const addImage = useAddAwaseImage();
   const removeImage = useRemoveAwaseImage();
+  const setCover = useSetAwaseCover();
   const uploadImage = useUploadImage();
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -136,6 +138,14 @@ export function DetailScreen() {
   const handleRemoveImage = (id: string, storagePath: string) => {
     if (!real) return;
     removeImage.mutate({ awaseId: real.id, id, storagePath });
+    setHeroIndex(0);
+  };
+  // 選んだ画像を一覧・ホーム・詳細のサムネ（カバー）にする。カバーは sort 昇順の
+  // 先頭なので、その画像を現在の最小 sort より小さくして先頭へ持ってくる。
+  const handleSetCover = (id: string) => {
+    if (!real || images.length < 2) return;
+    const minSort = Math.min(...images.map((img) => img.sort));
+    setCover.mutate({ awaseId: real.id, imageId: id, minSort });
     setHeroIndex(0);
   };
 
@@ -1090,10 +1100,53 @@ export function DetailScreen() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               <Field label="画像">
+                {images.length >= 2 && (
+                  <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 4, lineHeight: 1.6 }}>
+                    先頭の画像が一覧・ホームのサムネイルになります。別の画像を「サムネにする」で入れ替えできます。
+                  </div>
+                )}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-                  {images.map((img) => (
+                  {images.map((img, i) => (
                     <div key={img.id} style={{ position: "relative", width: 76, height: 76 }}>
                       <ImageSlot radius={12} src={img.url ?? undefined} />
+                      {i === 0 ? (
+                        <span
+                          style={{
+                            position: "absolute",
+                            left: 3,
+                            bottom: 3,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: colors.white,
+                            background: "rgba(109,93,171,.92)",
+                            padding: "2px 6px",
+                            borderRadius: 999,
+                          }}
+                        >
+                          サムネ
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleSetCover(img.id)}
+                          disabled={setCover.isPending}
+                          style={{
+                            position: "absolute",
+                            left: 3,
+                            bottom: 3,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: colors.primary,
+                            background: "rgba(255,255,255,.92)",
+                            border: "none",
+                            padding: "2px 6px",
+                            borderRadius: 999,
+                            cursor: setCover.isPending ? "default" : "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          サムネにする
+                        </button>
+                      )}
                       <button
                         onClick={() => handleRemoveImage(img.id, img.storagePath)}
                         aria-label="画像を削除"
