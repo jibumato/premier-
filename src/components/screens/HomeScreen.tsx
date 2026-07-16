@@ -322,26 +322,60 @@ export function HomeScreen() {
                 width: "100%",
                 display: "flex",
                 alignItems: "center",
-                gap: 11,
+                gap: 12,
                 border: "none",
-                borderRadius: 14,
-                padding: "12px 15px",
-                background: "linear-gradient(135deg,#6D5DAB,#B0538D)",
+                borderRadius: 16,
+                padding: "14px 15px",
+                background: "linear-gradient(135deg,#FFA13D,#F25C2A)",
+                boxShadow: "0 12px 26px -12px rgba(242,92,42,.65)",
                 cursor: "pointer",
                 fontFamily: "inherit",
                 textAlign: "left",
               }}
             >
-              <span style={{ fontSize: 20, flex: "0 0 auto" }}>🎉</span>
+              <span style={{ fontSize: 23, flex: "0 0 auto" }}>🔥</span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: colors.white, lineHeight: 1.4 }}>
-                  世界コスプレサミット2026{daysLeft > 0 ? `まであと${daysLeft}日` : " 開催中！"}
+                <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: colors.white, lineHeight: 1.4 }}>
+                  世界コスプレサミット2026
                 </span>
-                <span style={{ display: "block", fontSize: 10.5, color: "rgba(255,255,255,.85)", marginTop: 2 }}>
-                  一緒に回る仲間・撮影相手を今から探そう
+                <span style={{ display: "block", fontSize: 10.5, color: "rgba(255,255,255,.92)", marginTop: 3 }}>
+                  一緒に回る仲間・撮影相手を探そう。特集を見る →
                 </span>
               </span>
-              <span style={{ flex: "0 0 auto", fontSize: 12, fontWeight: 700, color: colors.white }}>特集 →</span>
+              {daysLeft > 0 ? (
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    textAlign: "center",
+                    background: "rgba(255,255,255,.96)",
+                    borderRadius: 12,
+                    padding: "6px 11px",
+                    boxShadow: "0 3px 8px -3px rgba(120,40,0,.35)",
+                  }}
+                >
+                  <span style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "#B4451A", lineHeight: 1 }}>
+                    あと
+                  </span>
+                  <span style={{ display: "block", fontSize: 19, fontWeight: 800, color: "#E8531F", lineHeight: 1.15 }}>
+                    {daysLeft}
+                    <span style={{ fontSize: 10.5, fontWeight: 700 }}>日</span>
+                  </span>
+                </span>
+              ) : (
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    background: "rgba(255,255,255,.96)",
+                    borderRadius: 999,
+                    padding: "7px 12px",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#E8531F",
+                  }}
+                >
+                  開催中！
+                </span>
+              )}
             </button>
           </div>
         );
