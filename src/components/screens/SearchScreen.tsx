@@ -717,7 +717,14 @@ function PhotoResults({
             <div style={{ width: 26, height: 26, borderRadius: "50%", overflow: "hidden" }}>
               <ImageSlot circle src={lightbox.authorAvatarUrl ?? undefined} />
             </div>
-            <span style={{ fontSize: 12.5, color: colors.white, fontWeight: 700 }}>@{lightbox.authorHandle}</span>
+            {/* 「誰の写真か」は表示名を主役に。@ユーザーネームは重複可能な表示名を
+                補い、同名の人の区別・検索に使えるよう小さく併記する。 */}
+            <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.25, textAlign: "left" }}>
+              <span style={{ fontSize: 12.5, color: colors.white, fontWeight: 700 }}>{lightbox.authorDisplayName}</span>
+              {lightbox.authorHandle && (
+                <span style={{ fontSize: 10.5, color: "rgba(255,255,255,.72)" }}>@{lightbox.authorHandle}</span>
+              )}
+            </span>
           </button>
         </div>
       )}
