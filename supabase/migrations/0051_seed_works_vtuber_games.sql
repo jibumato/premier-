@@ -23,6 +23,11 @@ insert into works (name) values
   ('その他')
 on conflict (name) do nothing;
 
+-- reading 列は 0040 で追加されるが、0040 が未適用の環境でもこの
+-- マイグレーション単体で安全に実行できるよう、念のためここでも用意する
+-- （add column if not exists は 0040 適用済みでも無害・再実行安全）。
+alter table works add column if not exists reading text;
+
 update works as w set reading = v.reading
 from (values
   ('ぶいすぽっ!', 'ぶいすぽ'),
