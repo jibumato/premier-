@@ -638,12 +638,13 @@ export function HomeScreen() {
                     }}
                   />
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span
+                    <div
                       style={{
                         flex: "0 0 auto",
                         width: 18,
                         height: 18,
                         borderRadius: "50%",
+                        overflow: "hidden",
                         background: avatarColor,
                         color: colors.white,
                         fontSize: 9.5,
@@ -653,8 +654,13 @@ export function HomeScreen() {
                         justifyContent: "center",
                       }}
                     >
-                      {p.authorName.slice(0, 1)}
-                    </span>
+                      {p.authorAvatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.authorAvatarUrl} alt="" width={18} height={18} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+                      ) : (
+                        p.authorName.slice(0, 1)
+                      )}
+                    </div>
                     <span style={{ fontSize: 11, fontWeight: 700, color: "#3A2E1C", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {p.authorName}
                     </span>
