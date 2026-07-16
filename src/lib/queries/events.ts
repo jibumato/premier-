@@ -131,6 +131,123 @@ export function useIsGoing(eventId: string | null, userId: string | undefined) {
   });
 }
 
+export interface MyEvent {
+  id: string;
+  name: string;
+  date: string;
+  venue: string;
+  region: string;
+  startsOn: string | null;
+  imageUrl: string | null;
+}
+
+/**
+ * 本人が参加表明した「これから開催の」イベント（マイページの参加予定セクション）。
+ * event_rsvps_select は誰でも読めるが、この用途では user_id = 本人だけを引く。
+ * 過去のイベントは除外し、開催日の近い順に並べる。
+ */
+export function useMyUpcomingEvents(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["my_rsvp_events", userId],
+    enabled: isSupabaseConfigured() && Boolean(userId),
+    queryFn: async (): Promise<MyEvent[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_rsvps")
+        .select("events(id, name, event_date, venue, region, starts_on, image_url)")
+        .eq("user_id", userId!);
+      if (error) throw error;
+      type Row = {
+        events: {
+          id: string;
+          name: string;
+          event_date: string;
+          venue: string;
+          region: string;
+          starts_on: string | null;
+          image_url: string | null;
+        } | null;
+      };
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return ((data ?? []) as unknown as Row[])
+        .map((r) => r.events)
+        .filter((e): e is NonNullable<Row["events"]> => Boolean(e))
+        .filter((e) => !e.starts_on || new Date(e.starts_on) >= today)
+        .sort((a, b) => (a.starts_on ?? "9999-12-31").localeCompare(b.starts_on ?? "9999-12-31"))
+        .map((e) => ({
+          id: e.id,
+          name: e.name,
+          date: e.event_date,
+          venue: e.venue,
+          region: e.region,
+          startsOn: e.starts_on,
+          imageUrl: e.image_url,
+        }));
+    },
+  });
+}
+
+export interface EventAttendee {
+  id: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+}
+
+/**
+ * イベントの参加予定ユーザー（顔ぶれ）。つきまとい対策として:
+ *   - ログイン必須（viewerId 必須）。人数は別途 going で誰にでも公開する。
+ *   - 非公開アカウント（is_private）は profiles_select RLS により本人＋フォロワー
+ *     以外には profiles が null で返るため、自動的に一覧から除外される。
+ *   - 停止中アカウント・自分がブロックしたユーザーも除外。
+ */
+export function useEventAttendees(
+  eventId: string | null,
+  viewerId: string | undefined,
+  blockedUserIds: string[] = [],
+) {
+  return useQuery({
+    queryKey: ["event_attendees", eventId, viewerId, blockedUserIds],
+    enabled: isSupabaseConfigured() && Boolean(eventId) && Boolean(viewerId),
+    queryFn: async (): Promise<EventAttendee[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_rsvps")
+        .select(
+          "user_id, profiles!event_rsvps_user_id_fkey(id, handle, display_name, avatar_url, is_verified, is_suspended)",
+        )
+        .eq("event_id", eventId!)
+        .limit(60);
+      if (error) throw error;
+      type Row = {
+        user_id: string;
+        profiles: {
+          id: string;
+          handle: string;
+          display_name: string;
+          avatar_url: string | null;
+          is_verified: boolean;
+          is_suspended: boolean;
+        } | null;
+      };
+      const blocked = new Set(blockedUserIds);
+      return ((data ?? []) as unknown as Row[])
+        .map((r) => r.profiles)
+        .filter((p): p is NonNullable<Row["profiles"]> => Boolean(p) && !p!.is_suspended && !blocked.has(p!.id))
+        .slice(0, 30)
+        .map((p) => ({
+          id: p.id,
+          handle: p.handle,
+          displayName: p.display_name,
+          avatarUrl: p.avatar_url,
+          isVerified: p.is_verified,
+        }));
+    },
+  });
+}
+
 export function useRsvpEvent() {
   const qc = useQueryClient();
   return useMutation({
@@ -145,6 +262,8 @@ export function useRsvpEvent() {
       qc.invalidateQueries({ queryKey: ["event", eventId] });
       qc.invalidateQueries({ queryKey: ["event_rsvp", eventId, userId] });
       qc.invalidateQueries({ queryKey: ["events"] });
+      qc.invalidateQueries({ queryKey: ["my_rsvp_events", userId] });
+      qc.invalidateQueries({ queryKey: ["event_attendees", eventId] });
     },
   });
 }

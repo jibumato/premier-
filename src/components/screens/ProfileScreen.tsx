@@ -5,6 +5,7 @@ import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
+import { WorkCover } from "../WorkCover";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -14,6 +15,7 @@ import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostV
 import { useAwaseHistory } from "@/lib/queries/awase";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useWorks } from "@/lib/queries/works";
+import { useMyUpcomingEvents } from "@/lib/queries/events";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -73,7 +75,7 @@ function isDefaultHandle(handle: string | null | undefined): boolean {
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 export function ProfileScreen() {
-  const { back, nav, openChat, openReport, openAwase, selectedProfileId } = useRouter();
+  const { back, nav, openChat, openReport, openAwase, openEvent, selectedProfileId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
@@ -128,6 +130,10 @@ export function ProfileScreen() {
   // コス活ログ（応募行のRLSにより本人のみ取得可能 → 自分のマイページ限定）
   const historyQuery = useAwaseHistory(isOwnProfile ? user?.id : undefined);
   const history = configured && isOwnProfile ? (historyQuery.data ?? []) : [];
+  // 参加予定のイベント（本人のマイページのみ）。他人のプロフィールでは「この人が
+  // 来るイベント」を一覧化させない＝つきまとい対策として出さない。
+  const myEventsQuery = useMyUpcomingEvents(isOwnProfile ? user?.id : undefined);
+  const myEvents = configured && isOwnProfile ? (myEventsQuery.data ?? []) : [];
   const [galleryEditing, setGalleryEditing] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const getOrCreateConversation = useGetOrCreateConversation();
@@ -1008,6 +1014,48 @@ export function ProfileScreen() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* 参加予定のイベント（本人のマイページのみ）。参加表明したイベントのうち、
+          これから開催のものを近い順に表示。タップでイベント詳細へ。 */}
+      {isOwnProfile && myEvents.length > 0 && (
+        <div style={{ padding: "26px 22px 0" }}>
+          <SectionHeading size={15}>参加予定のイベント</SectionHeading>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
+            {myEvents.slice(0, 6).map((ev) => (
+              <button
+                key={ev.id}
+                onClick={() => openEvent(ev.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 11,
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 14,
+                  padding: "10px 12px",
+                  background: colors.white,
+                  width: "100%",
+                  textAlign: "left",
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ flex: "0 0 44px", width: 44, height: 44, borderRadius: 11, overflow: "hidden" }}>
+                  {ev.imageUrl ? <ImageSlot radius={11} src={ev.imageUrl} /> : <WorkCover name={ev.name} radius={11} showName={false} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.name}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.date} ・ {ev.venue}
+                  </div>
+                </div>
+                <ChevronRightIcon />
+              </button>
+            ))}
           </div>
         </div>
       )}
