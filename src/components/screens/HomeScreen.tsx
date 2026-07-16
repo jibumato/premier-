@@ -734,6 +734,74 @@ export function HomeScreen() {
         </div>
       </div>
 
+      {/* みんなの投稿 — 新着順のプレビュー。configured では実データ、未接続では
+          プロトタイプ表示用のモック。0件時はセクション自体を隠す（空のギャラリー
+          プレビューは寂しいだけなので）。談話室のすぐ下に置き、「みんなの様子が
+          見られるエリア」としてひとまとまりにする。 */}
+      {(!configured || postsFeed.length > 0) && (
+      <div style={{ padding: "22px 0 0" }}>
+        <div style={{ padding: "0 22px" }}>
+          <SectionHeading
+            accent={colors.primary}
+            right={
+              <button
+                onClick={openPhotos}
+                style={{ background: "none", border: "none", fontSize: 12, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                もっと見る →
+              </button>
+            }
+          >
+            みんなの投稿
+          </SectionHeading>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 6,
+            padding: "14px 22px 0",
+          }}
+        >
+          {configured
+            ? postsFeed.slice(0, 6).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={openPhotos}
+                  aria-label="みんなの投稿をもっと見る"
+                  style={{ height: 104, padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
+                >
+                  <ImageSlot radius={12} src={p.imageUrl} />
+                </button>
+              ))
+            : homePosts.map((p) => (
+                <div key={p.key} style={{ position: "relative", height: 104 }}>
+                  <ImageSlot radius={12} />
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 6,
+                      bottom: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: 9,
+                      fontWeight: 600,
+                      color: colors.white,
+                      background: "rgba(42,38,52,.5)",
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    <HeartIcon />
+                    {p.likes}
+                  </span>
+                </div>
+              ))}
+        </div>
+      </div>
+      )}
+
       {/* feature shortcuts */}
       <div style={{ display: "flex", gap: 10, padding: "16px 22px 0" }}>
         {shortcuts.map((s) => (
@@ -1180,73 +1248,6 @@ export function HomeScreen() {
 
       {/* 安心して参加できる仕組み — 実装済みの安全機能を新規ユーザーに一枚で伝える */}
       <SafetySection />
-
-      {/* みんなの投稿 — 新着順のプレビュー。configured では実データ、未接続では
-          プロトタイプ表示用のモック。0件時はセクション自体を隠す（空のギャラリー
-          プレビューは寂しいだけなので）。 */}
-      {(!configured || postsFeed.length > 0) && (
-      <div style={{ padding: "28px 0 30px" }}>
-        <div style={{ padding: "0 22px" }}>
-          <SectionHeading
-            accent={colors.primary}
-            right={
-              <button
-                onClick={openPhotos}
-                style={{ background: "none", border: "none", fontSize: 12, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                もっと見る →
-              </button>
-            }
-          >
-            みんなの投稿
-          </SectionHeading>
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 6,
-            padding: "14px 22px 0",
-          }}
-        >
-          {configured
-            ? postsFeed.slice(0, 6).map((p) => (
-                <button
-                  key={p.id}
-                  onClick={openPhotos}
-                  aria-label="みんなの投稿をもっと見る"
-                  style={{ height: 104, padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
-                >
-                  <ImageSlot radius={12} src={p.imageUrl} />
-                </button>
-              ))
-            : homePosts.map((p) => (
-                <div key={p.key} style={{ position: "relative", height: 104 }}>
-                  <ImageSlot radius={12} />
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: 6,
-                      bottom: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 3,
-                      fontSize: 9,
-                      fontWeight: 600,
-                      color: colors.white,
-                      background: "rgba(42,38,52,.5)",
-                      padding: "2px 7px",
-                      borderRadius: 999,
-                    }}
-                  >
-                    <HeartIcon />
-                    {p.likes}
-                  </span>
-                </div>
-              ))}
-        </div>
-      </div>
-      )}
     </div>
   );
 }
