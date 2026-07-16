@@ -149,7 +149,7 @@ export function useAwaseAchievementCount(userId: string | undefined) {
   });
 }
 
-/** Update the editable profile text fields (display name / bio). */
+/** Update the editable profile text fields (display name / bio / X handle). */
 export function useUpdateProfileText() {
   const qc = useQueryClient();
   return useMutation({
@@ -157,15 +157,18 @@ export function useUpdateProfileText() {
       userId,
       displayName,
       bio,
+      xHandle,
     }: {
       userId: string;
       displayName: string;
       bio: string;
+      /** @なしのXユーザー名。空文字なら null（未設定）で保存する。 */
+      xHandle: string;
     }) => {
       const supabase = getSupabaseBrowserClient();
       const { error } = await supabase
         .from("profiles")
-        .update({ display_name: displayName, bio })
+        .update({ display_name: displayName, bio, x_handle: xHandle || null })
         .eq("id", userId);
       if (error) throw error;
     },
