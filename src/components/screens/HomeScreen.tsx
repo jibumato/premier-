@@ -35,6 +35,22 @@ import { SafetySection } from "../SafetySection";
 import { HomePickup } from "../HomePickup";
 import type { Screen } from "@/lib/types";
 
+// みんなの談話室（楽屋の伝言板イメージ）の付箋・アバター配色。
+// 投稿者名から決定的に色を選ぶことで、同じ人の投稿は毎回同じ色になる
+// （＝「誰が話しているか」が一覧の中でも一目でわかる）。
+const LOUNGE_PAPER = ["#FBF3E3", "#FBEDF4", "#EFEBF8"]; // 付箋の紙色（クリーム・ピンク・ラベンダー）
+const LOUNGE_PIN = [colors.pink, colors.primary, "#E0A93B"]; // ピンの色
+const LOUNGE_ROTATE = [-2, 2, -1.4, 1.6]; // 付箋の傾き（貼った感じを出す。度数）
+const LOUNGE_AVATAR = [colors.primary, colors.pink, colors.pinkAlt, colors.positive, "#E0A93B"];
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+function loungeAvatarColor(name: string) {
+  return LOUNGE_AVATAR[hashStr(name) % LOUNGE_AVATAR.length];
+}
+
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
   // フリマ（衣装売買）はローンチ時は非表示。画面・ルート・DB は残してあるので、
   // 再開時は下行のコメントを外すだけで復活する。
@@ -483,16 +499,16 @@ export function HomeScreen() {
         </div>
       )}
 
-      {/* みんなの談話室 — 誰でも気軽に投稿できる交流の場（プレビュー）。
-          専用のグラデーションカード＋横スクロールの吹き出しチップでコンパクトに
-          まとめ、他の導線（feature shortcuts等）を圧迫しないようにしてある。 */}
+      {/* みんなの談話室 — 楽屋の伝言板イメージ（プレビュー）。
+          コルクボード風のカードに、投稿者アバター付きの付箋を横スクロールで
+          ピン留め表示。コンパクトな1段構成で、他の導線を圧迫しない。 */}
       <div style={{ padding: "16px 22px 0" }}>
         <div
           style={{
             borderRadius: 18,
-            padding: "13px 14px 12px",
-            background: "linear-gradient(135deg, #FBEDF4, #F2EDFB)",
-            border: `1px solid ${colors.borderSoft}`,
+            padding: "13px 14px 14px",
+            background: "linear-gradient(160deg, #E9D9BD, #F2E6CC)",
+            border: "1px solid rgba(150,110,50,.16)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -508,10 +524,10 @@ export function HomeScreen() {
                 justifyContent: "center",
               }}
             >
-              <MessageIcon size={14} color={colors.pink} />
+              <MessageIcon size={14} color="#8A5A2B" />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>みんなの談話室</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#4A3A22" }}>みんなの談話室</span>
               {loungePreview.length > 0 && (
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: colors.pink, flex: "0 0 auto" }} />
               )}
@@ -540,7 +556,7 @@ export function HomeScreen() {
                 flex: "0 0 auto",
                 border: "none",
                 background: "none",
-                color: colors.primary,
+                color: "#8A5A2B",
                 fontFamily: "inherit",
                 fontSize: 11,
                 fontWeight: 700,
@@ -552,69 +568,113 @@ export function HomeScreen() {
             </button>
           </div>
 
+          {/* 付箋の帯。上端にピンが少しはみ出すので、行間を少しあけている。 */}
           <div
             className="noscroll"
-            style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 2px 0" }}
+            style={{ display: "flex", gap: 14, overflowX: "auto", overflowY: "hidden", padding: "18px 4px 4px" }}
           >
             {loungePreview.length === 0 && (
               <button
                 onClick={() => nav("lounge")}
                 style={{
                   flex: "0 0 auto",
-                  width: 210,
-                  border: `1px dashed ${colors.border}`,
-                  borderRadius: 14,
+                  width: 190,
+                  border: `1.5px dashed rgba(150,110,50,.35)`,
+                  borderRadius: 4,
                   padding: "10px 12px",
-                  background: "rgba(255,255,255,.6)",
-                  color: colors.textMutedAlt,
+                  background: "rgba(255,255,255,.55)",
+                  color: "#8A6A42",
                   fontFamily: "inherit",
                   fontSize: 11.5,
                   lineHeight: 1.6,
                   cursor: "pointer",
                   textAlign: "left",
+                  boxShadow: "0 3px 8px -4px rgba(80,60,20,.35)",
                 }}
               >
                 まだ投稿がありません。最初のひとことを書いてみましょう。
               </button>
             )}
-            {loungePreview.map((p) => (
-              <button
-                key={p.key}
-                onClick={() => nav("lounge")}
-                style={{
-                  flex: "0 0 auto",
-                  width: 210,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 3,
-                  border: `1px solid ${colors.borderSoft}`,
-                  borderRadius: 14,
-                  padding: "10px 12px",
-                  background: colors.white,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: colors.textPrimary }}>{p.authorName}</span>
-                  <span style={{ fontSize: 9.5, color: colors.textMutedAlt }}>{p.time}</span>
-                </div>
-                <span
+            {loungePreview.map((p, i) => {
+              const paper = LOUNGE_PAPER[i % LOUNGE_PAPER.length];
+              const pin = LOUNGE_PIN[i % LOUNGE_PIN.length];
+              const rotate = LOUNGE_ROTATE[i % LOUNGE_ROTATE.length];
+              const avatarColor = loungeAvatarColor(p.authorName);
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => nav("lounge")}
                   style={{
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                    lineHeight: 1.55,
-                    overflow: "hidden",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
+                    position: "relative",
+                    flex: "0 0 auto",
+                    width: 190,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 5,
+                    border: "none",
+                    borderRadius: 3,
+                    padding: "12px 11px 10px",
+                    background: paper,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    textAlign: "left",
+                    transform: `rotate(${rotate}deg)`,
+                    boxShadow: "0 5px 11px -5px rgba(80,60,20,.4)",
                   }}
                 >
-                  {p.body}
-                </span>
-              </button>
-            ))}
+                  {/* ピン */}
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -7,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: pin,
+                      boxShadow: "0 2px 3px rgba(40,30,10,.4)",
+                    }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        flex: "0 0 auto",
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        background: avatarColor,
+                        color: colors.white,
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {p.authorName.slice(0, 1)}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#3A2E1C", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {p.authorName}
+                    </span>
+                    <span style={{ fontSize: 9, color: "#8A7355", flex: "0 0 auto" }}>{p.time}</span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#4A3E28",
+                      lineHeight: 1.55,
+                      overflow: "hidden",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                    }}
+                  >
+                    {p.body}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
