@@ -552,9 +552,11 @@ export function CreateScreen() {
           />
         </div>
 
-        {/* scheduled publish + application deadline (both optional) */}
+        {/* scheduled publish + application deadline (both optional).
+            ネイティブのdatetime-local入力はモバイルで最小幅が広く、これと
+            minWidth:0が無いとflexセル（各50%）を突き抜けて横にはみ出す。 */}
         <div style={{ display: "flex", gap: 12 }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <label style={label}>公開日時（予約）</label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, cursor: "pointer" }}>
               <input
@@ -578,12 +580,14 @@ export function CreateScreen() {
                 padding: "12px 12px",
                 marginTop: 7,
                 opacity: publishNow ? 0.5 : 1,
+                boxSizing: "border-box",
+                minWidth: 0,
               }}
               value={publishAt}
               onChange={(e) => setPublishAt(e.target.value)}
             />
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <label style={label}>応募締切</label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, cursor: "pointer" }}>
               <input
@@ -607,6 +611,8 @@ export function CreateScreen() {
                 padding: "12px 12px",
                 marginTop: 7,
                 opacity: noDeadline ? 0.5 : 1,
+                boxSizing: "border-box",
+                minWidth: 0,
               }}
               value={applicationDeadline}
               onChange={(e) => setApplicationDeadline(e.target.value)}

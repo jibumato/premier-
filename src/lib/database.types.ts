@@ -39,6 +39,7 @@ export interface Database {
           suspended_at: string | null;
           x_handle: string | null;
           searchable_by_name: boolean;
+          handle_changed_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -59,6 +60,7 @@ export interface Database {
           suspended_at?: string | null;
           x_handle?: string | null;
           searchable_by_name?: boolean;
+          handle_changed_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
