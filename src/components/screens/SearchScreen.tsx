@@ -121,7 +121,7 @@ export function SearchScreen() {
       <div style={{ display: "flex", gap: 8, padding: "12px 18px 0" }}>
         {([
           { key: "awase", label: "併せ募集" },
-          { key: "people", label: "人" },
+          { key: "people", label: "ユーザー" },
         ] as const).map((t) => {
           const active = tab === t.key;
           return (
