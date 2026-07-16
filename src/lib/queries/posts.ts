@@ -31,16 +31,23 @@ export function useCreatePost() {
       authorId,
       imageUrl,
       caption,
+      workId,
     }: {
       authorId: string;
       imageUrl: string;
       caption?: string;
+      /** 作品・キャラタグ（任意）。みんなの投稿フィードの絞り込みに使う。 */
+      workId?: string;
     }) => {
       const supabase = getSupabaseBrowserClient();
       // New posts get the highest sort (epoch ms) so they appear first.
-      const { error } = await supabase
-        .from("posts")
-        .insert({ author_id: authorId, image_url: imageUrl, caption: caption ?? null, sort: Date.now() });
+      const { error } = await supabase.from("posts").insert({
+        author_id: authorId,
+        image_url: imageUrl,
+        caption: caption ?? null,
+        work_id: workId ?? null,
+        sort: Date.now(),
+      });
       if (error) throw error;
     },
     onSuccess: (_d, { authorId }) => qc.invalidateQueries({ queryKey: ["posts", authorId] }),
@@ -92,5 +99,80 @@ export function useUpdatePostVisibility() {
       if (error) throw error;
     },
     onSuccess: (_d, { authorId }) => qc.invalidateQueries({ queryKey: ["posts", authorId] }),
+  });
+}
+
+/** 投稿の作品・キャラタグを設定/解除（本人のみ）。null で「タグなし」に戻す。 */
+export function useUpdatePostWork() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, workId }: { id: string; authorId: string; workId: string | null }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("posts").update({ work_id: workId }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { authorId }) => {
+      qc.invalidateQueries({ queryKey: ["posts", authorId] });
+      qc.invalidateQueries({ queryKey: ["posts_feed"] });
+    },
+  });
+}
+
+export interface FeedPost {
+  id: string;
+  authorId: string;
+  authorHandle: string;
+  authorDisplayName: string;
+  authorAvatarUrl: string | null;
+  imageUrl: string;
+  workId: string | null;
+  createdAt: string;
+}
+
+/**
+ * みんなの投稿フィード（ホームのプレビュー・検索の「写真」タブ）。
+ *   - 公開範囲が 'public' の投稿のみ（併せ仲間限定・非公開アカウントは
+ *     posts_select RLS が自動的に除外するので、ここでの絞り込みは追加の
+ *     安全側チェック）。
+ *   - workId を指定すると、その作品・キャラタグの投稿だけに絞り込む。
+ *   - ブロックしたユーザーの投稿はクライアント側で除外（people検索と同じ方針）。
+ */
+export function usePostsFeed(workId: string | undefined, blockedUserIds: string[] = []) {
+  return useQuery({
+    queryKey: ["posts_feed", workId ?? null, blockedUserIds],
+    enabled: isSupabaseConfigured(),
+    queryFn: async (): Promise<FeedPost[]> => {
+      const supabase = getSupabaseBrowserClient();
+      let query = supabase
+        .from("posts")
+        .select("id, author_id, image_url, work_id, created_at, profiles!posts_author_id_fkey(handle, display_name, avatar_url)")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (workId) query = query.eq("work_id", workId);
+      const { data, error } = await query;
+      if (error) throw error;
+      type Row = {
+        id: string;
+        author_id: string;
+        image_url: string;
+        work_id: string | null;
+        created_at: string;
+        profiles: { handle: string; display_name: string; avatar_url: string | null } | null;
+      };
+      const blocked = new Set(blockedUserIds);
+      return ((data ?? []) as unknown as Row[])
+        .filter((r) => !blocked.has(r.author_id))
+        .map((r) => ({
+          id: r.id,
+          authorId: r.author_id,
+          authorHandle: r.profiles?.handle ?? "",
+          authorDisplayName: r.profiles?.display_name ?? "不明",
+          authorAvatarUrl: r.profiles?.avatar_url ?? null,
+          imageUrl: r.image_url,
+          workId: r.work_id,
+          createdAt: r.created_at,
+        }));
+    },
   });
 }

@@ -10,9 +10,10 @@ import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, 
 import { useAuth } from "@/lib/auth/useAuth";
 import { friendlyProfileError, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
-import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostVisibility } from "@/lib/queries/posts";
+import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostVisibility, useUpdatePostWork } from "@/lib/queries/posts";
 import { useAwaseHistory } from "@/lib/queries/awase";
 import { useReviewsReceived } from "@/lib/queries/reviews";
+import { useWorks } from "@/lib/queries/works";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -121,6 +122,8 @@ export function ProfileScreen() {
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
   const reorderPosts = useReorderPosts();
+  const updateWork = useUpdatePostWork();
+  const works = useWorks().data ?? [];
   const updateVisibility = useUpdatePostVisibility();
   // コス活ログ（応募行のRLSにより本人のみ取得可能 → 自分のマイページ限定）
   const historyQuery = useAwaseHistory(isOwnProfile ? user?.id : undefined);
@@ -1076,7 +1079,8 @@ export function ProfileScreen() {
                 </button>
               )}
               {posts.map((p, i) => (
-                <div key={p.id} style={{ position: "relative", height: 108 }}>
+                <div key={p.id}>
+                <div style={{ position: "relative", height: 108 }}>
                   {galleryEditing ? (
                     <>
                       <ImageSlot radius={12} src={p.image_url} />
@@ -1170,6 +1174,34 @@ export function ProfileScreen() {
                       )}
                     </>
                   )}
+                </div>
+                {galleryEditing && (
+                  <select
+                    value={p.work_id ?? ""}
+                    onChange={(e) =>
+                      user && updateWork.mutate({ id: p.id, authorId: user.id, workId: e.target.value || null })
+                    }
+                    aria-label="作品・キャラタグ"
+                    style={{
+                      width: "100%",
+                      marginTop: 4,
+                      fontSize: 10.5,
+                      padding: "3px 4px",
+                      borderRadius: 6,
+                      border: `1px solid ${colors.border}`,
+                      background: colors.white,
+                      color: colors.textSecondary,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <option value="">作品タグなし</option>
+                    {works.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 </div>
               ))}
               {posts.length === 0 && !canEdit && (
