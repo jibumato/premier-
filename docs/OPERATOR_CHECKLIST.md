@@ -95,6 +95,7 @@ select
   (select count(*) from works where name = 'その他')      as works_vtuber_games,   -- 0 → 0051 未適用（VTuber/ゲーム作品）
   (select exists(select 1 from information_schema.columns
      where table_name='profiles' and column_name='x_handle')) as profile_x_link,  -- false → 0052 未適用（プロフィールXリンク）
+  (select count(*) from events where name like 'acosta!%')  as events_acosta,      -- 少ない → 0053 未適用（全国acostaイベント）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -139,6 +140,7 @@ select
 - `lounge_table` が `false` → **ステップ 2al**（0050・談話室）
 - `works_vtuber_games` が `0` → **ステップ 2am**（0051・VTuber/ゲーム作品の追加）
 - `profile_x_link` が `false` → **ステップ 2an**（0052・プロフィールのXリンク）
+- `events_acosta` が少ない（20未満）→ **ステップ 2ao**（0053・全国acostaイベント＋コスメル）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -884,6 +886,22 @@ exists` は再実行可）、既に適用済みなら実行不要です。
 URL貼り付けでもアプリ側で正規化）。プロフィールの自己紹介の下にXリンクが表示され、
 未ログインで他人のプロフィールを見ているときは個人情報保護のため非表示です。
 `add column if not exists` で冪等（再実行安全）。書き込みは本人のみ（既存のRLS）。
+
+---
+
+## ☐ ステップ 2ao: 全国acostaイベント＋コスメルの追加（マイグレーション 0053）
+
+`events_acosta` が少ない（20未満）のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0053_events_nationwide_acosta.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ acosta!（全国20会場・7〜11月開催分）と「コスメル in コスモタワー」（大阪）が
+`events` に追加されます。日程・会場・公式URLは acosta.jp のHTMLソースから直接
+抽出（2026-07-16時点、曜日と2026年カレンダーの整合を確認済み）。一部は
+「詳細は近日公開」の回（日程のみ確定）を含みます。並び順用の `starts_on` も
+同時に設定。`on conflict do nothing` で追加のみ・冪等（再実行安全。既存の
+「Ultra acosta! 2026」は対象外のため自動でスキップされます）。
 
 ---
 
