@@ -313,3 +313,12 @@ export function BuildingIcon({ size = 40, color = "#6D5DAB", style }: IconProps)
     </svg>
   );
 }
+
+/** 手動更新（プルトゥリフレッシュの無いリアルタイム外の一覧に添える更新ボタン）。 */
+export function RefreshIcon({ size = 16, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <path d="M21 12a9 9 0 10-3.2 6.9M21 12v-5M21 12h-5" />
+    </svg>
+  );
+}

@@ -5,7 +5,8 @@ import { colors } from "@/lib/tokens";
 import { AREA_ORDER, areaOf, events as mockEvents } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AppBar } from "../ui";
-import { CalendarIcon, PinIcon } from "../icons";
+import { CalendarIcon, PinIcon, RefreshIcon } from "../icons";
+import { EventCardSkeleton } from "../Skeleton";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { useEvents } from "@/lib/queries/events";
@@ -39,7 +40,30 @@ export function EventsScreen() {
 
   return (
     <div>
-      <AppBar title="イベントカレンダー" onBack={back} />
+      <AppBar
+        title="イベントカレンダー"
+        onBack={back}
+        right={
+          configured ? (
+            <button
+              onClick={() => eventsQuery.refetch()}
+              aria-label="更新"
+              disabled={eventsQuery.isFetching}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 10,
+                margin: -10,
+                cursor: eventsQuery.isFetching ? "default" : "pointer",
+                display: "flex",
+                opacity: eventsQuery.isFetching ? 0.4 : 1,
+              }}
+            >
+              <RefreshIcon size={18} color={colors.textSecondary} />
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* エリア絞り込みチップ（該当イベントのあるエリアのみ・単一選択） */}
       {areaChips.length > 2 && (
@@ -71,9 +95,7 @@ export function EventsScreen() {
       )}
 
       <div style={{ padding: "10px 22px 30px" }} className="pt-grid">
-        {loading && (
-          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
-        )}
+        {loading && [0, 1, 2].map((i) => <EventCardSkeleton key={i} />)}
         {!loading && shownEvents.length === 0 && (
           <div style={{ padding: "48px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
             このエリアのイベントはまだありません。

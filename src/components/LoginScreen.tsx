@@ -61,7 +61,7 @@ function friendlyAuthError(e: unknown, mode: Mode): string {
  * "見てまわる →" link lets visitors return to browsing without registering.
  */
 export function LoginScreen() {
-  const { screen, nav } = useRouter();
+  const { screen, nav, back } = useRouter();
   const [mode, setMode] = useState<Mode>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,11 +97,12 @@ export function LoginScreen() {
       if (mode === "signIn") {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
-        // ルーティングされた「login」画面（見てまわる導線等から辿り着いた場合）は
-        // ログイン成功後にトップへ。AuthGateがログイン必須画面の代わりに
-        // このコンポーネントを差し込んでいるだけの場合（screenは元の目的地の
-        // まま）は、そのままonAuthStateChangeで本来の画面に切り替わるようにする。
-        if (screen === "login") nav("home", "home");
+        // ルーティングされた「login」画面（応募・参加表明・フォロー等の操作から
+        // 辿り着いた場合）は、ログイン成功後に元いた画面へ戻す（＝やろうとしていた
+        // 操作の場所に復帰）。AuthGateがログイン必須画面の代わりにこのコンポーネント
+        // を差し込んでいるだけの場合（screenは元の目的地のまま）は、そのまま
+        // onAuthStateChangeで本来の画面に切り替わるようにする。
+        if (screen === "login") back();
       } else {
         // Send the email-confirmation link back to whatever origin the user
         // signed up on (localhost in dev, the production domain in prod) rather

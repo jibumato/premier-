@@ -6,6 +6,7 @@ import { chatThread } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, SendIcon, StarIcon } from "../icons";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
   useMessages,
@@ -23,6 +24,7 @@ import type { ChatMessage } from "@/lib/types";
 export function ChatScreen() {
   const { back, nav, selectedConversationId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   const realMessages = useMessages(selectedConversationId);
@@ -103,7 +105,7 @@ export function ChatScreen() {
       if (!result.url) throw new Error("アップロード基盤が未設定です");
       sendMessage.mutate({ conversationId: selectedConversationId, senderId: user.id, body: "", imageUrl: result.url });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "画像の送信に失敗しました。もう一度お試しください。");
+      showToast(err instanceof Error ? err.message : "画像の送信に失敗しました。もう一度お試しください。");
     }
   };
 

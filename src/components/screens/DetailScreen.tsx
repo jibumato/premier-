@@ -7,6 +7,7 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading, PrimaryButton } from "../ui";
 import { ChevronLeftIcon, FlagIcon, PlusIcon, ShareIcon } from "../icons";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
   useAddAwaseImage,
@@ -66,6 +67,7 @@ const mockInfoGrid = [
 export function DetailScreen() {
   const { back, nav, openProfile, openReport, openChat, openCreateFromDuplicate, selectedAwaseId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   const awaseQuery = useAwase(selectedAwaseId);
@@ -100,7 +102,7 @@ export function DetailScreen() {
       { awaseId: real.id },
       {
         onSuccess: (convId) => openChat(convId),
-        onError: () => alert("グループチャットを開けませんでした。もう一度お試しください。"),
+        onError: () => showToast("グループチャットを開けませんでした。もう一度お試しください。"),
       },
     );
   };
@@ -224,7 +226,7 @@ export function DetailScreen() {
           } else {
             msg = `応募に失敗しました。もう一度お試しください。\n(${err.code ?? "?"}: ${err.message ?? "unknown"})`;
           }
-          alert(msg);
+          showToast(msg);
         },
       },
     );

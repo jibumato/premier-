@@ -7,8 +7,9 @@ import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { AppBar, PrimaryButton, SectionHeading } from "../ui";
 import { CheckIcon } from "../icons";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useEvent, useIsGoing, useRsvpEvent, useEventAttendees } from "@/lib/queries/events";
+import { useEvent, useIsGoing, useRsvpEvent, useCancelRsvp, useEventAttendees } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -22,11 +23,13 @@ const mockInfo = [
 export function EventDetailScreen() {
   const { back, nav, openProfile, selectedEventId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   const eventQuery = useEvent(selectedEventId);
   const isGoingQuery = useIsGoing(selectedEventId, user?.id);
   const rsvp = useRsvpEvent();
+  const cancelRsvp = useCancelRsvp();
   const [mockGoing, setMockGoing] = useState(false);
   // 参加予定の顔ぶれ（ログイン中のみ・非公開/ブロック/停止は除外）。人数は公開。
   const moderation = useModerationFilter(user?.id);
@@ -61,6 +64,18 @@ export function EventDetailScreen() {
       rsvp.mutate({ eventId: selectedEventId, userId: user.id });
     } else {
       setMockGoing(true);
+    }
+  };
+
+  const handleCancelRsvp = () => {
+    if (real && user && selectedEventId) {
+      if (cancelRsvp.isPending) return;
+      cancelRsvp.mutate(
+        { eventId: selectedEventId, userId: user.id },
+        { onError: () => showToast("参加表明の取り消しに失敗しました。もう一度お試しください。") },
+      );
+    } else {
+      setMockGoing(false);
     }
   };
 
@@ -271,6 +286,22 @@ export function EventDetailScreen() {
             <PrimaryButton onClick={() => nav("search", "search")} style={{ fontSize: 13, padding: 13 }}>
               このイベントの併せを探す
             </PrimaryButton>
+            <button
+              onClick={handleCancelRsvp}
+              style={{
+                marginTop: 10,
+                border: "none",
+                background: "none",
+                color: colors.textMutedAlt,
+                fontFamily: "inherit",
+                fontSize: 12,
+                padding: 6,
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              参加表明を取り消す
+            </button>
           </div>
         ) : (
           <PrimaryButton onClick={handleRsvp}>参加表明する</PrimaryButton>

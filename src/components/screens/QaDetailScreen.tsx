@@ -5,6 +5,7 @@ import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { AppBar, PrimaryButton } from "../ui";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
   useAdminDeleteQaAnswer,
@@ -56,6 +57,7 @@ const initialAnswers: Answer[] = [
 export function QaDetailScreen() {
   const { back, nav, selectedQaQuestionId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   const moderation = useModerationFilter(user?.id);
@@ -130,7 +132,7 @@ export function QaDetailScreen() {
       { questionId: selectedQaQuestionId },
       {
         onSuccess: () => back(),
-        onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました"),
+        onError: (e) => showToast(e instanceof Error ? e.message : "削除に失敗しました"),
       },
     );
   };
@@ -140,7 +142,7 @@ export function QaDetailScreen() {
     if (!window.confirm("この回答を削除しますか？")) return;
     deleteAnswer.mutate(
       { answerId, questionId: selectedQaQuestionId },
-      { onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました") },
+      { onError: (e) => showToast(e instanceof Error ? e.message : "削除に失敗しました") },
     );
   };
 
@@ -152,7 +154,7 @@ export function QaDetailScreen() {
       { questionId: selectedQaQuestionId },
       {
         onSuccess: () => back(),
-        onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました"),
+        onError: (e) => showToast(e instanceof Error ? e.message : "削除に失敗しました"),
       },
     );
   };
@@ -162,7 +164,7 @@ export function QaDetailScreen() {
     if (!window.confirm("【運営】この回答を削除します。よろしいですか？")) return;
     adminDeleteAnswer.mutate(
       { answerId, questionId: selectedQaQuestionId },
-      { onError: (e) => alert(e instanceof Error ? e.message : "削除に失敗しました") },
+      { onError: (e) => showToast(e instanceof Error ? e.message : "削除に失敗しました") },
     );
   };
 

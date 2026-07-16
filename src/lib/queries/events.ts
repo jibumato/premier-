@@ -268,6 +268,25 @@ export function useRsvpEvent() {
   });
 }
 
+/** 参加表明の取り消し（event_rsvps_delete RLS: user_id = auth.uid() のみ許可）。 */
+export function useCancelRsvp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: string; userId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("event_rsvps").delete().eq("event_id", eventId).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+      qc.invalidateQueries({ queryKey: ["event_rsvp", eventId, userId] });
+      qc.invalidateQueries({ queryKey: ["events"] });
+      qc.invalidateQueries({ queryKey: ["my_rsvp_events", userId] });
+      qc.invalidateQueries({ queryKey: ["event_attendees", eventId] });
+    },
+  });
+}
+
 // =============================================================================
 // 運営（is_admin）向け: イベントのサムネイル画像を管理する。
 // 書き込み（update）は RLS で is_admin() に限定（0044）。行の作成・削除は

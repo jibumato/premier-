@@ -8,6 +8,7 @@ import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import { friendlyProfileError, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
@@ -39,8 +40,8 @@ const LAUNCH_FLAGS = { supportLinks: false, gift: false };
 /** Small translucent ←/→ button used for reordering gallery thumbnails. */
 function moveBtnStyle(disabled: boolean): CSSProperties {
   return {
-    width: 30,
-    height: 24,
+    width: 36,
+    height: 28,
     borderRadius: 8,
     border: "none",
     background: "rgba(30,20,40,.6)",
@@ -77,6 +78,7 @@ const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, openAwase, openEvent, selectedProfileId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   // Reached both from the bottom-nav "マイページ" tab (selectedProfileId is
@@ -135,7 +137,7 @@ export function ProfileScreen() {
   const myEventsQuery = useMyUpcomingEvents(isOwnProfile ? user?.id : undefined);
   const myEvents = configured && isOwnProfile ? (myEventsQuery.data ?? []) : [];
   const [galleryEditing, setGalleryEditing] = useState(false);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const getOrCreateConversation = useGetOrCreateConversation();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +146,7 @@ export function ProfileScreen() {
   const real = configured && targetId ? profileQuery.data : undefined;
   const canEdit = configured && isOwnProfile;
   const posts = real ? (postsQuery.data ?? []) : undefined;
+  const lightboxUrl = lightboxIndex !== null ? (posts?.[lightboxIndex]?.image_url ?? null) : null;
   // Real users see their own (possibly empty) fields; only the prototype/mock
   // mode falls back to the demo placeholder text. This prevents a brand-new
   // account from showing another persona's sample bio/name/title.
@@ -203,7 +206,7 @@ export function ProfileScreen() {
         {
           onSuccess: (conversationId) => openChat(conversationId),
           onError: () =>
-            alert("メッセージを開けませんでした。通信環境を確認して、もう一度お試しください。"),
+            showToast("メッセージを開けませんでした。通信環境を確認して、もう一度お試しください。"),
         },
       );
     } else {
@@ -1146,7 +1149,7 @@ export function ProfileScreen() {
                           position: "absolute",
                           left: 4,
                           top: 4,
-                          height: 22,
+                          height: 27,
                           borderRadius: 999,
                           border: "none",
                           background: "rgba(30,20,40,.65)",
@@ -1154,7 +1157,7 @@ export function ProfileScreen() {
                           fontSize: 11,
                           lineHeight: 1,
                           cursor: "pointer",
-                          padding: "0 8px",
+                          padding: "0 9px",
                           display: "flex",
                           alignItems: "center",
                         }}
@@ -1168,13 +1171,13 @@ export function ProfileScreen() {
                           position: "absolute",
                           right: 4,
                           top: 4,
-                          width: 22,
-                          height: 22,
+                          width: 27,
+                          height: 27,
                           borderRadius: "50%",
                           border: "none",
                           background: "rgba(30,20,40,.65)",
                           color: colors.white,
-                          fontSize: 14,
+                          fontSize: 15,
                           lineHeight: 1,
                           cursor: "pointer",
                           display: "flex",
@@ -1206,7 +1209,7 @@ export function ProfileScreen() {
                   ) : (
                     <>
                       <button
-                        onClick={() => p.image_url && setLightboxUrl(p.image_url)}
+                        onClick={() => p.image_url && setLightboxIndex(i)}
                         aria-label="拡大表示"
                         style={{ width: "100%", height: "100%", padding: 0, border: "none", background: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
                       >
@@ -1300,9 +1303,9 @@ export function ProfileScreen() {
       </div>
 
       {/* lightbox: tap a gallery thumbnail to view it large */}
-      {lightboxUrl && (
+      {lightboxUrl && lightboxIndex !== null && (
         <div
-          onClick={() => setLightboxUrl(null)}
+          onClick={() => setLightboxIndex(null)}
           style={{
             position: "fixed",
             inset: 0,
@@ -1315,14 +1318,14 @@ export function ProfileScreen() {
           }}
         >
           <button
-            onClick={() => setLightboxUrl(null)}
+            onClick={() => setLightboxIndex(null)}
             aria-label="閉じる"
             style={{
               position: "absolute",
               right: 16,
               top: 16,
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               borderRadius: "50%",
               border: "none",
               background: "rgba(255,255,255,.16)",
@@ -1334,6 +1337,60 @@ export function ProfileScreen() {
           >
             ×
           </button>
+          {lightboxIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i !== null ? i - 1 : i));
+              }}
+              aria-label="前の写真"
+              style={{
+                position: "absolute",
+                left: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255,255,255,.16)",
+                color: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <ChevronLeftIcon color={colors.white} />
+            </button>
+          )}
+          {posts && lightboxIndex < posts.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i !== null ? i + 1 : i));
+              }}
+              aria-label="次の写真"
+              style={{
+                position: "absolute",
+                right: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255,255,255,.16)",
+                color: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <ChevronRightIcon color={colors.white} />
+            </button>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxUrl}
