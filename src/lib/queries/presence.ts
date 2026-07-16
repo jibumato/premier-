@@ -18,6 +18,17 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
  * そのため key は ready になった時点で一度だけ決定し、以降 userId が変わっても
  * 同じチャンネルを購読し続ける。
  */
+/** 未ログイン閲覧者用の presence キー。crypto.randomUUID は iOS 15.4 未満の
+ * WebKit に存在せず、直接呼ぶとトップページ表示だけでアプリ全体が落ちるため、
+ * 無い環境では Math.random ベースの簡易IDにフォールバックする（presence の
+ * 重複排除キーに使うだけなので暗号強度は不要）。 */
+function anonPresenceKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function usePresenceCount(userId: string | undefined, ready: boolean = true): number | null {
   const [count, setCount] = useState<number | null>(null);
   const keyRef = useRef<string | null>(null);
@@ -25,7 +36,7 @@ export function usePresenceCount(userId: string | undefined, ready: boolean = tr
   useEffect(() => {
     if (!isSupabaseConfigured() || !ready) return;
     if (keyRef.current === null) {
-      keyRef.current = userId ?? crypto.randomUUID();
+      keyRef.current = userId ?? anonPresenceKey();
     }
     const supabase = getSupabaseBrowserClient();
     const channel = supabase.channel("presence:home", { config: { presence: { key: keyRef.current } } });
