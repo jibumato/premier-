@@ -31,6 +31,10 @@ interface RouterState {
   /** 検索画面を開いたときの初期タブ（「みんなの投稿」→写真タブ等）。SearchScreen が
    * 初期値に使うのみで、以降のタブ切替はSearchScreen内のローカル状態が持つ。 */
   searchInitialTab: "awase" | "people" | "photos" | null;
+  /** 検索画面の状態（キーワード・タブ・絞り込み）。画面はナビごとにマウントし直される
+   * ため、ここに持たせて「戻る」で条件が消えないようにする。SearchScreen が
+   * onChange のたびに setSearchState で書き戻す。 */
+  searchState: { keyword: string; tab: "awase" | "people" | "photos"; womenOnly: boolean; photoWorkFilter: string };
   /** awase.id backing the current `detail` screen, once a backend is connected. */
   selectedAwaseId: string | null;
   /** conversation.id backing the current `chat` screen, once a backend is connected. */
@@ -58,6 +62,8 @@ interface RouterApi extends RouterState {
   /** pop the back stack (bottom-nav-aware, mirrors prototype back()) */
   back: () => void;
   setRegion: (r: string) => void;
+  /** 検索画面の状態を部分更新する（キーワード入力・タブ切替・絞り込み変更のたびに呼ぶ）。 */
+  setSearchState: (partial: Partial<RouterState["searchState"]>) => void;
   /** navigate to `search` with an initial keyword (作品チップ等からの導線) */
   openSearch: (keyword: string) => void;
   /** navigate to `search` opened straight to the 写真 tab (ホームの「みんなの投稿」等からの導線) */
@@ -97,6 +103,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     region: "すべて",
     searchKeyword: "",
     searchInitialTab: null,
+    searchState: { keyword: "", tab: "awase", womenOnly: false, photoWorkFilter: "" },
     selectedAwaseId: null,
     selectedConversationId: null,
     selectedProfileId: null,
@@ -179,6 +186,10 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
 
   const setRegion = useCallback((region: string) => {
     setState((s) => ({ ...s, region }));
+  }, []);
+
+  const setSearchState = useCallback((partial: Partial<RouterState["searchState"]>) => {
+    setState((s) => ({ ...s, searchState: { ...s.searchState, ...partial } }));
   }, []);
 
   const openSearch = useCallback(
@@ -294,6 +305,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       nav,
       back,
       setRegion,
+      setSearchState,
       openSearch,
       openPhotos,
       openAwase,
@@ -311,6 +323,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       nav,
       back,
       setRegion,
+      setSearchState,
       openSearch,
       openPhotos,
       openAwase,

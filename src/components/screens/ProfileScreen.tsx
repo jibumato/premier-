@@ -5,8 +5,10 @@ import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
+import { WorkCover } from "../WorkCover";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import { friendlyProfileError, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
@@ -14,6 +16,7 @@ import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostV
 import { useAwaseHistory } from "@/lib/queries/awase";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useWorks } from "@/lib/queries/works";
+import { useMyUpcomingEvents } from "@/lib/queries/events";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -37,8 +40,8 @@ const LAUNCH_FLAGS = { supportLinks: false, gift: false };
 /** Small translucent ←/→ button used for reordering gallery thumbnails. */
 function moveBtnStyle(disabled: boolean): CSSProperties {
   return {
-    width: 30,
-    height: 24,
+    width: 36,
+    height: 28,
     borderRadius: 8,
     border: "none",
     background: "rgba(30,20,40,.6)",
@@ -73,8 +76,9 @@ function isDefaultHandle(handle: string | null | undefined): boolean {
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 export function ProfileScreen() {
-  const { back, nav, openChat, openReport, openAwase, selectedProfileId } = useRouter();
+  const { back, nav, openChat, openReport, openAwase, openEvent, selectedProfileId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   // Reached both from the bottom-nav "マイページ" tab (selectedProfileId is
@@ -128,8 +132,12 @@ export function ProfileScreen() {
   // コス活ログ（応募行のRLSにより本人のみ取得可能 → 自分のマイページ限定）
   const historyQuery = useAwaseHistory(isOwnProfile ? user?.id : undefined);
   const history = configured && isOwnProfile ? (historyQuery.data ?? []) : [];
+  // 参加予定のイベント（本人のマイページのみ）。他人のプロフィールでは「この人が
+  // 来るイベント」を一覧化させない＝つきまとい対策として出さない。
+  const myEventsQuery = useMyUpcomingEvents(isOwnProfile ? user?.id : undefined);
+  const myEvents = configured && isOwnProfile ? (myEventsQuery.data ?? []) : [];
   const [galleryEditing, setGalleryEditing] = useState(false);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const getOrCreateConversation = useGetOrCreateConversation();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -138,6 +146,7 @@ export function ProfileScreen() {
   const real = configured && targetId ? profileQuery.data : undefined;
   const canEdit = configured && isOwnProfile;
   const posts = real ? (postsQuery.data ?? []) : undefined;
+  const lightboxUrl = lightboxIndex !== null ? (posts?.[lightboxIndex]?.image_url ?? null) : null;
   // Real users see their own (possibly empty) fields; only the prototype/mock
   // mode falls back to the demo placeholder text. This prevents a brand-new
   // account from showing another persona's sample bio/name/title.
@@ -197,7 +206,7 @@ export function ProfileScreen() {
         {
           onSuccess: (conversationId) => openChat(conversationId),
           onError: () =>
-            alert("メッセージを開けませんでした。通信環境を確認して、もう一度お試しください。"),
+            showToast("メッセージを開けませんでした。通信環境を確認して、もう一度お試しください。"),
         },
       );
     } else {
@@ -1012,6 +1021,48 @@ export function ProfileScreen() {
         </div>
       )}
 
+      {/* 参加予定のイベント（本人のマイページのみ）。参加表明したイベントのうち、
+          これから開催のものを近い順に表示。タップでイベント詳細へ。 */}
+      {isOwnProfile && myEvents.length > 0 && (
+        <div style={{ padding: "26px 22px 0" }}>
+          <SectionHeading size={15}>参加予定のイベント</SectionHeading>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
+            {myEvents.slice(0, 6).map((ev) => (
+              <button
+                key={ev.id}
+                onClick={() => openEvent(ev.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 11,
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 14,
+                  padding: "10px 12px",
+                  background: colors.white,
+                  width: "100%",
+                  textAlign: "left",
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ flex: "0 0 44px", width: 44, height: 44, borderRadius: 11, overflow: "hidden" }}>
+                  {ev.imageUrl ? <ImageSlot radius={11} src={ev.imageUrl} /> : <WorkCover name={ev.name} radius={11} showName={false} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.name}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.date} ・ {ev.venue}
+                  </div>
+                </div>
+                <ChevronRightIcon />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* gallery */}
       <div style={{ padding: "26px 22px 30px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1098,7 +1149,7 @@ export function ProfileScreen() {
                           position: "absolute",
                           left: 4,
                           top: 4,
-                          height: 22,
+                          height: 27,
                           borderRadius: 999,
                           border: "none",
                           background: "rgba(30,20,40,.65)",
@@ -1106,7 +1157,7 @@ export function ProfileScreen() {
                           fontSize: 11,
                           lineHeight: 1,
                           cursor: "pointer",
-                          padding: "0 8px",
+                          padding: "0 9px",
                           display: "flex",
                           alignItems: "center",
                         }}
@@ -1120,13 +1171,13 @@ export function ProfileScreen() {
                           position: "absolute",
                           right: 4,
                           top: 4,
-                          width: 22,
-                          height: 22,
+                          width: 27,
+                          height: 27,
                           borderRadius: "50%",
                           border: "none",
                           background: "rgba(30,20,40,.65)",
                           color: colors.white,
-                          fontSize: 14,
+                          fontSize: 15,
                           lineHeight: 1,
                           cursor: "pointer",
                           display: "flex",
@@ -1158,7 +1209,7 @@ export function ProfileScreen() {
                   ) : (
                     <>
                       <button
-                        onClick={() => p.image_url && setLightboxUrl(p.image_url)}
+                        onClick={() => p.image_url && setLightboxIndex(i)}
                         aria-label="拡大表示"
                         style={{ width: "100%", height: "100%", padding: 0, border: "none", background: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
                       >
@@ -1252,9 +1303,9 @@ export function ProfileScreen() {
       </div>
 
       {/* lightbox: tap a gallery thumbnail to view it large */}
-      {lightboxUrl && (
+      {lightboxUrl && lightboxIndex !== null && (
         <div
-          onClick={() => setLightboxUrl(null)}
+          onClick={() => setLightboxIndex(null)}
           style={{
             position: "fixed",
             inset: 0,
@@ -1267,14 +1318,14 @@ export function ProfileScreen() {
           }}
         >
           <button
-            onClick={() => setLightboxUrl(null)}
+            onClick={() => setLightboxIndex(null)}
             aria-label="閉じる"
             style={{
               position: "absolute",
               right: 16,
               top: 16,
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               borderRadius: "50%",
               border: "none",
               background: "rgba(255,255,255,.16)",
@@ -1286,6 +1337,60 @@ export function ProfileScreen() {
           >
             ×
           </button>
+          {lightboxIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i !== null ? i - 1 : i));
+              }}
+              aria-label="前の写真"
+              style={{
+                position: "absolute",
+                left: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255,255,255,.16)",
+                color: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <ChevronLeftIcon color={colors.white} />
+            </button>
+          )}
+          {posts && lightboxIndex < posts.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i !== null ? i + 1 : i));
+              }}
+              aria-label="次の写真"
+              style={{
+                position: "absolute",
+                right: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255,255,255,.16)",
+                color: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <ChevronRightIcon color={colors.white} />
+            </button>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxUrl}

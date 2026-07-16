@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { colors } from "@/lib/tokens";
 import { popularWorks, regions, searchResults, homePosts } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AwaseCover } from "../AwaseCover";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, ChevronRightIcon, PinIcon, SearchIcon } from "../icons";
+import { AwaseCardSkeleton, Skeleton } from "../Skeleton";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useUserSearch } from "@/lib/queries/profile";
 import { usePostsFeed, type FeedPost } from "@/lib/queries/posts";
-import { useWorks } from "@/lib/queries/works";
+import { useFollowedWorks, useWorks } from "@/lib/queries/works";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -19,15 +20,23 @@ import { readingMatch } from "@/lib/reading";
 type SearchTab = "awase" | "people" | "photos";
 
 export function SearchScreen() {
-  const { back, nav, openAwase, openProfile, region, setRegion, searchKeyword, searchInitialTab } = useRouter();
+  const { back, nav, openAwase, openProfile, region, setRegion, searchKeyword, searchInitialTab, searchState, setSearchState } =
+    useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
-  // 作品チップ等から渡された初期キーワード（openSearch）で開始。画面はナビごとに
-  // マウントし直されるため、初期値としての useState で十分。
-  const [keyword, setKeyword] = useState(searchKeyword);
-  const [womenOnly, setWomenOnly] = useState(false);
-  const [tab, setTab] = useState<SearchTab>(searchInitialTab ?? "awase");
-  const [photoWorkFilter, setPhotoWorkFilter] = useState("");
+  // 作品チップ等から渡された初期キーワード（openSearch）があればそれを、無ければ
+  // 前回の検索状態（searchState、ルーターが持つ）を初期値にする。画面はナビごとに
+  // マウントし直されるため、初期値としての useState で十分——ただし「戻る」で
+  // 条件が消えないよう、変更は searchState に書き戻す（下の useEffect）。
+  const [keyword, setKeyword] = useState(searchKeyword || searchState.keyword);
+  const [womenOnly, setWomenOnly] = useState(searchState.womenOnly);
+  const [tab, setTab] = useState<SearchTab>(searchInitialTab ?? searchState.tab);
+  const [photoWorkFilter, setPhotoWorkFilter] = useState(searchState.photoWorkFilter);
+
+  useEffect(() => {
+    setSearchState({ keyword, tab, womenOnly, photoWorkFilter });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setSearchState は毎回同一参照
+  }, [keyword, tab, womenOnly, photoWorkFilter]);
   const moderation = useModerationFilter(user?.id);
   const results = useAwaseSearch({ region, keyword, womenOnly }, moderation.data);
   // 人物検索（人タブ・ログイン必須）。@ユーザーネーム前方一致＋許可者の表示名。
@@ -39,7 +48,13 @@ export function SearchScreen() {
   const people = peopleQuery.data ?? [];
   const peopleLoading = tab === "people" && configured && Boolean(user) && peopleQuery.isPending && keyword.trim().length >= 2;
   // みんなの投稿（写真タブ）。新着順＋任意の作品タグ絞り込み。
-  const works = useWorks().data ?? [];
+  // 作品チップは、自分がフォローしている作品を先頭に出す（探しやすさ優先）。
+  const followedWorkIds = new Set(useFollowedWorks(user?.id).data ?? []);
+  const works = [...(useWorks().data ?? [])].sort((a, b) => {
+    const af = followedWorkIds.has(a.id) ? 0 : 1;
+    const bf = followedWorkIds.has(b.id) ? 0 : 1;
+    return af - bf;
+  });
   const photoFeedQuery = usePostsFeed(photoWorkFilter || undefined, moderation.data?.blockedUserIds ?? []);
   const photos = photoFeedQuery.data ?? [];
   const photosLoading = tab === "photos" && configured && photoFeedQuery.isPending;
@@ -118,7 +133,8 @@ export function SearchScreen() {
               style={{
                 border: "none",
                 background: "none",
-                padding: 0,
+                padding: 10,
+                margin: -10,
                 cursor: "pointer",
                 color: colors.textMutedAlt,
                 fontSize: 16,
@@ -299,9 +315,7 @@ export function SearchScreen() {
 
       {/* results / empty state */}
       <div style={{ padding: "16px 18px 30px" }} className="pt-grid">
-        {loading && (
-          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
-        )}
+        {loading && [0, 1, 2].map((i) => <AwaseCardSkeleton key={i} />)}
         {filtered.map((res) => (
           <button
             key={res.key}
@@ -583,7 +597,8 @@ function PhotoResults({
   loading: boolean;
   onOpenProfile: (id: string) => void;
 }) {
-  const [lightbox, setLightbox] = useState<FeedPost | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightbox = lightboxIndex !== null ? (photos[lightboxIndex] ?? null) : null;
   const kw = keyword.trim();
   const visibleWorks = kw ? works.filter((w) => readingMatch(w.name, kw)) : works;
 
@@ -632,10 +647,6 @@ function PhotoResults({
         ))}
       </div>
 
-      {loading && (
-        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
-      )}
-
       {!loading && photos.length === 0 && (
         <div style={{ padding: "40px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
           まだ写真がありません。
@@ -643,10 +654,11 @@ function PhotoResults({
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, padding: "14px 18px 30px" }}>
-        {photos.map((p) => (
+        {loading && [0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} height={108} radius={12} />)}
+        {photos.map((p, i) => (
           <button
             key={p.id}
-            onClick={() => setLightbox(p)}
+            onClick={() => setLightboxIndex(i)}
             aria-label="拡大表示"
             style={{ height: 108, padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
           >
@@ -655,9 +667,9 @@ function PhotoResults({
         ))}
       </div>
 
-      {lightbox && (
+      {lightbox && lightboxIndex !== null && (
         <div
-          onClick={() => setLightbox(null)}
+          onClick={() => setLightboxIndex(null)}
           style={{
             position: "fixed",
             inset: 0,
@@ -671,14 +683,14 @@ function PhotoResults({
           }}
         >
           <button
-            onClick={() => setLightbox(null)}
+            onClick={() => setLightboxIndex(null)}
             aria-label="閉じる"
             style={{
               position: "absolute",
               right: 16,
               top: 16,
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               borderRadius: "50%",
               border: "none",
               background: "rgba(255,255,255,.16)",
@@ -690,6 +702,60 @@ function PhotoResults({
           >
             ×
           </button>
+          {lightboxIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i !== null ? i - 1 : i));
+              }}
+              aria-label="前の写真"
+              style={{
+                position: "absolute",
+                left: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255,255,255,.16)",
+                color: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <ChevronLeftIcon color={colors.white} />
+            </button>
+          )}
+          {lightboxIndex < photos.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i !== null ? i + 1 : i));
+              }}
+              aria-label="次の写真"
+              style={{
+                position: "absolute",
+                right: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255,255,255,.16)",
+                color: colors.white,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <ChevronRightIcon color={colors.white} />
+            </button>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightbox.imageUrl}

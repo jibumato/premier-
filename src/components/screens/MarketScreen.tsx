@@ -6,6 +6,8 @@ import { marketItems as mockMarketItems } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { AppBar } from "../ui";
+import { RefreshIcon } from "../icons";
+import { MarketCardSkeleton } from "../Skeleton";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useWorks } from "@/lib/queries/works";
 import { useCreateMarketItem, useMarketItems } from "@/lib/queries/market";
@@ -141,23 +143,43 @@ export function MarketScreen() {
         title="フリマ（衣装売買）"
         onBack={back}
         right={
-          <button
-            onClick={handleListClick}
-            style={{
-              border: "none",
-              background: colors.primary,
-              color: colors.white,
-              fontFamily: "inherit",
-              fontSize: 11.5,
-              fontWeight: 700,
-              padding: "6px 12px",
-              borderRadius: 999,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            出品する
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {configured && (
+              <button
+                onClick={() => itemsQuery.refetch()}
+                aria-label="更新"
+                disabled={itemsQuery.isFetching}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 10,
+                  margin: -10,
+                  cursor: itemsQuery.isFetching ? "default" : "pointer",
+                  display: "flex",
+                  opacity: itemsQuery.isFetching ? 0.4 : 1,
+                }}
+              >
+                <RefreshIcon size={18} color={colors.textSecondary} />
+              </button>
+            )}
+            <button
+              onClick={handleListClick}
+              style={{
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
+                fontFamily: "inherit",
+                fontSize: 11.5,
+                fontWeight: 700,
+                padding: "6px 12px",
+                borderRadius: 999,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              出品する
+            </button>
+          </div>
         }
       />
 
@@ -279,7 +301,11 @@ export function MarketScreen() {
       )}
 
       {loading && !listing ? (
-        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "16px 22px 30px" }}>
+          {[0, 1, 2, 3].map((i) => (
+            <MarketCardSkeleton key={i} />
+          ))}
+        </div>
       ) : real && items.length === 0 && !listing ? (
         <div style={{ padding: "40px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
           まだ出品はありません。

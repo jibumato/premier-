@@ -6,6 +6,7 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { EmptyState } from "../EmptyState";
 import { ChevronLeftIcon, VerifiedBadge, MessageIcon } from "../icons";
+import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
   useAwase,
@@ -41,6 +42,7 @@ const statusChip: Record<ApplicationStatus, { label: string; color: string; bg: 
 export function HostApplicantsScreen() {
   const { back, openProfile, openChat, selectedAwaseId } = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const configured = isSupabaseConfigured();
 
   const awaseQuery = useAwase(selectedAwaseId);
@@ -58,7 +60,7 @@ export function HostApplicantsScreen() {
       { awaseId: real.id },
       {
         onSuccess: (convId) => openChat(convId),
-        onError: () => alert("グループチャットを開けませんでした。もう一度お試しください。"),
+        onError: () => showToast("グループチャットを開けませんでした。もう一度お試しください。"),
       },
     );
   };

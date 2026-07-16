@@ -209,6 +209,30 @@ a:hover {
   }
 }
 
+/* 一覧読み込み中のスケルトン（灰色ボックスがゆっくり明滅する）。
+   「読み込み中…」の文字だけより、これから出るカードの形が先に見えることで
+   体感速度が上がる。 */
+@keyframes pt-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pt-skeleton {
+  animation: pt-skeleton-pulse 1.3s ease-in-out infinite;
+  background: #ece8f3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-skeleton {
+    animation: none;
+  }
+}
+
 /* Sidebar shows on desktop only; the bottom nav shows on mobile only. */
 @media (min-width: 641px) {
   .pt-bottomnav {
