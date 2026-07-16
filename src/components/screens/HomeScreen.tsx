@@ -493,7 +493,7 @@ export function HomeScreen() {
             padding: "0 22px",
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>談話室</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>みんなの談話室</div>
           <button
             onClick={() => nav("lounge")}
             style={{

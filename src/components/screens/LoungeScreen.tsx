@@ -69,7 +69,7 @@ export function LoungeScreen() {
 
   return (
     <div>
-      <AppBar title="談話室" onBack={back} />
+      <AppBar title="みんなの談話室" onBack={back} />
 
       <div style={{ padding: "10px 22px 0" }}>
         <p style={{ margin: 0, fontSize: 12, color: colors.textMutedAlt, lineHeight: 1.8 }}>
@@ -94,7 +94,7 @@ export function LoungeScreen() {
             onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
             placeholder={
               needsLogin
-                ? "談話室に投稿するには無料登録が必要です。閲覧はどなたでもできます。"
+                ? "みんなの談話室に投稿するには無料登録が必要です。閲覧はどなたでもできます。"
                 : configured
                   ? "いま思っていることを書いてみましょう"
                   : "プレビュー環境（未接続）では投稿できません。"
