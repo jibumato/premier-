@@ -90,6 +90,56 @@ a:hover {
   }
 }
 
+/* 併せ運おみくじ（おしらせ画面の遊び心）。box: 引く前のガタガタ演出、
+   pop: 結果の飛び出し、fall: 大大吉の紙吹雪。 */
+@keyframes pt-omikuji-shake {
+  0%,
+  100% {
+    transform: rotate(-8deg) translateX(-2px);
+  }
+  50% {
+    transform: rotate(8deg) translateX(2px);
+  }
+}
+
+.pt-omikuji-shake {
+  animation: pt-omikuji-shake 0.12s infinite;
+}
+
+@keyframes pt-omikuji-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pt-omikuji-pop {
+  animation: pt-omikuji-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes pt-omikuji-fall {
+  to {
+    transform: translateY(340px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.pt-omikuji-fall {
+  animation: pt-omikuji-fall 1.6s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-omikuji-shake,
+  .pt-omikuji-pop,
+  .pt-omikuji-fall {
+    animation: none;
+  }
+}
+
 /*
  * Responsive app shell.
  * Desktop (≥641px): a centered app window with a left sidebar + wide content

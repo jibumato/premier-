@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
+import { Omikuji } from "../Omikuji";
 
 export function NotifyScreen() {
   const { back, nav, openAwase, openProfile } = useRouter();
@@ -110,6 +111,10 @@ export function NotifyScreen() {
           );
         })}
       </div>
+
+      {/* 遊び心: 通知一覧の一番下にひっそり置いた併せ運おみくじ（1日1回） */}
+      <Omikuji />
+      <div style={{ height: 22 }} />
     </div>
   );
 }
