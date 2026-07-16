@@ -123,6 +123,9 @@ export function CreateScreen() {
   const [body, setBody] = useState(draft.body ?? "");
   const [publishAt, setPublishAt] = useState(draft.publishAt ?? "");
   const [applicationDeadline, setApplicationDeadline] = useState(draft.applicationDeadline ?? "");
+  // チェックが入っている間は日時入力を無効化し、値を空（＝今すぐ公開／締切なし）に保つ。
+  const [publishNow, setPublishNow] = useState(!draft.publishAt);
+  const [noDeadline, setNoDeadline] = useState(!draft.applicationDeadline);
   const [templateName, setTemplateName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -553,23 +556,61 @@ export function CreateScreen() {
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={label}>公開日時（予約）</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={publishNow}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setPublishNow(checked);
+                  if (checked) setPublishAt("");
+                }}
+                style={{ width: 14, height: 14, accentColor: colors.primary }}
+              />
+              <span style={{ fontSize: 11.5, color: colors.textSecondary }}>今すぐ公開</span>
+            </label>
             <input
               type="datetime-local"
-              style={{ ...inputBox, fontSize: 12.5, padding: "12px 12px" }}
+              disabled={publishNow}
+              style={{
+                ...inputBox,
+                fontSize: 12.5,
+                padding: "12px 12px",
+                marginTop: 7,
+                opacity: publishNow ? 0.5 : 1,
+              }}
               value={publishAt}
               onChange={(e) => setPublishAt(e.target.value)}
             />
-            <div style={{ marginTop: 5, fontSize: 10.5, color: colors.textMutedAlt }}>空欄で今すぐ公開</div>
           </div>
           <div style={{ flex: 1 }}>
             <label style={label}>応募締切</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={noDeadline}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setNoDeadline(checked);
+                  if (checked) setApplicationDeadline("");
+                }}
+                style={{ width: 14, height: 14, accentColor: colors.primary }}
+              />
+              <span style={{ fontSize: 11.5, color: colors.textSecondary }}>締め切りなし</span>
+            </label>
             <input
               type="datetime-local"
-              style={{ ...inputBox, fontSize: 12.5, padding: "12px 12px" }}
+              disabled={noDeadline}
+              style={{
+                ...inputBox,
+                fontSize: 12.5,
+                padding: "12px 12px",
+                marginTop: 7,
+                opacity: noDeadline ? 0.5 : 1,
+              }}
               value={applicationDeadline}
               onChange={(e) => setApplicationDeadline(e.target.value)}
             />
-            <div style={{ marginTop: 5, fontSize: 10.5, color: colors.textMutedAlt }}>空欄で締切なし</div>
           </div>
         </div>
 
