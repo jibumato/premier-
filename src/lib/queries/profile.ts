@@ -209,11 +209,17 @@ export function useAwaseAchievementCount(userId: string | undefined) {
 
 /** プロフィール保存エラーを日本語の分かりやすい文言に変換。
  * 23505 = unique_violation（@ユーザーネームの重複）
- * 23514 = check_violation（@ユーザーネームの形式違反） */
+ * 23514 = check_violation（@ユーザーネームの形式違反）
+ * 'handle is reserved' / 'handle change cooldown active' = 0055 のトリガーが
+ * 投げるメッセージ（なりすまし防止の予約語・変更クールダウン）。 */
 export function friendlyProfileError(e: unknown): string {
   const err = e as { code?: string; message?: string };
   if (err?.code === "23505") return "そのユーザーネームは既に使われています。別のものをお試しください。";
   if (err?.code === "23514") return "ユーザーネームは半角英数と _ の3〜20文字で入力してください。";
+  if (err?.message?.includes("handle is reserved"))
+    return "そのユーザーネームは使用できません。別のものをお試しください。";
+  if (err?.message?.includes("handle change cooldown active"))
+    return "ユーザーネームの変更は前回の変更から14日間空ける必要があります。";
   return "保存に失敗しました。時間をおいて再度お試しください。";
 }
 
