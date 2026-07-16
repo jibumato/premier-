@@ -8,7 +8,7 @@ import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
+import { friendlyProfileError, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
 import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostVisibility } from "@/lib/queries/posts";
 import { useAwaseHistory } from "@/lib/queries/awase";
@@ -62,6 +62,15 @@ function normalizeXHandle(input: string): string {
   return s.replace(/^@+/, "").replace(/[^A-Za-z0-9_]/g, "").slice(0, 15);
 }
 
+/** 登録時に自動採番される handle（user_ + UUID頭8桁）かどうか。
+ * ＝ユーザーがまだ自分の @ユーザーネーム を設定していない状態。 */
+function isDefaultHandle(handle: string | null | undefined): boolean {
+  return !handle || /^user_[0-9a-f]{8}$/.test(handle);
+}
+
+/** @ユーザーネームの形式チェック（半角英数と _ の3〜20文字）。DBの check 制約と一致。 */
+const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
+
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, openAwase, selectedProfileId } = useRouter();
   const { user } = useAuth();
@@ -106,6 +115,9 @@ export function ProfileScreen() {
   const [nameInput, setNameInput] = useState("");
   const [bioInput, setBioInput] = useState("");
   const [xInput, setXInput] = useState("");
+  const [handleInput, setHandleInput] = useState("");
+  const [searchableByName, setSearchableByName] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
   const reorderPosts = useReorderPosts();
@@ -141,6 +153,8 @@ export function ProfileScreen() {
   // Xハンドル。未ログインで他人を見ているとき（maskIdentity）は個人情報保護のため出さない。
   // 実ユーザーは自分の設定値（未設定は空）。プロトタイプはデモのハンドルを表示。
   const xHandle = real ? (real.x_handle ?? "") : "mio_cos";
+  // @ユーザーネーム。自動採番のデフォルト値（user_xxxxxxxx）は「未設定」扱いで表示しない。
+  const username = real ? (isDefaultHandle(real.handle) ? "" : real.handle) : "mio_cos";
   const stats = [
     { n: posts ? String(posts.length) : "128", l: "投稿" },
     { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
@@ -192,18 +206,38 @@ export function ProfileScreen() {
     setNameInput(real?.display_name ?? "");
     setBioInput(real?.bio ?? "");
     setXInput(real?.x_handle ?? "");
+    // 自動採番のデフォルトは空欄で提示し、ユーザーに新しく決めてもらう。
+    setHandleInput(isDefaultHandle(real?.handle) ? "" : (real?.handle ?? ""));
+    setSearchableByName(Boolean(real?.searchable_by_name));
+    setEditError(null);
     setEditing(true);
   };
   const saveEdit = () => {
     if (!user || !nameInput.trim()) return;
+    setEditError(null);
+    // @ユーザーネーム: 入力があり、かつ現在値と違うときだけ更新する（一意列で空にはできない）。
+    const nextHandle = handleInput.trim().toLowerCase();
+    let handleArg: string | undefined;
+    if (nextHandle && nextHandle !== real?.handle) {
+      if (!HANDLE_RE.test(nextHandle)) {
+        setEditError("ユーザーネームは半角英数と _ の3〜20文字で入力してください。");
+        return;
+      }
+      handleArg = nextHandle;
+    }
     updateText.mutate(
       {
         userId: user.id,
         displayName: nameInput.trim(),
         bio: bioInput.trim(),
         xHandle: normalizeXHandle(xInput),
+        handle: handleArg,
+        searchableByName,
       },
-      { onSuccess: () => setEditing(false) },
+      {
+        onSuccess: () => setEditing(false),
+        onError: (e) => setEditError(friendlyProfileError(e)),
+      },
     );
   };
 
@@ -339,6 +373,13 @@ export function ProfileScreen() {
             </button>
           ) : null}
         </div>
+        {/* @ユーザーネーム（一意ID）。設定済みのときだけ表示。未ログインで他人を
+            見ているとき（maskIdentity）は個人情報保護のため出さない。 */}
+        {!maskIdentity && username && (
+          <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 600, color: colors.textMutedAlt }}>
+            @{username}
+          </div>
+        )}
         {!isVerified && isOwnProfile && (
           <p style={{ margin: "7px 0 0", fontSize: 11, color: colors.textMutedSoft, lineHeight: 1.6 }}>
             本人確認をすると、お名前の横に確認済みバッジが表示されます。{" "}
@@ -556,6 +597,46 @@ export function ProfileScreen() {
             }}
           >
             <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>ユーザーネーム（ID）</label>
+              <div style={{ position: "relative", marginTop: 6 }}>
+                <span
+                  style={{
+                    position: "absolute",
+                    left: 13,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontSize: 13.5,
+                    color: colors.textMutedAlt,
+                    pointerEvents: "none",
+                  }}
+                >
+                  @
+                </span>
+                <input
+                  value={handleInput}
+                  onChange={(e) => setHandleInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20))}
+                  maxLength={20}
+                  placeholder="半角英数と _（3〜20文字）"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  style={{
+                    width: "100%",
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 12,
+                    padding: "11px 13px 11px 26px",
+                    fontSize: 13.5,
+                    fontFamily: "inherit",
+                    outline: "none",
+                    background: colors.white,
+                  }}
+                />
+              </div>
+              <p style={{ margin: "5px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+                他の人があなたを検索するときのID（例: @mio_cos）。他の人と重複しない値を設定してください。
+              </p>
+            </div>
+            <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>表示名</label>
               <input
                 value={nameInput}
@@ -638,9 +719,25 @@ export function ProfileScreen() {
                 @付きのユーザー名でもURL（https://x.com/…）の貼り付けでもOKです。空欄にすると非表示になります。
               </p>
             </div>
-            {updateText.isError && (
-              <div style={{ fontSize: 11.5, color: "#C0453F" }}>保存に失敗しました。時間をおいて再度お試しください。</div>
-            )}
+
+            {/* 表示名での検索を許可するか（既定オフ・つきまとい対策）。
+                @ユーザーネーム検索は常に可。ここは表示名検索の可否だけ。 */}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={searchableByName}
+                onChange={(e) => setSearchableByName(e.target.checked)}
+                style={{ marginTop: 2, width: 16, height: 16, accentColor: colors.primary, flex: "0 0 auto" }}
+              />
+              <span style={{ fontSize: 11.5, lineHeight: 1.6, color: colors.textSecondary }}>
+                表示名でも検索されるようにする
+                <span style={{ display: "block", fontSize: 10.5, color: colors.textMutedSoft, marginTop: 2 }}>
+                  オフでも @ユーザーネーム では検索できます。オンにすると表示名（ニックネーム）でも見つかりやすくなります。
+                </span>
+              </span>
+            </label>
+
+            {editError && <div style={{ fontSize: 11.5, color: "#C0453F", lineHeight: 1.6 }}>{editError}</div>}
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setEditing(false)}

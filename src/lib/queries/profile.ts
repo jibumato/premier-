@@ -149,7 +149,19 @@ export function useAwaseAchievementCount(userId: string | undefined) {
   });
 }
 
-/** Update the editable profile text fields (display name / bio / X handle). */
+/** プロフィール保存エラーを日本語の分かりやすい文言に変換。
+ * 23505 = unique_violation（@ユーザーネームの重複）
+ * 23514 = check_violation（@ユーザーネームの形式違反） */
+export function friendlyProfileError(e: unknown): string {
+  const err = e as { code?: string; message?: string };
+  if (err?.code === "23505") return "そのユーザーネームは既に使われています。別のものをお試しください。";
+  if (err?.code === "23514") return "ユーザーネームは半角英数と _ の3〜20文字で入力してください。";
+  return "保存に失敗しました。時間をおいて再度お試しください。";
+}
+
+/** Update the editable profile text fields (display name / bio / X handle /
+ * @username / display-name searchability). handle は指定時のみ更新する
+ * （未指定＝現状維持。空にはできない一意列のため）。 */
 export function useUpdateProfileText() {
   const qc = useQueryClient();
   return useMutation({
@@ -158,18 +170,34 @@ export function useUpdateProfileText() {
       displayName,
       bio,
       xHandle,
+      handle,
+      searchableByName,
     }: {
       userId: string;
       displayName: string;
       bio: string;
       /** @なしのXユーザー名。空文字なら null（未設定）で保存する。 */
       xHandle: string;
+      /** @ユーザーネーム（半角英数と_の3〜20文字）。undefined なら変更しない。 */
+      handle?: string;
+      /** 表示名での検索を許可するか（既定オフのトグル）。 */
+      searchableByName: boolean;
     }) => {
       const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase
-        .from("profiles")
-        .update({ display_name: displayName, bio, x_handle: xHandle || null })
-        .eq("id", userId);
+      const patch: {
+        display_name: string;
+        bio: string;
+        x_handle: string | null;
+        searchable_by_name: boolean;
+        handle?: string;
+      } = {
+        display_name: displayName,
+        bio,
+        x_handle: xHandle || null,
+        searchable_by_name: searchableByName,
+      };
+      if (handle !== undefined) patch.handle = handle;
+      const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
       if (error) throw error;
     },
     onSuccess: (_data, { userId }) => qc.invalidateQueries({ queryKey: ["profile", userId] }),
