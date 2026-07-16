@@ -35,7 +35,7 @@ function consumeLoungeDraft(): string {
 }
 
 export function LoungeScreen() {
-  const { back, nav, openReport } = useRouter();
+  const { back, nav, openProfile, openReport } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   // 接続済みだが未ログイン: 閲覧はできるが投稿には登録が必要
@@ -201,22 +201,42 @@ export function LoungeScreen() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div
+                {/* 投稿者からプロフィールへ。未ログイン閲覧者にはマスク版が見え、
+                    そこから登録導線につながる（ハイブリッド公開モデル） */}
+                <button
+                  onClick={() => openProfile(p.authorId)}
+                  aria-label={`${p.authorName}のプロフィールを見る`}
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    background: colors.primaryBg1,
-                    flex: "0 0 auto",
-                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: "none",
+                    background: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    minWidth: 0,
                   }}
                 >
-                  {p.authorAvatarUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.authorAvatarUrl} alt="" width={28} height={28} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
-                  )}
-                </div>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>{p.authorName}</span>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: colors.primaryBg1,
+                      flex: "0 0 auto",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {p.authorAvatarUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.authorAvatarUrl} alt="" width={28} height={28} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+                    )}
+                  </div>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.authorName}
+                  </span>
+                </button>
                 <span style={{ fontSize: 10.5, color: colors.textMutedAlt }}>{p.time}</span>
               </div>
               <p style={{ margin: "8px 0 0", fontSize: 13, color: colors.textPrimary, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
