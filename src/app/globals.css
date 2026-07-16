@@ -65,6 +65,31 @@ a:hover {
   }
 }
 
+/* 無料登録の案内カードをふわふわ浮かせて目を引く。上下動に合わせて影も
+   伸び縮みさせ、浮いている奥行きを出す（影だけ別要素に分けず、box-shadow
+   のキーフレームで済ませている）。 */
+@keyframes pt-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 10px 22px -14px rgba(76, 62, 130, 0.55);
+  }
+  50% {
+    transform: translateY(-7px);
+    box-shadow: 0 22px 30px -16px rgba(76, 62, 130, 0.4);
+  }
+}
+
+.pt-float {
+  animation: pt-float 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-float {
+    animation: none;
+  }
+}
+
 /*
  * Responsive app shell.
  * Desktop (≥641px): a centered app window with a left sidebar + wide content
