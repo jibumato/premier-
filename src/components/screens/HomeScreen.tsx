@@ -14,7 +14,7 @@ import {
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { BellIcon, CalendarIcon, CameraIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, SearchIcon } from "../icons";
+import { BellIcon, CalendarIcon, CameraIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, PlusIcon, SearchIcon } from "../icons";
 import { useAwaseFeed, useBeginnerAwase } from "@/lib/queries/awase";
 import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
@@ -483,93 +483,139 @@ export function HomeScreen() {
         </div>
       )}
 
-      {/* 談話室 — 誰でも気軽に投稿できる交流の場（プレビュー） */}
-      <div style={{ padding: "18px 0 0" }}>
+      {/* みんなの談話室 — 誰でも気軽に投稿できる交流の場（プレビュー）。
+          専用のグラデーションカード＋横スクロールの吹き出しチップでコンパクトに
+          まとめ、他の導線（feature shortcuts等）を圧迫しないようにしてある。 */}
+      <div style={{ padding: "16px 22px 0" }}>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 22px",
+            borderRadius: 18,
+            padding: "13px 14px 12px",
+            background: "linear-gradient(135deg, #FBEDF4, #F2EDFB)",
+            border: `1px solid ${colors.borderSoft}`,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>みんなの談話室</div>
-          <button
-            onClick={() => nav("lounge")}
-            style={{
-              border: "none",
-              background: "none",
-              color: colors.primary,
-              fontFamily: "inherit",
-              fontSize: 11.5,
-              fontWeight: 700,
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
-            もっと見る →
-          </button>
-        </div>
-        <div style={{ padding: "10px 22px 0", display: "flex", flexDirection: "column", gap: 8 }}>
-          {loungePreview.length === 0 && (
-            <div style={{ fontSize: 12, color: colors.textMutedAlt, padding: "4px 2px" }}>
-              まだ投稿がありません。最初のひとことを書いてみましょう。
-            </div>
-          )}
-          {loungePreview.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => nav("lounge")}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                border: `1px solid ${colors.borderSoft}`,
-                borderRadius: 14,
-                padding: "11px 13px",
+                flex: "0 0 auto",
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
                 background: colors.white,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                textAlign: "left",
-                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: colors.textPrimary }}>{p.authorName}</span>
-                <span style={{ fontSize: 10, color: colors.textMutedAlt }}>{p.time}</span>
-              </div>
-              <span
+              <MessageIcon size={14} color={colors.pink} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>みんなの談話室</span>
+              {loungePreview.length > 0 && (
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: colors.pink, flex: "0 0 auto" }} />
+              )}
+            </div>
+            <button
+              onClick={() => nav("lounge")}
+              aria-label="談話室に投稿する"
+              style={{
+                flex: "0 0 auto",
+                width: 26,
+                height: 26,
+                borderRadius: "50%",
+                border: "none",
+                background: colors.pink,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <PlusIcon size={13} color={colors.white} />
+            </button>
+            <button
+              onClick={() => nav("lounge")}
+              style={{
+                flex: "0 0 auto",
+                border: "none",
+                background: "none",
+                color: colors.primary,
+                fontFamily: "inherit",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              もっと見る →
+            </button>
+          </div>
+
+          <div
+            className="noscroll"
+            style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 2px 0" }}
+          >
+            {loungePreview.length === 0 && (
+              <button
+                onClick={() => nav("lounge")}
                 style={{
-                  fontSize: 12.5,
-                  color: colors.textSecondary,
+                  flex: "0 0 auto",
+                  width: 210,
+                  border: `1px dashed ${colors.border}`,
+                  borderRadius: 14,
+                  padding: "10px 12px",
+                  background: "rgba(255,255,255,.6)",
+                  color: colors.textMutedAlt,
+                  fontFamily: "inherit",
+                  fontSize: 11.5,
                   lineHeight: 1.6,
-                  overflow: "hidden",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
+                  cursor: "pointer",
+                  textAlign: "left",
                 }}
               >
-                {p.body}
-              </span>
-            </button>
-          ))}
-          <button
-            onClick={() => nav("lounge")}
-            style={{
-              border: `1px dashed ${colors.borderSoft}`,
-              borderRadius: 14,
-              padding: "11px 13px",
-              background: colors.primaryBg5,
-              color: colors.textMutedAlt,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
-              textAlign: "left",
-              width: "100%",
-            }}
-          >
-            いま思っていることを投稿する…
-          </button>
+                まだ投稿がありません。最初のひとことを書いてみましょう。
+              </button>
+            )}
+            {loungePreview.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => nav("lounge")}
+                style={{
+                  flex: "0 0 auto",
+                  width: 210,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 3,
+                  border: `1px solid ${colors.borderSoft}`,
+                  borderRadius: 14,
+                  padding: "10px 12px",
+                  background: colors.white,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: colors.textPrimary }}>{p.authorName}</span>
+                  <span style={{ fontSize: 9.5, color: colors.textMutedAlt }}>{p.time}</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                    lineHeight: 1.55,
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                  }}
+                >
+                  {p.body}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
