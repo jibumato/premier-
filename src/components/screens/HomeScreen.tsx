@@ -131,6 +131,166 @@ export function HomeScreen() {
   const loungeQuery = useLoungePosts(moderation.data, 4);
   const loungePreview = configured ? (loungeQuery.data ?? []) : mockLoungePosts.slice(0, 4);
 
+  // 併せ募集フィード。ログイン状態で表示位置を出し分けるため、JSX を一度だけ
+  // 定義しておく（内容は同一＝並び順だけ変更）。ログイン済み＝検索バー直下に置き、
+  // リピーターが「今日の用事＝新着の併せ」をファーストビューで確認できるようにする。
+  // 未ログイン＝従来どおり中盤に置き、上段は登録CTA・サミット等の集客導線を優先する。
+  const feedSection = (
+    <div style={{ padding: "26px 0 0" }}>
+      <div style={{ padding: "0 22px" }}>
+        <SectionHeading
+          accent={colors.pink}
+          right={
+            <button
+              onClick={() => nav("search", "search")}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: 12,
+                color: colors.primary,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              すべて →
+            </button>
+          }
+        >
+          併せ・合わせ募集
+        </SectionHeading>
+      </div>
+      {feedLoading && (
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      )}
+      {feedEmpty && (
+        <EmptyState
+          icon="🎬"
+          title="まだ募集がありません"
+          body="いちばん乗りで併せを募集してみましょう。あなたの投稿がここに表示されます。"
+          action={
+            <button
+              onClick={() => nav("create")}
+              style={{
+                border: "none",
+                background: colors.primary,
+                color: colors.white,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "10px 20px",
+                borderRadius: 999,
+                cursor: "pointer",
+              }}
+            >
+              併せを募集する
+            </button>
+          }
+        />
+      )}
+      <div
+        style={{
+          padding: "15px 22px 0",
+        }}
+        className="pt-grid"
+      >
+        {awaseList.map((a) => (
+          <button
+            key={a.key}
+            onClick={() => (configured && feed.data ? openAwase(a.key) : nav("detail"))}
+            style={{
+              display: "flex",
+              gap: 13,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 18,
+              padding: 12,
+              background: colors.white,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              textAlign: "left",
+              width: "100%",
+            }}
+          >
+            <div style={{ flex: "0 0 84px", height: 84 }}>
+              <AwaseCover radius={13} coverUrl={a.coverUrl} work={a.work} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
+                  {a.title}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: colors.pinkText,
+                    background: colors.pinkBg1,
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {a.tag}
+                </span>
+              </div>
+              <div style={{ fontSize: 11.5, color: colors.textMutedAlt, marginTop: 4 }}>
+                {a.work}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 8,
+                  fontSize: 11,
+                  color: colors.textSecondaryAlt,
+                  flexWrap: "wrap",
+                }}
+              >
+                {a.region && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: colors.primary,
+                      background: colors.primaryBg5,
+                      padding: "3px 8px 3px 6px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    <PinIcon />
+                    {a.region}
+                  </span>
+                )}
+                <span>{a.date}</span>
+                <span>{a.place}</span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: colors.primary,
+                  marginTop: 7,
+                  fontWeight: 600,
+                }}
+              >
+                {a.members}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div>
       {/* app bar */}
@@ -323,6 +483,11 @@ export function HomeScreen() {
           <span style={{ fontSize: 14, color: "#AFAABB" }}>作品・キャラで仲間を探す</span>
         </button>
       </div>
+
+      {/* ログイン済み＝リピーターの「今日の用事」を最優先。検索バー直下に併せ
+          フィードを出し、ファーストビューで新着募集を確認できるようにする。
+          未ログインは従来どおり下段に出す（上段は集客導線を優先）。 */}
+      {user && feedSection}
 
       {/* サミット2026 カウントダウン導線 — 特集ページへ（開催まで everyone に表示） */}
       {(() => {
@@ -949,160 +1114,9 @@ export function HomeScreen() {
         </div>
       )}
 
-      {/* 併せ募集 */}
-      <div style={{ padding: "26px 0 0" }}>
-        <div style={{ padding: "0 22px" }}>
-          <SectionHeading
-            accent={colors.pink}
-            right={
-              <button
-                onClick={() => nav("search", "search")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: 12,
-                  color: colors.primary,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                すべて →
-              </button>
-            }
-          >
-            併せ・合わせ募集
-          </SectionHeading>
-        </div>
-        {feedLoading && (
-          <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
-        )}
-        {feedEmpty && (
-          <EmptyState
-            icon="🎬"
-            title="まだ募集がありません"
-            body="いちばん乗りで併せを募集してみましょう。あなたの投稿がここに表示されます。"
-            action={
-              <button
-                onClick={() => nav("create")}
-                style={{
-                  border: "none",
-                  background: colors.primary,
-                  color: colors.white,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  padding: "10px 20px",
-                  borderRadius: 999,
-                  cursor: "pointer",
-                }}
-              >
-                併せを募集する
-              </button>
-            }
-          />
-        )}
-        <div
-          style={{
-            padding: "15px 22px 0",
-          }}
-          className="pt-grid"
-        >
-          {awaseList.map((a) => (
-            <button
-              key={a.key}
-              onClick={() => (configured && feed.data ? openAwase(a.key) : nav("detail"))}
-              style={{
-                display: "flex",
-                gap: 13,
-                border: `1px solid ${colors.borderSoft}`,
-                borderRadius: 18,
-                padding: 12,
-                background: colors.white,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                textAlign: "left",
-                width: "100%",
-              }}
-            >
-              <div style={{ flex: "0 0 84px", height: 84 }}>
-                <AwaseCover radius={13} coverUrl={a.coverUrl} work={a.work} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
-                    {a.title}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: colors.pinkText,
-                      background: colors.pinkBg1,
-                      padding: "3px 8px",
-                      borderRadius: 999,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {a.tag}
-                  </span>
-                </div>
-                <div style={{ fontSize: 11.5, color: colors.textMutedAlt, marginTop: 4 }}>
-                  {a.work}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginTop: 8,
-                    fontSize: 11,
-                    color: colors.textSecondaryAlt,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {a.region && (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: colors.primary,
-                        background: colors.primaryBg5,
-                        padding: "3px 8px 3px 6px",
-                        borderRadius: 999,
-                      }}
-                    >
-                      <PinIcon />
-                      {a.region}
-                    </span>
-                  )}
-                  <span>{a.date}</span>
-                  <span>{a.place}</span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    color: colors.primary,
-                    marginTop: 7,
-                    fontWeight: 600,
-                  }}
-                >
-                  {a.members}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* 併せ募集 — 未ログインは中盤（従来位置）。ログイン済みは検索バー直下に
+          出すため、ここでは描画しない（feedSection を上部で描画済み）。 */}
+      {!user && feedSection}
 
       {/* upcoming events — a few from the curated calendar */}
       {upcomingEvents.length > 0 && (
