@@ -156,8 +156,12 @@ export function Omikuji() {
   };
 
   const share = (f: Fortune) => {
+    // 運勢名だけでなくお告げの中身まで入れて、読んだ人が「自分も引いて
+    // みよう」と思える投稿にする（投稿前に編集できるプリフィルなので、
+    // 長すぎる場合は本人が削れる）。
+    const text = `今日の併せ運おみくじは【${f.grade}】でした🎋\n「${f.msg}」\n${f.item} ／ ${f.color}`;
     try {
-      sessionStorage.setItem(LOUNGE_DRAFT_KEY, `今日の併せ運おみくじは【${f.grade}】でした🎋`);
+      sessionStorage.setItem(LOUNGE_DRAFT_KEY, text);
     } catch {
       // プリフィルできなくても談話室には遷移する
     }
