@@ -92,6 +92,7 @@ select
      where table_name='profiles' and column_name='is_suspended'))
                                                          as account_suspension,    -- false → 0049 未適用（違反アカウントの停止）
   (select to_regclass('public.lounge_posts') is not null) as lounge_table,        -- false → 0050 未適用（談話室）
+  (select count(*) from works where name = 'その他')      as works_vtuber_games,   -- 0 → 0051 未適用（VTuber/ゲーム作品）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -134,6 +135,7 @@ select
 - `announcements_admin` が `false` → **ステップ 2aj**（0048・お知らせを運営画面から管理）
 - `account_suspension` が `false` → **ステップ 2ak**（0049・違反アカウントの停止）
 - `lounge_table` が `false` → **ステップ 2al**（0050・談話室）
+- `works_vtuber_games` が `0` → **ステップ 2am**（0051・VTuber/ゲーム作品の追加）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -850,6 +852,20 @@ DBの制約・RLSレベルで以下を常に強制します（クライアント
 
 冪等ではないため（テーブル新規作成・`alter table ... drop constraint if
 exists` は再実行可）、既に適用済みなら実行不要です。
+
+---
+
+## ☐ ステップ 2am: VTuber/ゲーム作品の追加（マイグレーション 0051）
+
+`works_vtuber_games` が `0` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0051_seed_works_vtuber_games.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ 「ぶいすぽっ!」（VTuber）、「Apex Legends」「League of Legends」「オーバーウォッチ」
+「VALORANT」「フォートナイト」（対戦ゲーム）、カタログに見当たらない作品向けの
+「その他」が `works` に追加されます。あいうえお順ソート用の読み（かな）も同時に
+設定します。`on conflict do nothing` で追加のみ・冪等（再実行安全）。
 
 ---
 
