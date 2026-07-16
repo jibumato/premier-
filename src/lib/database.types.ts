@@ -313,6 +313,7 @@ export interface Database {
           caption: string | null;
           sort: number;
           visibility: "public" | "awase";
+          work_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -322,6 +323,7 @@ export interface Database {
           caption?: string | null;
           sort?: number;
           visibility?: "public" | "awase";
+          work_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>;

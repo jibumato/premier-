@@ -19,6 +19,7 @@ import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
 import { BellIcon, CalendarIcon, CameraIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, PlusIcon, SearchIcon } from "../icons";
 import { useAwaseFeed, useBeginnerAwase } from "@/lib/queries/awase";
+import { usePostsFeed } from "@/lib/queries/posts";
 import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAnnouncements } from "@/lib/queries/announcements";
@@ -64,13 +65,16 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function HomeScreen() {
-  const { nav, openAwase, openEvent, openSearch } = useRouter();
+  const { nav, openAwase, openEvent, openSearch, openPhotos } = useRouter();
   const { user, loading } = useAuth();
   const configured = isSupabaseConfigured();
   // 接続済みだが未ログイン: コンテンツは見せつつ、登録導線を前面に出す
   const signedOut = configured && !user;
   const moderation = useModerationFilter(user?.id);
   const feed = useAwaseFeed(moderation.data);
+  // みんなの投稿（新着プレビュー）。絞り込みなし＝全体の最新順。
+  const postsFeedQuery = usePostsFeed(undefined, moderation.data?.blockedUserIds ?? []);
+  const postsFeed = configured ? (postsFeedQuery.data ?? []) : [];
   // Real feed once connected and loaded; the handoff's mock list otherwise —
   // same AwaseCard shape, so the card markup below never branches.
   // In configured mode never fall back to mock while loading: show real data
@@ -1177,12 +1181,25 @@ export function HomeScreen() {
       {/* 安心して参加できる仕組み — 実装済みの安全機能を新規ユーザーに一枚で伝える */}
       <SafetySection />
 
-      {/* posts — 実投稿フィード未接続のため本番(configured)では非表示。
-          プロトタイプ表示用にモックのみ残す。実装時にここを実データへ差し替える。 */}
-      {!configured && (
+      {/* みんなの投稿 — 新着順のプレビュー。configured では実データ、未接続では
+          プロトタイプ表示用のモック。0件時はセクション自体を隠す（空のギャラリー
+          プレビューは寂しいだけなので）。 */}
+      {(!configured || postsFeed.length > 0) && (
       <div style={{ padding: "28px 0 30px" }}>
         <div style={{ padding: "0 22px" }}>
-          <SectionHeading accent={colors.primary}>みんなの投稿</SectionHeading>
+          <SectionHeading
+            accent={colors.primary}
+            right={
+              <button
+                onClick={openPhotos}
+                style={{ background: "none", border: "none", fontSize: 12, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                もっと見る →
+              </button>
+            }
+          >
+            みんなの投稿
+          </SectionHeading>
         </div>
         <div
           style={{
@@ -1192,30 +1209,41 @@ export function HomeScreen() {
             padding: "14px 22px 0",
           }}
         >
-          {homePosts.map((p) => (
-            <div key={p.key} style={{ position: "relative", height: 104 }}>
-              <ImageSlot radius={12} />
-              <span
-                style={{
-                  position: "absolute",
-                  left: 6,
-                  bottom: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: colors.white,
-                  background: "rgba(42,38,52,.5)",
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                }}
-              >
-                <HeartIcon />
-                {p.likes}
-              </span>
-            </div>
-          ))}
+          {configured
+            ? postsFeed.slice(0, 6).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={openPhotos}
+                  aria-label="みんなの投稿をもっと見る"
+                  style={{ height: 104, padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
+                >
+                  <ImageSlot radius={12} src={p.imageUrl} />
+                </button>
+              ))
+            : homePosts.map((p) => (
+                <div key={p.key} style={{ position: "relative", height: 104 }}>
+                  <ImageSlot radius={12} />
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 6,
+                      bottom: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: 9,
+                      fontWeight: 600,
+                      color: colors.white,
+                      background: "rgba(42,38,52,.5)",
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    <HeartIcon />
+                    {p.likes}
+                  </span>
+                </div>
+              ))}
         </div>
       </div>
       )}

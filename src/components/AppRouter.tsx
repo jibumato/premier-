@@ -28,6 +28,9 @@ interface RouterState {
   region: string;
   /** 検索画面の初期キーワード（作品チップ等から渡す）。SearchScreen が初期値に使う。 */
   searchKeyword: string;
+  /** 検索画面を開いたときの初期タブ（「みんなの投稿」→写真タブ等）。SearchScreen が
+   * 初期値に使うのみで、以降のタブ切替はSearchScreen内のローカル状態が持つ。 */
+  searchInitialTab: "awase" | "people" | "photos" | null;
   /** awase.id backing the current `detail` screen, once a backend is connected. */
   selectedAwaseId: string | null;
   /** conversation.id backing the current `chat` screen, once a backend is connected. */
@@ -57,6 +60,8 @@ interface RouterApi extends RouterState {
   setRegion: (r: string) => void;
   /** navigate to `search` with an initial keyword (作品チップ等からの導線) */
   openSearch: (keyword: string) => void;
+  /** navigate to `search` opened straight to the 写真 tab (ホームの「みんなの投稿」等からの導線) */
+  openPhotos: () => void;
   /** navigate to `detail` for a specific real awase row */
   openAwase: (awaseId: string) => void;
   /** navigate to `chat` for a specific real conversation row */
@@ -91,6 +96,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     tab: "home",
     region: "すべて",
     searchKeyword: "",
+    searchInitialTab: null,
     selectedAwaseId: null,
     selectedConversationId: null,
     selectedProfileId: null,
@@ -141,8 +147,10 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
           screen,
           tab: tab ?? s.tab,
           selectedProfileId: screen === "profile" ? null : s.selectedProfileId,
-          // 検索へ普通に遷移したときは初期キーワードなし（作品チップ経由は openSearch）
+          // 検索へ普通に遷移したときは初期キーワード・初期タブなし
+          // （作品チップ経由は openSearch、写真タブ直行は openPhotos）
           searchKeyword: screen === "search" ? "" : s.searchKeyword,
+          searchInitialTab: screen === "search" ? null : s.searchInitialTab,
           // reaching the create form any other way (e.g. sidebar) means a blank form
           duplicateAwaseId: screen === "create" ? null : s.duplicateAwaseId,
           reportTarget: screen === "report" ? null : s.reportTarget,
@@ -177,12 +185,20 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     (keyword: string) => {
       setState((s) => {
         historyRef.current = [...historyRef.current, s.screen];
-        return { ...s, screen: "search", tab: "search", searchKeyword: keyword };
+        return { ...s, screen: "search", tab: "search", searchKeyword: keyword, searchInitialTab: null };
       });
       resetScroll();
     },
     [resetScroll]
   );
+
+  const openPhotos = useCallback(() => {
+    setState((s) => {
+      historyRef.current = [...historyRef.current, s.screen];
+      return { ...s, screen: "search", tab: "search", searchKeyword: "", searchInitialTab: "photos" };
+    });
+    resetScroll();
+  }, [resetScroll]);
 
   const openAwase = useCallback(
     (awaseId: string) => {
@@ -279,6 +295,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       back,
       setRegion,
       openSearch,
+      openPhotos,
       openAwase,
       openChat,
       openProfile,
@@ -295,6 +312,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       back,
       setRegion,
       openSearch,
+      openPhotos,
       openAwase,
       openChat,
       openProfile,

@@ -100,6 +100,8 @@ select
      where table_name='profiles' and column_name='searchable_by_name')) as profile_username_search, -- false → 0054 未適用（@ユーザーネーム/人物検索の土台）
   (select exists(select 1 from information_schema.columns
      where table_name='profiles' and column_name='handle_changed_at')) as handle_change_guard, -- false → 0055 未適用（@ユーザーネーム変更のなりすまし・乱用対策）
+  (select exists(select 1 from information_schema.columns
+     where table_name='posts' and column_name='work_id')) as posts_work_tag,      -- false → 0056 未適用（みんなの投稿フィード＋写真の作品タグ）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -147,6 +149,7 @@ select
 - `events_acosta` が少ない（20未満）→ **ステップ 2ao**（0053・全国acostaイベント＋コスメル）
 - `profile_username_search` が `false` → **ステップ 2ap**（0054・@ユーザーネーム/人物検索の土台）
 - `handle_change_guard` が `false` → **ステップ 2aq**（0055・@ユーザーネーム変更のなりすまし・乱用対策）
+- `posts_work_tag` が `false` → **ステップ 2ar**（0056・みんなの投稿フィード＋写真の作品タグ）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -939,6 +942,23 @@ exists` で冪等（再実行安全）。書き込みは本人のみ（既存の
 変更を拒否。②一度変更したら次の変更まで14日間空ける必要があります（サインアップ
 時の自動採番 `user_xxxxxxxx` から最初に実名を設定する際はクールダウン対象外）。
 アプリからの操作だけでなくAPIを直接叩いた場合も強制されます。冪等（再実行安全）。
+
+---
+
+## ☐ ステップ 2ar: みんなの投稿フィード＋写真の作品タグ（マイグレーション 0056）
+
+`posts_work_tag` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0056_posts_work_tag_and_feed.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ `posts`（投稿写真）に任意の作品・キャラタグ（`work_id`）を付けられるように
+なります。これに合わせて、ホームの「みんなの投稿」に実際の新着投稿が表示され、
+検索画面に新設した「写真」タブから、新着順の一覧＋作品タグでの絞り込みができる
+ようになります（プロフィールのギャラリー編集画面から投稿ごとにタグを設定）。
+既存の投稿の公開範囲（全体公開/併せ仲間のみ）・非公開アカウントの除外は既存の
+RLS がそのまま適用されるため、追加の設定は不要です。`add column if not exists`
+で冪等（再実行安全）。
 
 ---
 

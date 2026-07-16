@@ -1,30 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { colors } from "@/lib/tokens";
-import { popularWorks, regions, searchResults } from "@/lib/data";
+import { popularWorks, regions, searchResults, homePosts } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AwaseCover } from "../AwaseCover";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, ChevronRightIcon, PinIcon, SearchIcon } from "../icons";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useUserSearch } from "@/lib/queries/profile";
+import { usePostsFeed, type FeedPost } from "@/lib/queries/posts";
+import { useWorks } from "@/lib/queries/works";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { readingMatch } from "@/lib/reading";
 
-type SearchTab = "awase" | "people";
+type SearchTab = "awase" | "people" | "photos";
 
 export function SearchScreen() {
-  const { back, nav, openAwase, openProfile, region, setRegion, searchKeyword } = useRouter();
+  const { back, nav, openAwase, openProfile, region, setRegion, searchKeyword, searchInitialTab } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   // 作品チップ等から渡された初期キーワード（openSearch）で開始。画面はナビごとに
   // マウントし直されるため、初期値としての useState で十分。
   const [keyword, setKeyword] = useState(searchKeyword);
   const [womenOnly, setWomenOnly] = useState(false);
-  const [tab, setTab] = useState<SearchTab>("awase");
+  const [tab, setTab] = useState<SearchTab>(searchInitialTab ?? "awase");
+  const [photoWorkFilter, setPhotoWorkFilter] = useState("");
   const moderation = useModerationFilter(user?.id);
   const results = useAwaseSearch({ region, keyword, womenOnly }, moderation.data);
   // 人物検索（人タブ・ログイン必須）。@ユーザーネーム前方一致＋許可者の表示名。
@@ -35,6 +38,11 @@ export function SearchScreen() {
   );
   const people = peopleQuery.data ?? [];
   const peopleLoading = tab === "people" && configured && Boolean(user) && peopleQuery.isPending && keyword.trim().length >= 2;
+  // みんなの投稿（写真タブ）。新着順＋任意の作品タグ絞り込み。
+  const works = useWorks().data ?? [];
+  const photoFeedQuery = usePostsFeed(photoWorkFilter || undefined, moderation.data?.blockedUserIds ?? []);
+  const photos = photoFeedQuery.data ?? [];
+  const photosLoading = tab === "photos" && configured && photoFeedQuery.isPending;
 
   // Mock mode filters the sample list client-side so the same controls work
   // without a backend; configured mode gets already-filtered rows from the query.
@@ -83,7 +91,13 @@ export function SearchScreen() {
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder={tab === "people" ? "＠ユーザーネーム・表示名で探す" : "作品・キャラ・募集タイトルで探す"}
+            placeholder={
+              tab === "people"
+                ? "＠ユーザーネーム・表示名で探す"
+                : tab === "photos"
+                  ? "作品・キャラ名で絞り込み"
+                  : "作品・キャラ・募集タイトルで探す"
+            }
             aria-label="キーワード検索"
             style={{
               flex: 1,
@@ -122,6 +136,7 @@ export function SearchScreen() {
         {([
           { key: "awase", label: "併せ募集" },
           { key: "people", label: "ユーザー" },
+          { key: "photos", label: "写真" },
         ] as const).map((t) => {
           const active = tab === t.key;
           return (
@@ -155,6 +170,17 @@ export function SearchScreen() {
           people={people}
           onOpenProfile={openProfile}
           onLogin={() => nav("login")}
+        />
+      ) : tab === "photos" ? (
+        <PhotoResults
+          configured={configured}
+          keyword={keyword}
+          works={works}
+          workFilter={photoWorkFilter}
+          onWorkFilterChange={setPhotoWorkFilter}
+          photos={photos}
+          loading={photosLoading}
+          onOpenProfile={openProfile}
         />
       ) : (
         <>
@@ -532,6 +558,169 @@ function PeopleResults({
           <ChevronRightIcon />
         </button>
       ))}
+    </div>
+  );
+}
+
+/** みんなの投稿（写真タブ）。新着順の一覧＋任意の作品・キャラタグ絞り込み。
+ * タップで拡大表示（ライトボックス）、投稿者名タップでプロフィールへ。 */
+function PhotoResults({
+  configured,
+  keyword,
+  works,
+  workFilter,
+  onWorkFilterChange,
+  photos,
+  loading,
+  onOpenProfile,
+}: {
+  configured: boolean;
+  keyword: string;
+  works: { id: string; name: string }[];
+  workFilter: string;
+  onWorkFilterChange: (workId: string) => void;
+  photos: FeedPost[];
+  loading: boolean;
+  onOpenProfile: (id: string) => void;
+}) {
+  const [lightbox, setLightbox] = useState<FeedPost | null>(null);
+  const kw = keyword.trim();
+  const visibleWorks = kw ? works.filter((w) => readingMatch(w.name, kw)) : works;
+
+  const chipStyle = (active: boolean): CSSProperties => ({
+    fontSize: 12,
+    color: active ? colors.white : "#4A4458",
+    background: active ? colors.primary : colors.white,
+    border: `1px solid ${active ? colors.primary : colors.border}`,
+    padding: "8px 13px",
+    borderRadius: 999,
+    whiteSpace: "nowrap",
+    fontWeight: active ? 600 : 400,
+    cursor: "pointer",
+    fontFamily: "inherit",
+  });
+
+  // プレビュー環境（未接続）ではサンプル表示のみ
+  if (!configured) {
+    return (
+      <div>
+        <p style={{ margin: 0, padding: "18px 18px 0", fontSize: 11.5, color: colors.textMutedAlt }}>
+          プレビュー環境ではサンプル表示です。
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, padding: "14px 18px 30px" }}>
+          {homePosts.map((p) => (
+            <div key={p.key} style={{ height: 108 }}>
+              <ImageSlot radius={12} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* 作品・キャラタグでの絞り込み（任意・投稿者が付けたタグのみ） */}
+      <div className="noscroll" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "14px 18px 0" }}>
+        <button onClick={() => onWorkFilterChange("")} style={chipStyle(workFilter === "")}>
+          すべて
+        </button>
+        {visibleWorks.map((w) => (
+          <button key={w.id} onClick={() => onWorkFilterChange(w.id)} style={chipStyle(workFilter === w.id)}>
+            {w.name}
+          </button>
+        ))}
+      </div>
+
+      {loading && (
+        <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
+      )}
+
+      {!loading && photos.length === 0 && (
+        <div style={{ padding: "40px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
+          まだ写真がありません。
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, padding: "14px 18px 30px" }}>
+        {photos.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setLightbox(p)}
+            aria-label="拡大表示"
+            style={{ height: 108, padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
+          >
+            <ImageSlot radius={12} src={p.imageUrl} />
+          </button>
+        ))}
+      </div>
+
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(20,14,28,.92)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            aria-label="閉じる"
+            style={{
+              position: "absolute",
+              right: 16,
+              top: 16,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              border: "none",
+              background: "rgba(255,255,255,.16)",
+              color: colors.white,
+              fontSize: 20,
+              lineHeight: 1,
+              cursor: "pointer",
+            }}
+          >
+            ×
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox.imageUrl}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "100%", maxHeight: "78%", borderRadius: 12, objectFit: "contain" }}
+          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenProfile(lightbox.authorId);
+            }}
+            style={{
+              marginTop: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "rgba(255,255,255,.12)",
+              border: "none",
+              borderRadius: 999,
+              padding: "8px 16px",
+              cursor: "pointer",
+            }}
+          >
+            <div style={{ width: 26, height: 26, borderRadius: "50%", overflow: "hidden" }}>
+              <ImageSlot circle src={lightbox.authorAvatarUrl ?? undefined} />
+            </div>
+            <span style={{ fontSize: 12.5, color: colors.white, fontWeight: 700 }}>@{lightbox.authorHandle}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
