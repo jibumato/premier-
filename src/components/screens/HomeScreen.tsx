@@ -228,6 +228,7 @@ export function HomeScreen() {
       {signedOut && (
         <div style={{ padding: "12px 22px 0" }}>
           <div
+            className="pt-float"
             style={{
               borderRadius: 18,
               padding: "16px 18px",
