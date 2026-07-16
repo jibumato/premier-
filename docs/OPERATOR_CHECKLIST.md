@@ -93,6 +93,8 @@ select
                                                          as account_suspension,    -- false → 0049 未適用（違反アカウントの停止）
   (select to_regclass('public.lounge_posts') is not null) as lounge_table,        -- false → 0050 未適用（談話室）
   (select count(*) from works where name = 'その他')      as works_vtuber_games,   -- 0 → 0051 未適用（VTuber/ゲーム作品）
+  (select exists(select 1 from information_schema.columns
+     where table_name='profiles' and column_name='x_handle')) as profile_x_link,  -- false → 0052 未適用（プロフィールXリンク）
   (select count(*) from qa_questions)                    as qa_count;             -- 0 → 知恵袋 未投入
 ```
 
@@ -136,6 +138,7 @@ select
 - `account_suspension` が `false` → **ステップ 2ak**（0049・違反アカウントの停止）
 - `lounge_table` が `false` → **ステップ 2al**（0050・談話室）
 - `works_vtuber_games` が `0` → **ステップ 2am**（0051・VTuber/ゲーム作品の追加）
+- `profile_x_link` が `false` → **ステップ 2an**（0052・プロフィールのXリンク）
 - `qa_count` が `0` → **ステップ 3**（知恵袋）
 
 > 2026-07 時点では **0001〜0035（このドキュメント記載分すべて）が適用済み**です。
@@ -866,6 +869,21 @@ exists` は再実行可）、既に適用済みなら実行不要です。
 「VALORANT」「フォートナイト」（対戦ゲーム）、カタログに見当たらない作品向けの
 「その他」が `works` に追加されます。あいうえお順ソート用の読み（かな）も同時に
 設定します。`on conflict do nothing` で追加のみ・冪等（再実行安全）。
+
+---
+
+## ☐ ステップ 2an: プロフィールのXリンク（マイグレーション 0052）
+
+`profile_x_link` が `false` のとき実行します。
+
+1. リポジトリの **`supabase/migrations/0052_profile_x_link.sql`** を開く
+2. 中身を**全部コピー**して SQL Editor に貼り付け、実行
+
+→ `profiles` に `x_handle` 列が追加され、ユーザーがマイページの「プロフィールを
+編集」から自分のX（旧Twitter）ユーザー名を保存できるようになります（@付きでも
+URL貼り付けでもアプリ側で正規化）。プロフィールの自己紹介の下にXリンクが表示され、
+未ログインで他人のプロフィールを見ているときは個人情報保護のため非表示です。
+`add column if not exists` で冪等（再実行安全）。書き込みは本人のみ（既存のRLS）。
 
 ---
 

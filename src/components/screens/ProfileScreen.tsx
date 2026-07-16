@@ -6,7 +6,7 @@ import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost } from "../icons";
+import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
@@ -52,6 +52,16 @@ function moveBtnStyle(disabled: boolean): CSSProperties {
   };
 }
 
+/** 入力（@付き・URL貼り付け・全角混じり）から、@なしのXハンドルだけを取り出す。
+ * x.com / twitter.com のURLならパス先頭のユーザー名を拾う。Xのハンドルは
+ * 半角英数と _ の最大15文字。 */
+function normalizeXHandle(input: string): string {
+  const s = input.trim();
+  const urlMatch = s.match(/(?:x\.com|twitter\.com)\/@?([A-Za-z0-9_]{1,15})/i);
+  if (urlMatch) return urlMatch[1];
+  return s.replace(/^@+/, "").replace(/[^A-Za-z0-9_]/g, "").slice(0, 15);
+}
+
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, openAwase, selectedProfileId } = useRouter();
   const { user } = useAuth();
@@ -95,6 +105,7 @@ export function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [bioInput, setBioInput] = useState("");
+  const [xInput, setXInput] = useState("");
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
   const reorderPosts = useReorderPosts();
@@ -127,6 +138,9 @@ export function ProfileScreen() {
   // unconfigured (prototype) it stays visible, matching the original behavior.
   const ageVerified = configured ? Boolean(viewerProfileQuery.data?.is_age_verified) : true;
   const meisterTitle = real ? real.meister_title : "併せマイスター";
+  // Xハンドル。未ログインで他人を見ているとき（maskIdentity）は個人情報保護のため出さない。
+  // 実ユーザーは自分の設定値（未設定は空）。プロトタイプはデモのハンドルを表示。
+  const xHandle = real ? (real.x_handle ?? "") : "mio_cos";
   const stats = [
     { n: posts ? String(posts.length) : "128", l: "投稿" },
     { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
@@ -177,12 +191,18 @@ export function ProfileScreen() {
   const openEdit = () => {
     setNameInput(real?.display_name ?? "");
     setBioInput(real?.bio ?? "");
+    setXInput(real?.x_handle ?? "");
     setEditing(true);
   };
   const saveEdit = () => {
     if (!user || !nameInput.trim()) return;
     updateText.mutate(
-      { userId: user.id, displayName: nameInput.trim(), bio: bioInput.trim() },
+      {
+        userId: user.id,
+        displayName: nameInput.trim(),
+        bio: bioInput.trim(),
+        xHandle: normalizeXHandle(xInput),
+      },
       { onSuccess: () => setEditing(false) },
     );
   };
@@ -364,6 +384,30 @@ export function ProfileScreen() {
             自己紹介はまだ設定されていません。
           </p>
         ) : null}
+
+        {/* X（旧Twitter）リンク。未ログインで他人を見ているとき（maskIdentity）は
+            個人情報保護のため出さない。 */}
+        {!maskIdentity && xHandle && (
+          <a
+            href={`https://x.com/${xHandle}`}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 12,
+              padding: "6px 12px",
+              borderRadius: 999,
+              border: `1px solid ${colors.borderSoft}`,
+              background: colors.white,
+              textDecoration: "none",
+            }}
+          >
+            <XIcon size={13} color={colors.textPrimary} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: colors.textPrimary }}>@{xHandle}</span>
+          </a>
+        )}
 
         {/* stats */}
         <div
@@ -553,6 +597,46 @@ export function ProfileScreen() {
                   background: colors.white,
                 }}
               />
+            </div>
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>X（旧Twitter）</label>
+              <div style={{ position: "relative", marginTop: 6 }}>
+                <span
+                  style={{
+                    position: "absolute",
+                    left: 13,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontSize: 13.5,
+                    color: colors.textMutedAlt,
+                    pointerEvents: "none",
+                  }}
+                >
+                  @
+                </span>
+                <input
+                  value={xInput}
+                  onChange={(e) => setXInput(e.target.value)}
+                  maxLength={120}
+                  placeholder="ユーザー名（例: mio_cos）"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  style={{
+                    width: "100%",
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 12,
+                    padding: "11px 13px 11px 26px",
+                    fontSize: 13.5,
+                    fontFamily: "inherit",
+                    outline: "none",
+                    background: colors.white,
+                  }}
+                />
+              </div>
+              <p style={{ margin: "5px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+                @付きのユーザー名でもURL（https://x.com/…）の貼り付けでもOKです。空欄にすると非表示になります。
+              </p>
             </div>
             {updateText.isError && (
               <div style={{ fontSize: 11.5, color: "#C0453F" }}>保存に失敗しました。時間をおいて再度お試しください。</div>
