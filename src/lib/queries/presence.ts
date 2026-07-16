@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -9,15 +9,26 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
  * 接続中のクライアント同士が互いの存在を共有するだけ。ログイン中はユーザーIDを
  * キーにして多重カウントを防ぎ、未ログインは実行のたびにランダムなキーを使う。
  * 自分自身も1人として数えるため、最小値は常に1（未接続時は null）。
+ *
+ * `ready` が false の間は購読しない（= 認証状態が確定するまで待つ）。全ユーザーが
+ * 同じトピック名 `presence:home` を共有する設計のため、userId の確定を待たずに
+ * 一度購読してしまうと、直後に userId が判明した際「同じトピックを一度離脱して
+ * 即座に再購読する」ことになり、Supabase Realtime がその衝突で例外を投げて
+ * アプリ全体がクラッシュする（#62 で修正した通知チャンネルの衝突と同種の不具合）。
+ * そのため key は ready になった時点で一度だけ決定し、以降 userId が変わっても
+ * 同じチャンネルを購読し続ける。
  */
-export function usePresenceCount(userId: string | undefined): number | null {
+export function usePresenceCount(userId: string | undefined, ready: boolean = true): number | null {
   const [count, setCount] = useState<number | null>(null);
+  const keyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !ready) return;
+    if (keyRef.current === null) {
+      keyRef.current = userId ?? crypto.randomUUID();
+    }
     const supabase = getSupabaseBrowserClient();
-    const key = userId ?? crypto.randomUUID();
-    const channel = supabase.channel("presence:home", { config: { presence: { key } } });
+    const channel = supabase.channel("presence:home", { config: { presence: { key: keyRef.current } } });
 
     channel.on("presence", { event: "sync" }, () => {
       setCount(Object.keys(channel.presenceState()).length);
@@ -32,7 +43,8 @@ export function usePresenceCount(userId: string | undefined): number | null {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- userId is intentionally excluded; see comment above.
+  }, [ready]);
 
   return count;
 }

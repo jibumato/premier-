@@ -62,7 +62,7 @@ const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
 
 export function HomeScreen() {
   const { nav, openAwase, openEvent, openSearch } = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const configured = isSupabaseConfigured();
   // 接続済みだが未ログイン: コンテンツは見せつつ、登録導線を前面に出す
   const signedOut = configured && !user;
@@ -81,7 +81,7 @@ export function HomeScreen() {
 
   // トップの「にぎわい」— 同時接続人数・今日の新着・最近のうごき・急上昇作品。
   // いずれも実データが無い/空でも嘘の数字は出さず、正直な0や実カウントを表示する。
-  const presenceCount = usePresenceCount(user?.id);
+  const presenceCount = usePresenceCount(user?.id, !loading);
   const viewerCount = configured ? (presenceCount ?? 1) : 8;
   const todayStatsQuery = useTodayStats();
   const todayStats = configured ? (todayStatsQuery.data ?? { newAwase: 0, newRsvps: 0 }) : { newAwase: 3, newRsvps: 14 };
