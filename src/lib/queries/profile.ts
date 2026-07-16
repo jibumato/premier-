@@ -2,7 +2,65 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Tables, UserRole } from "@/lib/database.types";
+
+export interface UserSearchResult {
+  id: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+}
+
+/**
+ * 人物検索（つきまとい対策を織り込んだ「知っている人を探す」検索）。
+ *   - @ユーザーネーム（handle）は前方一致で常に検索できる。
+ *   - 表示名（display_name）は、本人が searchable_by_name をオンにした人だけ
+ *     部分一致でヒットする（既定オフ）。
+ *   - 非公開アカウント（is_private）は RLS(profiles_select) により本人＋
+ *     フォロワー以外には返らないので、自動的に検索結果から除外される。
+ *   - 自分自身・ブロックしたユーザー・停止中アカウントは除外。
+ *   - ログイン必須（viewerId 必須）。2文字以上で発火。
+ */
+export function useUserSearch(viewerId: string | undefined, rawQuery: string, blockedUserIds: string[]) {
+  const q = rawQuery.trim().toLowerCase();
+  return useQuery({
+    queryKey: ["user_search", q, viewerId, blockedUserIds],
+    enabled: isSupabaseConfigured() && Boolean(viewerId) && q.length >= 2,
+    queryFn: async (): Promise<UserSearchResult[]> => {
+      // PostgREST の or()/ilike を壊す・悪用される文字を除去（英数と _ 空白のみ残す）
+      const safe = q.replace(/[^\p{L}\p{N}_ ]/gu, "").trim();
+      if (safe.length < 2) return [];
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, handle, display_name, avatar_url, is_verified, is_suspended")
+        .or(`handle.ilike.${safe}%,and(searchable_by_name.eq.true,display_name.ilike.%${safe}%)`)
+        .limit(40);
+      if (error) throw error;
+      const blocked = new Set(blockedUserIds);
+      type Row = {
+        id: string;
+        handle: string;
+        display_name: string;
+        avatar_url: string | null;
+        is_verified: boolean;
+        is_suspended: boolean;
+      };
+      return ((data ?? []) as Row[])
+        .filter((p) => p.id !== viewerId && !blocked.has(p.id) && !p.is_suspended)
+        .slice(0, 20)
+        .map((p) => ({
+          id: p.id,
+          handle: p.handle,
+          displayName: p.display_name,
+          avatarUrl: p.avatar_url,
+          isVerified: p.is_verified,
+        }));
+    },
+  });
+}
 
 /** Fetch a single profile row (the signed-in user, or any public profile). */
 export function useProfile(userId: string | undefined) {

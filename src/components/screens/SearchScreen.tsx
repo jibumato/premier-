@@ -5,23 +5,36 @@ import { colors } from "@/lib/tokens";
 import { popularWorks, regions, searchResults } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { AwaseCover } from "../AwaseCover";
-import { ChevronLeftIcon, PinIcon, SearchIcon } from "../icons";
+import { ImageSlot } from "../ImageSlot";
+import { ChevronLeftIcon, ChevronRightIcon, PinIcon, SearchIcon } from "../icons";
 import { useAwaseSearch } from "@/lib/queries/awase";
+import { useUserSearch } from "@/lib/queries/profile";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { readingMatch } from "@/lib/reading";
 
+type SearchTab = "awase" | "people";
+
 export function SearchScreen() {
-  const { back, nav, openAwase, region, setRegion, searchKeyword } = useRouter();
+  const { back, nav, openAwase, openProfile, region, setRegion, searchKeyword } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   // 作品チップ等から渡された初期キーワード（openSearch）で開始。画面はナビごとに
   // マウントし直されるため、初期値としての useState で十分。
   const [keyword, setKeyword] = useState(searchKeyword);
   const [womenOnly, setWomenOnly] = useState(false);
+  const [tab, setTab] = useState<SearchTab>("awase");
   const moderation = useModerationFilter(user?.id);
   const results = useAwaseSearch({ region, keyword, womenOnly }, moderation.data);
+  // 人物検索（人タブ・ログイン必須）。@ユーザーネーム前方一致＋許可者の表示名。
+  const peopleQuery = useUserSearch(
+    tab === "people" ? user?.id : undefined,
+    tab === "people" ? keyword : "",
+    moderation.data?.blockedUserIds ?? [],
+  );
+  const people = peopleQuery.data ?? [];
+  const peopleLoading = tab === "people" && configured && Boolean(user) && peopleQuery.isPending && keyword.trim().length >= 2;
 
   // Mock mode filters the sample list client-side so the same controls work
   // without a backend; configured mode gets already-filtered rows from the query.
@@ -70,7 +83,7 @@ export function SearchScreen() {
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder="作品・キャラ・募集タイトルで探す"
+            placeholder={tab === "people" ? "＠ユーザーネーム・表示名で探す" : "作品・キャラ・募集タイトルで探す"}
             aria-label="キーワード検索"
             style={{
               flex: 1,
@@ -104,6 +117,47 @@ export function SearchScreen() {
         </div>
       </div>
 
+      {/* 検索対象タブ: 併せ募集 / 人（ユーザー） */}
+      <div style={{ display: "flex", gap: 8, padding: "12px 18px 0" }}>
+        {([
+          { key: "awase", label: "併せ募集" },
+          { key: "people", label: "人" },
+        ] as const).map((t) => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              style={{
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: active ? colors.white : colors.textSecondary,
+                background: active ? colors.primary : colors.white,
+                border: `1px solid ${active ? colors.primary : colors.border}`,
+                padding: "7px 18px",
+                borderRadius: 999,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "people" ? (
+        <PeopleResults
+          configured={configured}
+          signedIn={Boolean(user)}
+          keyword={keyword}
+          loading={peopleLoading}
+          people={people}
+          onOpenProfile={openProfile}
+          onLogin={() => nav("login")}
+        />
+      ) : (
+        <>
       {/* suggestions: quick picks when empty, matching候補 while typing */}
       {keyword.trim() === "" ? (
         <div style={{ padding: "14px 18px 0" }}>
@@ -356,6 +410,128 @@ export function SearchScreen() {
           </div>
         )}
       </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** 人物検索の結果リスト（人タブ）。ログイン必須・非公開/ブロックは除外済み。 */
+function PeopleResults({
+  configured,
+  signedIn,
+  keyword,
+  loading,
+  people,
+  onOpenProfile,
+  onLogin,
+}: {
+  configured: boolean;
+  signedIn: boolean;
+  keyword: string;
+  loading: boolean;
+  people: { id: string; handle: string; displayName: string; avatarUrl: string | null; isVerified: boolean }[];
+  onOpenProfile: (id: string) => void;
+  onLogin: () => void;
+}) {
+  const q = keyword.trim();
+
+  // プレビュー環境（未接続）では人物検索は動かせない
+  if (!configured) {
+    return (
+      <div style={{ padding: "40px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
+        プレビュー環境では人物検索は利用できません。
+      </div>
+    );
+  }
+  // ログイン必須（つきまとい対策: 行動をアカウントに紐づける）
+  if (!signedIn) {
+    return (
+      <div style={{ padding: "36px 24px", textAlign: "center" }}>
+        <p style={{ margin: 0, fontSize: 13, color: colors.textSecondary, lineHeight: 1.9 }}>
+          人を検索するには無料登録・ログインが必要です。
+        </p>
+        <button
+          onClick={onLogin}
+          style={{
+            marginTop: 16,
+            border: "none",
+            background: colors.primary,
+            color: colors.white,
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 700,
+            padding: "12px 24px",
+            borderRadius: 13,
+            cursor: "pointer",
+          }}
+        >
+          ログイン / 登録
+        </button>
+      </div>
+    );
+  }
+  if (q.length < 2) {
+    return (
+      <div style={{ padding: "36px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
+        @ユーザーネームか表示名を2文字以上入力してください。
+        <br />
+        <span style={{ fontSize: 11, color: colors.textMutedSoft }}>
+          ※ 非公開アカウントや、表示名検索をオフにしている人は表示されません。
+        </span>
+      </div>
+    );
+  }
+  if (loading) {
+    return <div style={{ padding: "48px 24px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>検索中…</div>;
+  }
+  if (people.length === 0) {
+    return (
+      <div style={{ padding: "40px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
+        該当する人が見つかりませんでした。
+        <br />
+        <span style={{ fontSize: 11, color: colors.textMutedSoft }}>@ユーザーネームは前方一致で検索できます。</span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", padding: "12px 18px 30px", gap: 8 }}>
+      {people.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => onOpenProfile(p.id)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            border: `1px solid ${colors.borderSoft}`,
+            borderRadius: 14,
+            padding: "11px 13px",
+            background: colors.white,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            textAlign: "left",
+            width: "100%",
+          }}
+        >
+          <div style={{ flex: "0 0 44px", width: 44, height: 44, borderRadius: "50%", overflow: "hidden", background: colors.primaryBg1 }}>
+            <ImageSlot circle src={p.avatarUrl ?? undefined} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {p.displayName}
+              </span>
+              {p.isVerified && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/verified-badge.png" alt="本人確認済" width={16} height={16} style={{ display: "block", flex: "0 0 auto" }} />
+              )}
+            </div>
+            <div style={{ fontSize: 11.5, color: colors.textMutedAlt, marginTop: 2 }}>@{p.handle}</div>
+          </div>
+          <ChevronRightIcon />
+        </button>
+      ))}
     </div>
   );
 }
