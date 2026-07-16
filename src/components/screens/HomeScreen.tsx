@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import {
+  AREA_ORDER,
+  areaOf,
   events as mockEvents,
   homeAwase,
   homePosts,
@@ -100,9 +103,16 @@ export function HomeScreen() {
   const eventsReal = configured ? eventsQuery.data : undefined;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const homeEvents = (configured ? (eventsQuery.data ?? []) : mockEvents)
-    .filter((e) => !e.startsOn || new Date(e.startsOn) >= todayStart)
-    .slice(0, 3);
+  const upcomingEvents = (configured ? (eventsQuery.data ?? []) : mockEvents).filter(
+    (e) => !e.startsOn || new Date(e.startsOn) >= todayStart,
+  );
+  const [homeEventArea, setHomeEventArea] = useState("すべて");
+  // 実際に近日開催イベントがあるエリアだけをチップに出す（該当0のエリアは出さない）
+  const homeEventPresentAreas = new Set(upcomingEvents.map((e) => areaOf(e.region)));
+  const homeEventAreaChips = ["すべて", ...AREA_ORDER.filter((a) => homeEventPresentAreas.has(a))];
+  const homeEvents = (
+    homeEventArea === "すべて" ? upcomingEvents : upcomingEvents.filter((e) => areaOf(e.region) === homeEventArea)
+  ).slice(0, 3);
   // 「はじめてさん歓迎」= 初心者歓迎(beginner_ok)の併せ。未接続時はモックから代替。
   const beginnerQuery = useBeginnerAwase(moderation.data);
   const beginnerReal = configured ? beginnerQuery.data : undefined;
@@ -1023,7 +1033,7 @@ export function HomeScreen() {
       </div>
 
       {/* upcoming events — a few from the curated calendar */}
-      {homeEvents.length > 0 && (
+      {upcomingEvents.length > 0 && (
         <div style={{ padding: "26px 0 0" }}>
           <div style={{ padding: "0 22px" }}>
             <SectionHeading
@@ -1040,6 +1050,41 @@ export function HomeScreen() {
               近日開催のイベント
             </SectionHeading>
           </div>
+
+          {/* エリア絞り込みチップ（該当イベントのあるエリアのみ・単一選択） */}
+          {homeEventAreaChips.length > 2 && (
+            <div className="noscroll" style={{ display: "flex", gap: 7, overflowX: "auto", padding: "12px 22px 0" }}>
+              {homeEventAreaChips.map((a) => {
+                const active = a === homeEventArea;
+                return (
+                  <button
+                    key={a}
+                    onClick={() => setHomeEventArea(a)}
+                    style={{
+                      fontSize: 11.5,
+                      color: active ? colors.white : "#4A4458",
+                      background: active ? colors.primary : colors.white,
+                      border: `1px solid ${active ? colors.primary : colors.border}`,
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      whiteSpace: "nowrap",
+                      fontWeight: active ? 600 : 400,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {homeEvents.length === 0 && (
+            <div style={{ padding: "20px 22px 0", fontSize: 12, color: colors.textMutedAlt }}>
+              このエリアの近日開催イベントはまだありません。
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px 22px 0" }}>
             {homeEvents.map((ev, i) => {
               // 先頭が最も直近（starts_on 昇順・過去除外済み）。1枚だけハイライトする。
@@ -1072,22 +1117,36 @@ export function HomeScreen() {
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {isNearest && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+                      {isNearest && (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            color: colors.white,
+                            background: colors.primary,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                          }}
+                        >
+                          いちばん近い開催
+                        </span>
+                      )}
                       <span
                         style={{
                           display: "inline-block",
                           fontSize: 9.5,
                           fontWeight: 700,
-                          color: colors.white,
-                          background: colors.primary,
+                          color: colors.pinkText,
+                          background: colors.pinkBg1,
                           padding: "2px 8px",
                           borderRadius: 999,
-                          marginBottom: 5,
                         }}
                       >
-                        いちばん近い開催
+                        {areaOf(ev.region)}
                       </span>
-                    )}
+                    </div>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {ev.name}
                     </div>
