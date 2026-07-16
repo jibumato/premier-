@@ -62,7 +62,8 @@ export function SummitScreen() {
           style={{
             borderRadius: 20,
             padding: "20px 20px",
-            background: "linear-gradient(150deg,#6D5DAB,#B0538D)",
+            background: "linear-gradient(150deg,#FFA13D,#E8531F)",
+            boxShadow: "0 14px 30px -14px rgba(242,92,42,.6)",
             color: colors.white,
           }}
         >
