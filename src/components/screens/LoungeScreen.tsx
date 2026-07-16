@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { mockLoungePosts } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -17,8 +17,22 @@ import {
 } from "@/lib/queries/lounge";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
+import { LOUNGE_DRAFT_KEY } from "../Omikuji";
 
 const MAX_LEN = 300;
+
+/** おみくじの「談話室に結果をシェア」等から渡された下書きを一度だけ受け取る。
+ * SSR には sessionStorage が無い（かつサーバーHTMLとの不一致を避けたい）ので、
+ * マウント後の useEffect から呼ぶこと。 */
+function consumeLoungeDraft(): string {
+  try {
+    const draft = sessionStorage.getItem(LOUNGE_DRAFT_KEY) ?? "";
+    if (draft) sessionStorage.removeItem(LOUNGE_DRAFT_KEY);
+    return draft.slice(0, MAX_LEN);
+  } catch {
+    return "";
+  }
+}
 
 export function LoungeScreen() {
   const { back, nav, openReport } = useRouter();
@@ -37,6 +51,12 @@ export function LoungeScreen() {
 
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // おみくじのシェア等から渡された下書きをマウント後に反映する
+  useEffect(() => {
+    const draft = consumeLoungeDraft();
+    if (draft) setBody(draft);
+  }, []);
 
   const real = configured ? postsQuery.data : undefined;
   const posts = configured ? (postsQuery.data ?? []) : mockLoungePosts;
