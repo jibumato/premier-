@@ -159,6 +159,7 @@ export function SettingsScreen() {
         <LinkRow title="お知らせ・更新履歴" onClick={() => nav("announcements")} />
         <LinkRow title="利用規約・ガイドライン" onClick={() => nav("terms")} />
         <LinkRow title="プライバシーポリシー" onClick={() => nav("privacy")} />
+        <LinkRow title="特定商取引法に基づく表記" onClick={() => nav("tokushoho")} />
         <LinkRow title="法人のお客様へ（掲載案内）" onClick={() => nav("corporate")} last />
       </Group>
 
