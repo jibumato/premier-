@@ -58,6 +58,8 @@ export function TokushohoContent() {
         <Row label="返品・キャンセル">無償サービスのため、返品・返金は生じません。</Row>
       </div>
 
+      {/* フリマ（衣装売買）はローンチ時は非表示のため、本項目も伏せている。
+          フリマ再開時にこのブロックのコメントを外して復活させる。
       <div style={{ marginTop: 22 }}>
         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
           フリマ（衣装売買）について
@@ -78,6 +80,7 @@ export function TokushohoContent() {
           </div>
         </div>
       </div>
+      */}
 
       <p style={{ margin: "24px 0 0", fontSize: 11, lineHeight: 1.8, color: colors.textMutedAlt }}>
         将来、投げ銭・フリマの有償化など運営者が対価を受け取るサービスを提供する場合は、
