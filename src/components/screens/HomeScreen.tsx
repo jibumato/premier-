@@ -32,6 +32,7 @@ import { formatRelativeTime } from "@/lib/format";
 import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
 import { WelcomeBanner } from "../WelcomeBanner";
+import { SlotBadge } from "../SlotBadge";
 import { WorkCover } from "../WorkCover";
 import { AwaseCover } from "../AwaseCover";
 import { StarterGuide } from "../StarterGuide";
@@ -274,15 +275,8 @@ export function HomeScreen() {
                 <span>{a.date}</span>
                 <span>{a.place}</span>
               </div>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  color: colors.primary,
-                  marginTop: 7,
-                  fontWeight: 600,
-                }}
-              >
-                {a.members}
+              <div style={{ marginTop: 8 }}>
+                <SlotBadge text={a.members} />
               </div>
             </div>
           </button>
