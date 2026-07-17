@@ -672,6 +672,38 @@ export interface Database {
         Args: { p_user_id: string };
         Returns: undefined;
       };
+      admin_list_user_conversations: {
+        Args: { p_user_id: string };
+        Returns: {
+          conversation_id: string;
+          other_user_id: string | null;
+          other_user_name: string | null;
+          message_count: number;
+          last_message_at: string | null;
+        }[];
+      };
+      admin_get_conversation_messages: {
+        Args: { p_conversation_id: string; p_reason: string };
+        Returns: {
+          message_id: string;
+          sender_id: string;
+          sender_name: string;
+          body: string;
+          image_url: string | null;
+          created_at: string;
+        }[];
+      };
+      admin_list_message_access_log: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          admin_name: string | null;
+          target_name: string | null;
+          conversation_id: string | null;
+          reason: string;
+          accessed_at: string;
+        }[];
+      };
       find_direct_conversation: {
         Args: { user_a: string; user_b: string };
         Returns: string | null;
