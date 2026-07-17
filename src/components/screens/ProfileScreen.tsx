@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { avatarRing, colors } from "@/lib/tokens";
 import { galleryKeys, giftTiers } from "@/lib/data";
 import { useRouter } from "../AppRouter";
@@ -19,6 +19,7 @@ import { useWorks } from "@/lib/queries/works";
 import { useMyUpcomingEvents } from "@/lib/queries/events";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /**
  * External support links (Fantia / pixivFANBOX / Skeb). Per the handoff
@@ -147,6 +148,20 @@ export function ProfileScreen() {
   const canEdit = configured && isOwnProfile;
   const posts = real ? (postsQuery.data ?? []) : undefined;
   const lightboxUrl = lightboxIndex !== null ? (posts?.[lightboxIndex]?.image_url ?? null) : null;
+
+  // 写真の閲覧数（本人にだけ見せる手応え指標。0022の併せ閲覧数と同じ方針）。
+  // 拡大表示（lightbox）を開いたときに1回だけ加算。投稿者本人の閲覧は数えない。
+  // 同じ写真を同一セッションで何度開いても二重加算しないよう、加算済みIDを保持する。
+  const countedPostIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!configured || !user || lightboxIndex === null) return;
+    const post = posts?.[lightboxIndex];
+    if (!post || post.author_id === user.id) return;
+    if (countedPostIdsRef.current.has(post.id)) return;
+    countedPostIdsRef.current.add(post.id);
+    getSupabaseBrowserClient().rpc("increment_post_view", { target: post.id }).then(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configured, user, lightboxIndex]);
   // Real users see their own (possibly empty) fields; only the prototype/mock
   // mode falls back to the demo placeholder text. This prevents a brand-new
   // account from showing another persona's sample bio/name/title.
@@ -1221,6 +1236,15 @@ export function ProfileScreen() {
                           style={{ position: "absolute", left: 4, top: 4, fontSize: 11, background: "rgba(30,20,40,.65)", color: colors.white, borderRadius: 999, padding: "3px 7px", lineHeight: 1 }}
                         >
                           🔒
+                        </span>
+                      )}
+                      {/* 閲覧数（本人にだけ表示。0022の併せ閲覧数と同じ方針で、他人には見せない） */}
+                      {canEdit && (
+                        <span
+                          aria-label={`閲覧数 ${p.view_count ?? 0}回（あなたにだけ表示）`}
+                          style={{ position: "absolute", right: 4, bottom: 4, fontSize: 10.5, fontWeight: 600, background: "rgba(30,20,40,.65)", color: colors.white, borderRadius: 999, padding: "3px 7px", lineHeight: 1 }}
+                        >
+                          👁 {p.view_count ?? 0}
                         </span>
                       )}
                     </>

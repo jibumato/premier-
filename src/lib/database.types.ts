@@ -314,6 +314,7 @@ export interface Database {
           sort: number;
           visibility: "public" | "awase";
           work_id: string | null;
+          view_count: number;
           created_at: string;
         };
         Insert: {
@@ -324,6 +325,7 @@ export interface Database {
           sort?: number;
           visibility?: "public" | "awase";
           work_id?: string | null;
+          view_count?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>;
@@ -717,6 +719,10 @@ export interface Database {
         Returns: undefined;
       };
       increment_awase_view: {
+        Args: { target: string };
+        Returns: undefined;
+      };
+      increment_post_view: {
         Args: { target: string };
         Returns: undefined;
       };
