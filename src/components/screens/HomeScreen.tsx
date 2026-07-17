@@ -1262,6 +1262,57 @@ export function HomeScreen() {
 
       {/* 安心して参加できる仕組み — 実装済みの安全機能を新規ユーザーに一枚で伝える */}
       <SafetySection />
+
+      {/* フッター — 規約・プライバシー・特商法などの法的リンク（未ログインでも閲覧可） */}
+      <HomeFooter />
+    </div>
+  );
+}
+
+/** トップ最下部のフッター。規約・プライバシー・特商法・法人案内へのリンクと著作権表示。
+ * リンク先はいずれも公開画面（未ログインでも閲覧可）。 */
+function HomeFooter() {
+  const { nav } = useRouter();
+  const links: { label: string; screen: Screen }[] = [
+    { label: "利用規約・ガイドライン", screen: "terms" },
+    { label: "プライバシーポリシー", screen: "privacy" },
+    { label: "特定商取引法に基づく表記", screen: "tokushoho" },
+    { label: "法人のお客様へ", screen: "corporate" },
+  ];
+  return (
+    <div
+      style={{
+        marginTop: 30,
+        borderTop: `1px solid ${colors.borderSoft}`,
+        background: colors.primaryBg5,
+        padding: "22px 22px 34px",
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 18px", justifyContent: "center" }}>
+        {links.map((l) => (
+          <button
+            key={l.screen}
+            onClick={() => nav(l.screen)}
+            style={{
+              border: "none",
+              background: "none",
+              padding: 0,
+              fontFamily: "inherit",
+              fontSize: 11.5,
+              color: colors.textMutedAlt,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ marginTop: 16, textAlign: "center", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.7 }}>
+        プルミエ！はコスプレイヤー・カメラマンのための交流サービスです。
+        <br />
+        © Type&amp;Co
+      </div>
     </div>
   );
 }
