@@ -575,6 +575,7 @@ export function CreateScreen() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 10,
             width: "100%",
             border: `1px dashed ${colors.border}`,
             background: colors.primaryBg5,
@@ -584,24 +585,35 @@ export function CreateScreen() {
             fontFamily: "inherit",
           }}
         >
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textSecondary }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textSecondary, flex: "0 0 auto", whiteSpace: "nowrap" }}>
             詳細を設定（任意）
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10.5, color: colors.textMutedAlt }}>
-              予約公開・応募締切・世界観タグ・女性限定 ほか
-            </span>
-            <span style={{ fontSize: 10, color: colors.textMutedAlt }}>{showDetails ? "▲" : "▼"}</span>
+          <span
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 10.5,
+              color: colors.textMutedAlt,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              textAlign: "right",
+            }}
+          >
+            予約公開・応募締切・世界観タグ・女性限定 ほか
           </span>
+          <span style={{ fontSize: 10, color: colors.textMutedAlt, flex: "0 0 auto" }}>{showDetails ? "▲" : "▼"}</span>
         </button>
 
         {showDetails && (
           <>
         {/* scheduled publish + application deadline (both optional).
-            ネイティブのdatetime-local入力はモバイルで最小幅が広く、これと
-            minWidth:0が無いとflexセル（各50%）を突き抜けて横にはみ出す。 */}
-        <div style={{ display: "flex", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+            ネイティブのdatetime-local入力は端末（特にiOS Safari）によって
+            実際の見た目の最小幅がかなり広く、width:100%/minWidth:0を指定しても
+            2カラム（各50%）に収まりきらず隣の入力と重なることがある。
+            そのため横並びにせず、それぞれ縦に積んでフル幅で見せる。 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
             <label style={label}>公開日時（予約）</label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, cursor: "pointer" }}>
               <input
@@ -626,13 +638,12 @@ export function CreateScreen() {
                 marginTop: 7,
                 opacity: publishNow ? 0.5 : 1,
                 boxSizing: "border-box",
-                minWidth: 0,
               }}
               value={publishAt}
               onChange={(e) => setPublishAt(e.target.value)}
             />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div>
             <label style={label}>応募締切</label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, cursor: "pointer" }}>
               <input
@@ -657,7 +668,6 @@ export function CreateScreen() {
                 marginTop: 7,
                 opacity: noDeadline ? 0.5 : 1,
                 boxSizing: "border-box",
-                minWidth: 0,
               }}
               value={applicationDeadline}
               onChange={(e) => setApplicationDeadline(e.target.value)}
