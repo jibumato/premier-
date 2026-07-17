@@ -359,7 +359,7 @@ export function ProfileScreen() {
             // 本人確認済エンブレム（アップロード画像）。極小だと文字がつぶれるため、
             // プロフィールでは視認できるサイズで表示する。
             // eslint-disable-next-line @next/next/no-img-element
-            <img src="/verified-badge.png" alt="本人確認済" width={40} height={40} style={{ display: "block", flex: "0 0 auto" }} />
+            <img src="/verified-badge.png" alt="本人確認済" width={30} height={30} style={{ display: "block", flex: "0 0 auto" }} />
           ) : isOwnProfile ? (
             // Not yet verified: show the empty badge slot (dashed) so the owner
             // can see where the 本人確認 badge will appear, and tap to start it.
