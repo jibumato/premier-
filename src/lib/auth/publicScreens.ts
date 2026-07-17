@@ -26,6 +26,7 @@ export const PUBLIC_SCREENS: ReadonlySet<Screen> = new Set<Screen>([
   "corporate",
   "terms",
   "privacy",
+  "tokushoho",
   "login",
 ]);
 

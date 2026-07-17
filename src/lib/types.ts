@@ -42,6 +42,7 @@ export type Screen =
   | "verify"
   | "terms"
   | "privacy"
+  | "tokushoho"
   | "announcements"
   // designed in the canvas set (screens_all_options), newly implemented
   | "onboardRole"
