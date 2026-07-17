@@ -8,6 +8,7 @@ import { AwaseCover } from "../AwaseCover";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, ChevronRightIcon, PinIcon, SearchIcon } from "../icons";
 import { AwaseCardSkeleton, Skeleton } from "../Skeleton";
+import { SlotBadge } from "../SlotBadge";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useUserSearch } from "@/lib/queries/profile";
 import { usePostsFeed, type FeedPost } from "@/lib/queries/posts";
@@ -401,9 +402,7 @@ export function SearchScreen() {
                 }}
               >
                 <span style={{ fontSize: 11, color: colors.textSecondaryAlt }}>{res.date}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: colors.primary }}>
-                  {res.members}
-                </span>
+                <SlotBadge text={res.members} />
               </div>
             </div>
           </button>

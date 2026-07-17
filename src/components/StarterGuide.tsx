@@ -49,6 +49,9 @@ export function StarterGuide() {
   // （= 表示しない）」にしておき、確認が取れたら（dismissed=false なら）表示する。
   const [dismissed, setDismissed] = useState<boolean | null>(null);
   const [neverShowAgain, setNeverShowAgain] = useState(false);
+  // 折りたたみの手動切替。既定は「1つでも完了していれば畳む」（＝リピーターの
+  // トップを本命コンテンツに譲る）。null のあいだは既定に従う。
+  const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null);
 
   useEffect(() => {
     try {
@@ -102,6 +105,9 @@ export function StarterGuide() {
   if (dismissed !== false) return null;
 
   const doneCount = steps.filter((s) => s.done).length;
+  // 1つでも完了していれば既定で畳む（トップの縦を本命コンテンツに譲る）。
+  // まだ何も済んでいない新規は展開のまま丁寧に案内する。手動切替を優先。
+  const expanded = expandedOverride ?? doneCount === 0;
 
   return (
     <div style={{ padding: "16px 22px 0" }}>
@@ -111,7 +117,7 @@ export function StarterGuide() {
           border: `1px solid ${colors.borderSoft}`,
           borderRadius: 18,
           background: "linear-gradient(160deg,#F6F1FD,#FCF2F8)",
-          padding: "16px 16px 8px",
+          padding: expanded ? "16px 16px 8px" : "13px 16px",
         }}
       >
         <button
@@ -138,10 +144,39 @@ export function StarterGuide() {
         >
           ×
         </button>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingRight: 22 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>はじめてガイド</div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: colors.primary }}>{doneCount}/3 完了</span>
-        </div>
+        {/* ヘッダー = 折りたたみトグル。進捗と開閉シェブロンを出す。 */}
+        <button
+          onClick={() => setExpandedOverride(!expanded)}
+          aria-label={expanded ? "はじめてガイドを畳む" : "はじめてガイドを開く"}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            width: "100%",
+            paddingRight: 22,
+            border: "none",
+            background: "none",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            textAlign: "left",
+          }}
+        >
+          <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>はじめてガイド</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: colors.primary }}>{doneCount}/3 完了</span>
+            <span style={{ fontSize: 10, color: colors.textMutedAlt }}>{expanded ? "▲" : "▼"}</span>
+          </span>
+        </button>
+
+        {!expanded && (
+          <p style={{ margin: "5px 0 0", fontSize: 11, color: colors.textMutedAlt, lineHeight: 1.5 }}>
+            残りのステップを開いて、併せデビューの準備を進めましょう。
+          </p>
+        )}
+
+        {expanded && (
+          <>
         <p style={{ margin: "4px 0 12px", fontSize: 11.5, color: colors.textMutedAlt, lineHeight: 1.6 }}>
           3ステップで、併せデビューの準備が整います。
         </p>
@@ -223,6 +258,8 @@ export function StarterGuide() {
           />
           今後は表示しない（× で閉じると適用されます）
         </label>
+          </>
+        )}
       </div>
     </div>
   );

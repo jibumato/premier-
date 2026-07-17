@@ -131,6 +131,19 @@ export function CreateScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<{ key: string; url: string | null }[]>(draft.images ?? []);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // 予約公開・応募締切・世界観タグ・各トグルは「詳細を設定（任意）」に畳んで、
+  // 初期表示は必須＋基本項目だけにする（投稿のハードルを下げる）。下書き/複製で
+  // 詳細に値が入っている場合は最初から開いておく。
+  const [showDetails, setShowDetails] = useState(
+    Boolean(
+      draft.publishAt ||
+        draft.applicationDeadline ||
+        (draft.worldTags?.length ?? 0) > 0 ||
+        draft.womenOnly ||
+        draft.beginnerOk ||
+        draft.acceptWaitlist,
+    ),
+  );
 
   // 入力が変わるたびに下書きを保存（スタジオ検索などへ離れても復元できるように）。
   useEffect(() => {
@@ -552,6 +565,38 @@ export function CreateScreen() {
           />
         </div>
 
+        {/* 詳細を設定（任意）— 予約公開・応募締切・世界観タグ・各トグルを畳む。
+            初期は必須＋基本項目だけを見せて、投稿のハードルを下げる。 */}
+        <button
+          type="button"
+          onClick={() => setShowDetails((v) => !v)}
+          aria-expanded={showDetails}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+            border: `1px dashed ${colors.border}`,
+            background: colors.primaryBg5,
+            borderRadius: 12,
+            padding: "12px 14px",
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textSecondary }}>
+            詳細を設定（任意）
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 10.5, color: colors.textMutedAlt }}>
+              予約公開・応募締切・世界観タグ・女性限定 ほか
+            </span>
+            <span style={{ fontSize: 10, color: colors.textMutedAlt }}>{showDetails ? "▲" : "▼"}</span>
+          </span>
+        </button>
+
+        {showDetails && (
+          <>
         {/* scheduled publish + application deadline (both optional).
             ネイティブのdatetime-local入力はモバイルで最小幅が広く、これと
             minWidth:0が無いとflexセル（各50%）を突き抜けて横にはみ出す。 */}
@@ -672,6 +717,8 @@ export function CreateScreen() {
           on={acceptWaitlist}
           onChange={setAcceptWaitlist}
         />
+          </>
+        )}
 
         {error && (
           <div style={{ fontSize: 12, color: "#C0453F", background: "#FBEBEA", borderRadius: 10, padding: "10px 12px" }}>
