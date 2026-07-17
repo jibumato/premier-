@@ -274,10 +274,10 @@ export const detailRoles: DetailRole[] = [
 ];
 
 export const notifications: Notification[] = [
-  { key: "n1", text: "かなさんがあなたの併せ募集に応募しました", time: "5分前", unread: true },
-  { key: "n2", text: "澪さんがあなたをフォローしました", time: "1時間前", unread: false },
-  { key: "n3", text: "あなたの投稿に24件のいいねがつきました", time: "3時間前", unread: false },
-  { key: "n4", text: "「ベテラン主催」バッジを獲得しました🎉", time: "昨日", unread: false },
+  { key: "n1", text: "かなさんがあなたの併せ募集に応募しました", time: "5分前", unread: true, kind: "application" },
+  { key: "n2", text: "澪さんがあなたをフォローしました", time: "1時間前", unread: false, kind: "follow" },
+  { key: "n3", text: "あなたの投稿に24件のいいねがつきました", time: "3時間前", unread: false, kind: "like" },
+  { key: "n4", text: "「ベテラン主催」バッジを獲得しました🎉", time: "昨日", unread: false, kind: "badge" },
 ];
 
 export const giftTiers: GiftTier[] = [

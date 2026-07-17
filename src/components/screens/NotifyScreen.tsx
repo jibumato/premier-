@@ -4,13 +4,30 @@ import { useEffect } from "react";
 import { colors } from "@/lib/tokens";
 import { notifications as mockNotifications } from "@/lib/data";
 import { useRouter } from "../AppRouter";
-import { ImageSlot } from "../ImageSlot";
-import { ChevronLeftIcon, ChevronRightIcon } from "../icons";
+import { ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, UserIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
 import { Omikuji } from "../Omikuji";
+
+/** 通知種別ごとの色付き丸バッジ＋アイコン。プレースホルダー画像の代わりに
+ * 一覧から種別が一目で分かるようにする（応募=人・フォロー=＋・いいね=♡・
+ * バッジ=クラウン）。未知の種別（message等）は汎用のメッセージアイコンに。 */
+function notificationVisual(kind: string | undefined): { bg: string; icon: React.ReactNode } {
+  switch (kind) {
+    case "application":
+      return { bg: colors.primary, icon: <UserIcon size={18} color={colors.white} /> };
+    case "follow":
+      return { bg: colors.positive, icon: <PlusIcon size={18} color={colors.white} /> };
+    case "like":
+      return { bg: colors.pink, icon: <HeartIcon size={18} color={colors.white} /> };
+    case "badge":
+      return { bg: colors.starGold, icon: <MeisterIcon size={18} color={colors.white} /> };
+    default:
+      return { bg: colors.textMutedSoft, icon: <MessageIcon size={17} color={colors.white} /> };
+  }
+}
 
 export function NotifyScreen() {
   const { back, nav, openAwase, openProfile } = useRouter();
@@ -65,6 +82,7 @@ export function NotifyScreen() {
                 : n.kind === "follow" && n.entityId
                   ? () => openProfile(n.entityId!)
                   : null;
+          const visual = notificationVisual(n.kind);
           const inner = (
             <>
               <div
@@ -72,11 +90,13 @@ export function NotifyScreen() {
                   flex: "0 0 40px",
                   height: 40,
                   borderRadius: "50%",
-                  overflow: "hidden",
-                  background: colors.primaryBg1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: visual.bg,
                 }}
               >
-                <ImageSlot circle />
+                {visual.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, color: "#3A3548", lineHeight: 1.6 }}>{n.text}</div>
