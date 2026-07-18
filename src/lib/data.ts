@@ -96,6 +96,7 @@ export const REGION_TO_AREA: Record<string, string> = {
   愛知: "中部",
   静岡: "中部",
   岐阜: "中部",
+  三重: "中部",
   // 関西
   大阪: "関西",
   京都: "関西",
