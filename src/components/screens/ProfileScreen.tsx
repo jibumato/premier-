@@ -163,6 +163,35 @@ export function ProfileScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configured, user, lightboxIndex]);
 
+  // キーボード操作: Escで閉じる、矢印キーで前後の写真へ
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      else if (e.key === "ArrowLeft") setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+      else if (e.key === "ArrowRight") setLightboxIndex((i) => (i !== null && posts && i < posts.length - 1 ? i + 1 : i));
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxIndex, posts?.length]);
+
+  // ダブルタップ（ダブルクリック）でいいね — Instagram的な操作を踏襲。
+  // 取り消しには使わない（誤操作で外れると気付きにくいため、付けるだけ）。
+  // heartBurst はタップした場所にハートを一瞬表示する演出用のトリガー。
+  const [heartBurst, setHeartBurst] = useState(0);
+  useEffect(() => {
+    if (!heartBurst) return;
+    const t = setTimeout(() => setHeartBurst(0), 700);
+    return () => clearTimeout(t);
+  }, [heartBurst]);
+  const handleLightboxDoubleClick = () => {
+    const post = lightboxIndex !== null ? posts?.[lightboxIndex] : undefined;
+    if (!post || !user || canEdit) return;
+    if (!likedSet.has(post.id)) handleToggleLike(post);
+    setHeartBurst((k) => k + 1);
+  };
+
   // いいね。数字は本人（canEdit）にだけ常時表示、他の人には5件を超えたら公開。
   // 自分の投稿にはRLSでいいねを付けられないので、本人プロフィールではボタンを出さない。
   const myLikes = useMyPostLikes(user?.id, (posts ?? []).map((p) => p.id));
@@ -1428,13 +1457,28 @@ export function ProfileScreen() {
               <ChevronRightIcon color={colors.white} />
             </button>
           )}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={lightboxUrl}
-            alt=""
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }}
-          />
+          <div style={{ position: "relative", maxWidth: "100%", maxHeight: "100%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxUrl}
+              alt=""
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                handleLightboxDoubleClick();
+              }}
+              style={{ display: "block", maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }}
+            />
+            {heartBurst > 0 && (
+              <div
+                key={heartBurst}
+                className="pt-heart-burst"
+                style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}
+              >
+                <HeartIcon size={92} color={colors.white} />
+              </div>
+            )}
+          </div>
 
           {/* いいね: 他の人はボタンで付けられる。数字は本人には常時、他の人には5件を
               超えたら公開（0を目立たせない方針）。自分の投稿には付けられない。 */}
