@@ -8,6 +8,7 @@ import { AwaseCover } from "../AwaseCover";
 import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, ChevronRightIcon, PinIcon, SearchIcon } from "../icons";
 import { AwaseCardSkeleton, Skeleton } from "../Skeleton";
+import { ErrorState } from "../ErrorState";
 import { SlotBadge } from "../SlotBadge";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useUserSearch } from "@/lib/queries/profile";
@@ -72,7 +73,8 @@ export function SearchScreen() {
   );
   const filtered = configured ? (results.data ?? []) : mockFiltered;
   const loading = configured && results.isPending && !results.data;
-  const isEmpty = !loading && filtered.length === 0;
+  const hasError = configured && results.isError && !results.data;
+  const isEmpty = !loading && !hasError && filtered.length === 0;
 
   // Keyword suggestions: popular works matching what's typed (読み一致・完全一致は除外)。
   // Empty input shows the whole popular list as quick picks.
@@ -315,6 +317,7 @@ export function SearchScreen() {
       </div>
 
       {/* results / empty state */}
+      {hasError && <ErrorState onRetry={() => results.refetch()} />}
       <div style={{ padding: "16px 18px 30px" }} className="pt-grid">
         {loading && [0, 1, 2].map((i) => <AwaseCardSkeleton key={i} />)}
         {filtered.map((res) => (

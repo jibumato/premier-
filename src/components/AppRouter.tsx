@@ -114,10 +114,23 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     reportTarget: null,
   });
   const historyRef = useRef<Screen[]>([]);
+  // 各 historyRef のプッシュと対になる、そのときのスクロール位置。back() で
+  // ポップして復元することで、一覧に戻ったときに元の位置に戻れるようにする
+  // （historyRef と常に同じ長さを保つ）。
+  const scrollStackRef = useRef<number[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const resetScroll = useCallback(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
+
+  /** historyRef へのプッシュと同時に、現在のスクロール位置を退避する。
+   * scrollTop は呼び出し側で setState より前に同期的に読み取って渡す
+   * ——setState のアップデータ関数はレンダー時まで呼び出しが遅延されうるため、
+   * 直後に呼ぶ resetScroll() で 0 になった後に読んでしまうと復元できない。 */
+  const pushHistory = useCallback((currentScreen: Screen, scrollTop: number) => {
+    historyRef.current = [...historyRef.current, currentScreen];
+    scrollStackRef.current = [...scrollStackRef.current, scrollTop];
   }, []);
 
   // ディープリンク: 初回マウント時に `?awase=<id>` があれば、その併せ詳細を開く。
@@ -147,8 +160,9 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
 
   const nav = useCallback(
     (screen: Screen, tab?: Tab) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return {
           ...s,
           screen,
@@ -165,10 +179,14 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const back = useCallback(() => {
+    // スクロール位置は historyRef と対の scrollStackRef から復元する
+    // （pushHistory で積んだ「そのとき居た画面のスクロール位置」）。
+    const savedTop = scrollStackRef.current.length > 0 ? scrollStackRef.current[scrollStackRef.current.length - 1] : 0;
+    scrollStackRef.current = scrollStackRef.current.slice(0, -1);
     setState((s) => {
       const h = [...historyRef.current];
       const prev = (h.pop() ?? "home") as Screen;
@@ -181,8 +199,13 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
             : s.tab;
       return { ...s, screen: prev, tab };
     });
-    resetScroll();
-  }, [resetScroll]);
+    // 遷移先の内容が描画されたあと（次フレーム）に復元する。直後に同期で
+    // scrollTop を設定すると、まだ古い画面のレイアウトのままクランプされて
+    // 正しく復元できないことがあるため。
+    requestAnimationFrame(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = savedTop;
+    });
+  }, []);
 
   const setRegion = useCallback((region: string) => {
     setState((s) => ({ ...s, region }));
@@ -194,109 +217,119 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
 
   const openSearch = useCallback(
     (keyword: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "search", tab: "search", searchKeyword: keyword, searchInitialTab: null };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openPhotos = useCallback(() => {
+    const scrollTop = scrollRef.current?.scrollTop ?? 0;
     setState((s) => {
-      historyRef.current = [...historyRef.current, s.screen];
+      pushHistory(s.screen, scrollTop);
       return { ...s, screen: "search", tab: "search", searchKeyword: "", searchInitialTab: "photos" };
     });
     resetScroll();
-  }, [resetScroll]);
+  }, [resetScroll, pushHistory]);
 
   const openAwase = useCallback(
     (awaseId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "detail", selectedAwaseId: awaseId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openChat = useCallback(
     (conversationId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "chat", selectedConversationId: conversationId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openProfile = useCallback(
     (userId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "profile", selectedProfileId: userId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openQaQuestion = useCallback(
     (questionId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "qaDetail", selectedQaQuestionId: questionId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openEvent = useCallback(
     (eventId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "eventDetail", selectedEventId: eventId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openMarketItem = useCallback(
     (itemId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "marketDetail", selectedMarketItemId: itemId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openCreateFromDuplicate = useCallback(
     (awaseId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "create", duplicateAwaseId: awaseId };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const openReport = useCallback(
     (target: ReportTarget) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
-        historyRef.current = [...historyRef.current, s.screen];
+        pushHistory(s.screen, scrollTop);
         return { ...s, screen: "report", reportTarget: target };
       });
       resetScroll();
     },
-    [resetScroll]
+    [resetScroll, pushHistory]
   );
 
   const api = useMemo<RouterApi>(

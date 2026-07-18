@@ -11,6 +11,7 @@ import { useCreateQaQuestion, useQaQuestions } from "@/lib/queries/qa";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
+import { ErrorState } from "../ErrorState";
 
 export function QaScreen() {
   const { back, nav, openQaQuestion } = useRouter();
@@ -28,6 +29,7 @@ export function QaScreen() {
   const real = configured ? questionsQuery.data : undefined;
   const questions = configured ? (questionsQuery.data ?? []) : qaItems;
   const loading = configured && questionsQuery.isPending && !questionsQuery.data;
+  const hasError = configured && questionsQuery.isError && !questionsQuery.data;
   const isEmpty = Boolean(real) && questions.length === 0 && !asking;
 
   const handleAskClick = () => {
@@ -192,6 +194,7 @@ export function QaScreen() {
         </div>
       )}
 
+      {hasError && !asking && <ErrorState onRetry={() => questionsQuery.refetch()} />}
       {isEmpty && (
         <EmptyState
           icon="💡"
