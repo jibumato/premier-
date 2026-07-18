@@ -8,6 +8,7 @@ import { AppBar } from "../ui";
 import { CalendarIcon, PinIcon, RefreshIcon } from "../icons";
 import { EventCardSkeleton } from "../Skeleton";
 import { ErrorState } from "../ErrorState";
+import { PullToRefresh } from "../PullToRefresh";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { useEvents } from "@/lib/queries/events";
@@ -67,6 +68,7 @@ export function EventsScreen() {
         }
       />
 
+      <PullToRefresh onRefresh={() => eventsQuery.refetch()} refreshing={eventsQuery.isFetching}>
       {/* エリア絞り込みチップ（該当イベントのあるエリアのみ・単一選択） */}
       {areaChips.length > 2 && (
         <div className="noscroll" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "12px 18px 2px" }}>
@@ -161,6 +163,7 @@ export function EventsScreen() {
           </button>
         ))}
       </div>
+      </PullToRefresh>
     </div>
   );
 }

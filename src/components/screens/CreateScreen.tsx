@@ -5,7 +5,7 @@ import { colors } from "@/lib/tokens";
 import { onboardWorks as mockWorks, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { PrimaryButton, Toggle } from "../ui";
-import { PlusIcon } from "../icons";
+import { CalendarIcon, PlusIcon } from "../icons";
 import { ImageSlot } from "../ImageSlot";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
@@ -49,6 +49,17 @@ function localToIso(v: string): string | null {
   if (!v.trim()) return null;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// 日程はDBでは自由記述の文字列のまま（「7/26(日)〜27(月)」のような表記や
+// 「毎月最終日曜」のような繰り返しも書けるようにするため）。カレンダーは
+// 単発の日付を選ぶ補助として、選んだ日を "7/26(日)" 形式に整形して差し込むだけで、
+// そのあとも自由にテキストを書き足せる。
+const JA_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+function formatJaDate(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}/${d.getDate()}(${JA_WEEKDAYS[d.getDay()]})`;
 }
 
 // 併せ作成フォームの下書き。スタジオ検索などへ一時的に離れても入力が消えないよう
@@ -102,6 +113,7 @@ export function CreateScreen() {
   const deleteTemplate = useDeleteAwaseTemplate();
   const uploadImage = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   // Real works (id/name) once connected; the handoff's mock list otherwise.
   const works = configured
     ? (worksQuery.data ?? []).map((w) => ({ id: w.id, name: w.name }))
@@ -489,12 +501,52 @@ export function CreateScreen() {
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={label}>日程 *</label>
-            <input
-              style={{ ...inputBox, fontSize: 13, padding: "13px 14px" }}
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              placeholder="例：7/26(日)"
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                style={{ ...inputBox, fontSize: 13, padding: "13px 40px 13px 14px" }}
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                placeholder="例：7/26(日)"
+              />
+              {/* カレンダーから選ぶと "7/26(日)" 形式で差し込む。範囲や繰り返しの
+                  表記に直したいときは、そのまま続けて手打ちで編集できる。 */}
+              <button
+                type="button"
+                onClick={() => {
+                  const el = dateInputRef.current;
+                  if (!el) return;
+                  if ("showPicker" in el && typeof el.showPicker === "function") el.showPicker();
+                  else el.click();
+                }}
+                aria-label="カレンダーから日程を選ぶ"
+                style={{
+                  position: "absolute",
+                  right: 4,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 32,
+                  height: 32,
+                  border: "none",
+                  background: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <CalendarIcon size={17} color={colors.textMutedAlt} />
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                onChange={(e) => {
+                  if (e.target.value) setEventDate(formatJaDate(e.target.value));
+                }}
+                aria-hidden
+                tabIndex={-1}
+                style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none", width: 0, height: 0 }}
+              />
+            </div>
           </div>
           <div style={{ flex: 1 }}>
             <label style={label}>地域 *</label>

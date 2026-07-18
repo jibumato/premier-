@@ -9,6 +9,7 @@ import { ImageSlot } from "../ImageSlot";
 import { ChevronLeftIcon, ChevronRightIcon, PinIcon, SearchIcon } from "../icons";
 import { AwaseCardSkeleton, Skeleton } from "../Skeleton";
 import { ErrorState } from "../ErrorState";
+import { PullToRefresh } from "../PullToRefresh";
 import { SlotBadge } from "../SlotBadge";
 import { useAwaseSearch } from "@/lib/queries/awase";
 import { useUserSearch } from "@/lib/queries/profile";
@@ -20,6 +21,29 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { readingMatch } from "@/lib/reading";
 
 type SearchTab = "awase" | "people" | "photos";
+
+// 最近の検索キーワード（端末内・localStorage）。次回訪問時にも「前回何を探して
+// いたか」をすぐ選び直せるようにする。private modeなど利用不可な環境では
+// 履歴機能自体を諦めるだけで、検索そのものは通常どおり動く。
+const RECENT_SEARCHES_KEY = "premier:recent-searches";
+const MAX_RECENT_SEARCHES = 8;
+function readRecentSearches(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function writeRecentSearches(list: string[]) {
+  try {
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(list));
+  } catch {
+    // localStorage unavailable — 履歴を諦めるだけで致命的ではない
+  }
+}
 
 export function SearchScreen() {
   const { back, nav, openAwase, openProfile, region, setRegion, searchKeyword, searchInitialTab, searchState, setSearchState } =
@@ -34,6 +58,29 @@ export function SearchScreen() {
   const [womenOnly, setWomenOnly] = useState(searchState.womenOnly);
   const [tab, setTab] = useState<SearchTab>(searchInitialTab ?? searchState.tab);
   const [photoWorkFilter, setPhotoWorkFilter] = useState(searchState.photoWorkFilter);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  useEffect(() => {
+    setRecentSearches(readRecentSearches());
+  }, []);
+  // キーワードを確定して検索履歴に積む（Enter・候補タップ・人気キーワードタップ時）。
+  // 入力中の途中経過までは記録しない——確定した検索語だけを残す。
+  const commitSearch = (term: string) => {
+    const trimmed = term.trim();
+    setKeyword(trimmed);
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const next = [trimmed, ...prev.filter((t) => t !== trimmed)].slice(0, MAX_RECENT_SEARCHES);
+      writeRecentSearches(next);
+      return next;
+    });
+  };
+  const removeRecentSearch = (term: string) => {
+    setRecentSearches((prev) => {
+      const next = prev.filter((t) => t !== term);
+      writeRecentSearches(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     setSearchState({ keyword, tab, womenOnly, photoWorkFilter });
@@ -60,6 +107,8 @@ export function SearchScreen() {
   const photoFeedQuery = usePostsFeed(photoWorkFilter || undefined, moderation.data?.blockedUserIds ?? []);
   const photos = photoFeedQuery.data ?? [];
   const photosLoading = tab === "photos" && configured && photoFeedQuery.isPending;
+  // プルリフレッシュは今見ているタブのクエリだけを更新する
+  const activeQuery = tab === "people" ? peopleQuery : tab === "photos" ? photoFeedQuery : results;
 
   // Mock mode filters the sample list client-side so the same controls work
   // without a backend; configured mode gets already-filtered rows from the query.
@@ -109,6 +158,9 @@ export function SearchScreen() {
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) commitSearch(keyword);
+            }}
             placeholder={
               tab === "people"
                 ? "＠ユーザーネーム・表示名で探す"
@@ -180,6 +232,7 @@ export function SearchScreen() {
         })}
       </div>
 
+      <PullToRefresh onRefresh={() => activeQuery.refetch()} refreshing={activeQuery.isFetching}>
       {tab === "people" ? (
         <PeopleResults
           configured={configured}
@@ -206,6 +259,52 @@ export function SearchScreen() {
       {/* suggestions: quick picks when empty, matching候補 while typing */}
       {keyword.trim() === "" ? (
         <div style={{ padding: "14px 18px 0" }}>
+          {recentSearches.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.textMutedAlt, paddingLeft: 2 }}>最近の検索</div>
+                <button
+                  onClick={() => {
+                    setRecentSearches([]);
+                    writeRecentSearches([]);
+                  }}
+                  style={{ border: "none", background: "none", fontSize: 11, color: colors.textMutedAlt, cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+                >
+                  すべて削除
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {recentSearches.map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 2,
+                      border: `1px solid ${colors.border}`,
+                      background: colors.white,
+                      borderRadius: 999,
+                      paddingLeft: 14,
+                    }}
+                  >
+                    <button
+                      onClick={() => commitSearch(t)}
+                      style={{ border: "none", background: "none", fontFamily: "inherit", fontSize: 12.5, color: "#4A4458", cursor: "pointer", padding: "8px 0" }}
+                    >
+                      {t}
+                    </button>
+                    <button
+                      onClick={() => removeRecentSearch(t)}
+                      aria-label={`${t}を履歴から削除`}
+                      style={{ border: "none", background: "none", cursor: "pointer", color: colors.textMutedAlt, fontSize: 14, lineHeight: 1, padding: "8px 10px" }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.textMutedAlt, marginBottom: 9, paddingLeft: 2 }}>
             人気のキーワード
           </div>
@@ -213,7 +312,7 @@ export function SearchScreen() {
             {popularWorks.map((w) => (
               <button
                 key={w}
-                onClick={() => setKeyword(w)}
+                onClick={() => commitSearch(w)}
                 style={{
                   fontSize: 12.5,
                   color: "#4A4458",
@@ -237,7 +336,7 @@ export function SearchScreen() {
             {suggestions.map((w, i) => (
               <button
                 key={w}
-                onClick={() => setKeyword(w)}
+                onClick={() => commitSearch(w)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -454,6 +553,7 @@ export function SearchScreen() {
       </div>
         </>
       )}
+      </PullToRefresh>
     </div>
   );
 }

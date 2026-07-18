@@ -161,6 +161,17 @@ a:hover {
   filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.35));
 }
 
+/* プルリフレッシュの更新中インジケーター（RefreshIcon）をぐるぐる回す */
+@keyframes pt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pt-spin {
+  animation: pt-spin 0.8s linear infinite;
+}
+
 @keyframes pt-heart-burst-reduced {
   0% {
     opacity: 0;
