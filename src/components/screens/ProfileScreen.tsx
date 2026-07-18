@@ -20,6 +20,7 @@ import { useMyUpcomingEvents } from "@/lib/queries/events";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { UserRole } from "@/lib/database.types";
 
 /**
  * External support links (Fantia / pixivFANBOX / Skeb). Per the handoff
@@ -76,6 +77,13 @@ function isDefaultHandle(handle: string | null | undefined): boolean {
 /** @ユーザーネームの形式チェック（半角英数と _ の3〜20文字）。DBの check 制約と一致。 */
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
+/** プロフィール編集の「活動タイプ」選択肢（オンボーディングの3択と対応）。 */
+const ROLE_OPTIONS: { key: UserRole; label: string }[] = [
+  { key: "layer", label: "コスプレイヤー" },
+  { key: "photographer", label: "カメラマン" },
+  { key: "both", label: "両方" },
+];
+
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, openAwase, openEvent, selectedProfileId } = useRouter();
   const { user } = useAuth();
@@ -123,6 +131,7 @@ export function ProfileScreen() {
   const [xInput, setXInput] = useState("");
   const [handleInput, setHandleInput] = useState("");
   const [searchableByName, setSearchableByName] = useState(false);
+  const [roleInput, setRoleInput] = useState<UserRole>("layer");
   const [editError, setEditError] = useState<string | null>(null);
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
@@ -275,6 +284,7 @@ export function ProfileScreen() {
     // 自動採番のデフォルトは空欄で提示し、ユーザーに新しく決めてもらう。
     setHandleInput(isDefaultHandle(real?.handle) ? "" : (real?.handle ?? ""));
     setSearchableByName(Boolean(real?.searchable_by_name));
+    setRoleInput(real?.role ?? "layer");
     setEditError(null);
     setEditing(true);
   };
@@ -299,6 +309,7 @@ export function ProfileScreen() {
         xHandle: normalizeXHandle(xInput),
         handle: handleArg,
         searchableByName,
+        role: roleInput,
       },
       {
         onSuccess: () => setEditing(false),
@@ -783,6 +794,41 @@ export function ProfileScreen() {
               </div>
               <p style={{ margin: "5px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
                 @付きのユーザー名でもURL（https://x.com/…）の貼り付けでもOKです。空欄にすると非表示になります。
+              </p>
+            </div>
+
+            {/* 活動タイプ（役割）。オンボーディングで選んだものを後から変更できる。
+                「両方」はレイヤー/カメラマンどちらの検索絞り込みでも見つかる。 */}
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>活動タイプ</label>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                {ROLE_OPTIONS.map((opt) => {
+                  const on = roleInput === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setRoleInput(opt.key)}
+                      style={{
+                        flex: 1,
+                        border: on ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`,
+                        background: on ? colors.primaryBg5 : colors.white,
+                        color: on ? colors.primary : colors.textSecondary,
+                        fontFamily: "inherit",
+                        fontSize: 12,
+                        fontWeight: on ? 700 : 500,
+                        padding: on ? "9px 0" : "10px 0",
+                        borderRadius: 11,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ margin: "5px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+                コスプレイヤー / カメラマンの検索絞り込みに反映されます。「両方」はどちらでも見つかります。
               </p>
             </div>
 
