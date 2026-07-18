@@ -82,6 +82,8 @@ export const regions = [
 export const REGION_TO_AREA: Record<string, string> = {
   // 北海道
   札幌: "北海道",
+  函館: "北海道",
+  北竜: "北海道",
   // 東北
   仙台: "東北",
   // 関東
