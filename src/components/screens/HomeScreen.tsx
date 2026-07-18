@@ -157,7 +157,7 @@ export function HomeScreen() {
             </button>
           }
         >
-          併せ・合わせ募集
+          募集中のあわせ
         </SectionHeading>
       </div>
       {feedLoading && (
