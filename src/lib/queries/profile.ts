@@ -261,6 +261,7 @@ export function useUpdateProfileText() {
       xHandle,
       handle,
       searchableByName,
+      role,
     }: {
       userId: string;
       displayName: string;
@@ -271,6 +272,8 @@ export function useUpdateProfileText() {
       handle?: string;
       /** 表示名での検索を許可するか（既定オフのトグル）。 */
       searchableByName: boolean;
+      /** 活動タイプ（レイヤー/カメラマン/両方）。undefined なら変更しない。 */
+      role?: UserRole;
     }) => {
       const supabase = getSupabaseBrowserClient();
       const patch: {
@@ -279,6 +282,7 @@ export function useUpdateProfileText() {
         x_handle: string | null;
         searchable_by_name: boolean;
         handle?: string;
+        role?: UserRole;
       } = {
         display_name: displayName,
         bio,
@@ -286,6 +290,7 @@ export function useUpdateProfileText() {
         searchable_by_name: searchableByName,
       };
       if (handle !== undefined) patch.handle = handle;
+      if (role !== undefined) patch.role = role;
       const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
       if (error) throw error;
     },
