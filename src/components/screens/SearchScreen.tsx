@@ -12,7 +12,7 @@ import { ErrorState } from "../ErrorState";
 import { PullToRefresh } from "../PullToRefresh";
 import { SlotBadge } from "../SlotBadge";
 import { useAwaseSearch } from "@/lib/queries/awase";
-import { useUserSearch } from "@/lib/queries/profile";
+import { useUserSearch, type UserSearchRoleFilter, type UserSearchResult } from "@/lib/queries/profile";
 import { usePostsFeed, type FeedPost } from "@/lib/queries/posts";
 import { useFollowedWorks, useWorks } from "@/lib/queries/works";
 import { useModerationFilter } from "@/lib/queries/moderation";
@@ -58,6 +58,7 @@ export function SearchScreen() {
   const [womenOnly, setWomenOnly] = useState(searchState.womenOnly);
   const [tab, setTab] = useState<SearchTab>(searchInitialTab ?? searchState.tab);
   const [photoWorkFilter, setPhotoWorkFilter] = useState(searchState.photoWorkFilter);
+  const [peopleRole, setPeopleRole] = useState<UserSearchRoleFilter>(searchState.peopleRole);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   useEffect(() => {
     setRecentSearches(readRecentSearches());
@@ -83,9 +84,9 @@ export function SearchScreen() {
   };
 
   useEffect(() => {
-    setSearchState({ keyword, tab, womenOnly, photoWorkFilter });
+    setSearchState({ keyword, tab, womenOnly, photoWorkFilter, peopleRole });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setSearchState は毎回同一参照
-  }, [keyword, tab, womenOnly, photoWorkFilter]);
+  }, [keyword, tab, womenOnly, photoWorkFilter, peopleRole]);
   const moderation = useModerationFilter(user?.id);
   const results = useAwaseSearch({ region, keyword, womenOnly }, moderation.data);
   // 人物検索（人タブ・ログイン必須）。@ユーザーネーム前方一致＋許可者の表示名。
@@ -93,9 +94,11 @@ export function SearchScreen() {
     tab === "people" ? user?.id : undefined,
     tab === "people" ? keyword : "",
     moderation.data?.blockedUserIds ?? [],
+    peopleRole,
   );
   const people = peopleQuery.data ?? [];
-  const peopleLoading = tab === "people" && configured && Boolean(user) && peopleQuery.isPending && keyword.trim().length >= 2;
+  const peopleLoading =
+    tab === "people" && configured && Boolean(user) && peopleQuery.isPending && (keyword.trim().length >= 2 || peopleRole !== "");
   // みんなの投稿（写真タブ）。新着順＋任意の作品タグ絞り込み。
   // 作品チップは、自分がフォローしている作品を先頭に出す（探しやすさ優先）。
   const followedWorkIds = new Set(useFollowedWorks(user?.id).data ?? []);
@@ -238,6 +241,8 @@ export function SearchScreen() {
           configured={configured}
           signedIn={Boolean(user)}
           keyword={keyword}
+          roleFilter={peopleRole}
+          onRoleFilterChange={setPeopleRole}
           loading={peopleLoading}
           people={people}
           onOpenProfile={openProfile}
@@ -558,11 +563,27 @@ export function SearchScreen() {
   );
 }
 
+/** 役割絞り込みチップ（すべて / コスプレイヤー / カメラマン）。 */
+const PEOPLE_ROLE_CHIPS: { key: UserSearchRoleFilter; label: string }[] = [
+  { key: "", label: "すべて" },
+  { key: "layer", label: "コスプレイヤー" },
+  { key: "photographer", label: "カメラマン" },
+];
+
+/** 結果カードに出す役割バッジのラベル。両方の人はどちらでも見つかるので明示する。 */
+const ROLE_BADGE_LABEL: Record<string, string> = {
+  layer: "レイヤー",
+  photographer: "📷 カメラマン",
+  both: "📷 レイヤー兼カメラマン",
+};
+
 /** 人物検索の結果リスト（人タブ）。ログイン必須・非公開/ブロックは除外済み。 */
 function PeopleResults({
   configured,
   signedIn,
   keyword,
+  roleFilter,
+  onRoleFilterChange,
   loading,
   people,
   onOpenProfile,
@@ -571,12 +592,15 @@ function PeopleResults({
   configured: boolean;
   signedIn: boolean;
   keyword: string;
+  roleFilter: UserSearchRoleFilter;
+  onRoleFilterChange: (r: UserSearchRoleFilter) => void;
   loading: boolean;
-  people: { id: string; handle: string; displayName: string; avatarUrl: string | null; isVerified: boolean }[];
+  people: UserSearchResult[];
   onOpenProfile: (id: string) => void;
   onLogin: () => void;
 }) {
   const q = keyword.trim();
+  const browsing = q.length < 2 && roleFilter !== "";
 
   // プレビュー環境（未接続）では人物検索は動かせない
   if (!configured) {
@@ -613,32 +637,71 @@ function PeopleResults({
       </div>
     );
   }
-  if (q.length < 2) {
-    return (
+
+  const roleChips = (
+    <div style={{ display: "flex", gap: 8, padding: "12px 18px 0", flexWrap: "wrap" }}>
+      {PEOPLE_ROLE_CHIPS.map((c) => {
+        const active = roleFilter === c.key;
+        return (
+          <button
+            key={c.key || "all"}
+            onClick={() => onRoleFilterChange(c.key)}
+            style={{
+              border: active ? "none" : `1px solid ${colors.border}`,
+              background: active ? colors.primary : colors.white,
+              color: active ? colors.white : colors.textSecondary,
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: active ? 700 : 500,
+              padding: "8px 14px",
+              borderRadius: 999,
+              cursor: "pointer",
+            }}
+          >
+            {c.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  let body: React.ReactNode;
+  if (q.length < 2 && roleFilter === "") {
+    body = (
       <div style={{ padding: "36px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
         @ユーザーネームか表示名を2文字以上入力してください。
         <br />
         <span style={{ fontSize: 11, color: colors.textMutedSoft }}>
           ※ 非公開アカウントや、表示名検索をオフにしている人は表示されません。
+          <br />
+          役割チップを選ぶと、キーワードなしでもコスプレイヤー/カメラマンを探せます。
         </span>
       </div>
     );
-  }
-  if (loading) {
-    return <div style={{ padding: "48px 24px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>検索中…</div>;
-  }
-  if (people.length === 0) {
-    return (
+  } else if (loading) {
+    body = <div style={{ padding: "48px 24px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>検索中…</div>;
+  } else if (people.length === 0) {
+    body = (
       <div style={{ padding: "40px 24px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.9 }}>
         該当する人が見つかりませんでした。
         <br />
-        <span style={{ fontSize: 11, color: colors.textMutedSoft }}>@ユーザーネームは前方一致で検索できます。</span>
+        <span style={{ fontSize: 11, color: colors.textMutedSoft }}>
+          {browsing
+            ? "※ この一覧には「表示名で検索されることを許可」した人だけが表示されます。"
+            : "@ユーザーネームは前方一致で検索できます。"}
+        </span>
       </div>
     );
-  }
-  return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "12px 18px 30px", gap: 8 }}>
-      {people.map((p) => (
+  } else {
+    body = (
+      <>
+        {browsing && (
+          <div style={{ padding: "12px 20px 0", fontSize: 11, color: colors.textMutedSoft, lineHeight: 1.7 }}>
+            表示名検索を許可している{roleFilter === "photographer" ? "カメラマン" : "コスプレイヤー"}の新着一覧です。
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", padding: "12px 18px 30px", gap: 8 }}>
+          {people.map((p) => (
         <button
           key={p.id}
           onClick={() => onOpenProfile(p.id)}
@@ -669,11 +732,40 @@ function PeopleResults({
                 <img src="/verified-badge.png" alt="本人確認済" width={16} height={16} style={{ display: "block", flex: "0 0 auto" }} />
               )}
             </div>
-            <div style={{ fontSize: 11.5, color: colors.textMutedAlt, marginTop: 2 }}>@{p.handle}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minWidth: 0 }}>
+              <span style={{ fontSize: 11.5, color: colors.textMutedAlt, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                @{p.handle}
+              </span>
+              {p.role && ROLE_BADGE_LABEL[p.role] && (
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    color: colors.primary,
+                    background: colors.primaryBg1,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {ROLE_BADGE_LABEL[p.role]}
+                </span>
+              )}
+            </div>
           </div>
           <ChevronRightIcon />
         </button>
-      ))}
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div>
+      {roleChips}
+      {body}
     </div>
   );
 }

@@ -34,7 +34,14 @@ interface RouterState {
   /** 検索画面の状態（キーワード・タブ・絞り込み）。画面はナビごとにマウントし直される
    * ため、ここに持たせて「戻る」で条件が消えないようにする。SearchScreen が
    * onChange のたびに setSearchState で書き戻す。 */
-  searchState: { keyword: string; tab: "awase" | "people" | "photos"; womenOnly: boolean; photoWorkFilter: string };
+  searchState: {
+    keyword: string;
+    tab: "awase" | "people" | "photos";
+    womenOnly: boolean;
+    photoWorkFilter: string;
+    /** ユーザータブの役割絞り込み（"" = すべて）。 */
+    peopleRole: "" | "layer" | "photographer";
+  };
   /** awase.id backing the current `detail` screen, once a backend is connected. */
   selectedAwaseId: string | null;
   /** conversation.id backing the current `chat` screen, once a backend is connected. */
@@ -103,7 +110,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     region: "すべて",
     searchKeyword: "",
     searchInitialTab: null,
-    searchState: { keyword: "", tab: "awase", womenOnly: false, photoWorkFilter: "" },
+    searchState: { keyword: "", tab: "awase", womenOnly: false, photoWorkFilter: "", peopleRole: "" },
     selectedAwaseId: null,
     selectedConversationId: null,
     selectedProfileId: null,

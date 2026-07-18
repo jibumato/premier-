@@ -11,33 +11,56 @@ export interface UserSearchResult {
   displayName: string;
   avatarUrl: string | null;
   isVerified: boolean;
+  role: UserRole | null;
 }
+
+/** ユーザータブの役割絞り込み。"" は絞り込みなし。 */
+export type UserSearchRoleFilter = "" | "layer" | "photographer";
 
 /**
  * 人物検索（つきまとい対策を織り込んだ「知っている人を探す」検索）。
  *   - @ユーザーネーム（handle）は前方一致で常に検索できる。
  *   - 表示名（display_name）は、本人が searchable_by_name をオンにした人だけ
  *     部分一致でヒットする（既定オフ）。
+ *   - 役割（レイヤー/カメラマン）で絞り込める。role="both" の人はどちらの
+ *     絞り込みでもヒットする。
+ *   - キーワード未入力でも役割絞り込みが指定されていれば「見つけてもらう」
+ *     一覧として動く。ただしこのブラウズは searchable_by_name をオンにした
+ *     人だけが対象（オプトインしていない人はキーワードなしでは出ない）。
  *   - 非公開アカウント（is_private）は RLS(profiles_select) により本人＋
  *     フォロワー以外には返らないので、自動的に検索結果から除外される。
  *   - 自分自身・ブロックしたユーザー・停止中アカウントは除外。
- *   - ログイン必須（viewerId 必須）。2文字以上で発火。
+ *   - ログイン必須（viewerId 必須）。キーワードは2文字以上で発火。
  */
-export function useUserSearch(viewerId: string | undefined, rawQuery: string, blockedUserIds: string[]) {
+export function useUserSearch(
+  viewerId: string | undefined,
+  rawQuery: string,
+  blockedUserIds: string[],
+  roleFilter: UserSearchRoleFilter = "",
+) {
   const q = rawQuery.trim().toLowerCase();
   return useQuery({
-    queryKey: ["user_search", q, viewerId, blockedUserIds],
-    enabled: isSupabaseConfigured() && Boolean(viewerId) && q.length >= 2,
+    queryKey: ["user_search", q, viewerId, blockedUserIds, roleFilter],
+    enabled: isSupabaseConfigured() && Boolean(viewerId) && (q.length >= 2 || roleFilter !== ""),
     queryFn: async (): Promise<UserSearchResult[]> => {
       // PostgREST の or()/ilike を壊す・悪用される文字を除去（英数と _ 空白のみ残す）
       const safe = q.replace(/[^\p{L}\p{N}_ ]/gu, "").trim();
-      if (safe.length < 2) return [];
+      const browsing = safe.length < 2;
+      if (browsing && !roleFilter) return [];
       const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase
+      let query = supabase
         .from("profiles")
-        .select("id, handle, display_name, avatar_url, is_verified, is_suspended")
-        .or(`handle.ilike.${safe}%,and(searchable_by_name.eq.true,display_name.ilike.%${safe}%)`)
-        .limit(40);
+        .select("id, handle, display_name, avatar_url, is_verified, is_suspended, role");
+      if (browsing) {
+        // 役割ブラウズ: 表示名検索を許可（オプトイン）した人だけを新しい順に
+        query = query.eq("searchable_by_name", true).order("created_at", { ascending: false });
+      } else {
+        query = query.or(`handle.ilike.${safe}%,and(searchable_by_name.eq.true,display_name.ilike.%${safe}%)`);
+      }
+      if (roleFilter) {
+        query = query.in("role", [roleFilter, "both"]);
+      }
+      const { data, error } = await query.limit(40);
       if (error) throw error;
       const blocked = new Set(blockedUserIds);
       type Row = {
@@ -47,6 +70,7 @@ export function useUserSearch(viewerId: string | undefined, rawQuery: string, bl
         avatar_url: string | null;
         is_verified: boolean;
         is_suspended: boolean;
+        role: UserRole | null;
       };
       return ((data ?? []) as Row[])
         .filter((p) => p.id !== viewerId && !blocked.has(p.id) && !p.is_suspended)
@@ -57,6 +81,7 @@ export function useUserSearch(viewerId: string | undefined, rawQuery: string, bl
           displayName: p.display_name,
           avatarUrl: p.avatar_url,
           isVerified: p.is_verified,
+          role: p.role,
         }));
     },
   });
