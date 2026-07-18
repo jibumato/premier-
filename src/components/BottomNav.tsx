@@ -117,7 +117,9 @@ export function BottomNav() {
         onClick={() => nav("search", "search")}
         icon={(c) => <SearchIcon size={23} color={c} />}
       />
-      {/* center FAB */}
+      {/* center FAB — 他の項目と違い一覧画面に遷移するのではなく、その場で
+          併せ募集の作成フォームを開く。アイコンだけでは「何が起きるボタンか」
+          伝わりにくいので、他タブと同じくラベルを添える。 */}
       <button onClick={() => navGuarded("create")} style={navBtn} aria-label="併せ募集を作成">
         <span
           style={{
@@ -133,6 +135,7 @@ export function BottomNav() {
         >
           <PlusIcon />
         </span>
+        <span style={{ fontSize: 9.5, color: colors.primary, fontWeight: 600 }}>募集する</span>
       </button>
       <NavItem
         active={is("notify")}

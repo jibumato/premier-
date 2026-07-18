@@ -21,6 +21,15 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
 import type { ChatMessage } from "@/lib/types";
 
+// メッセージ0件（会話が始まる前）のとき、最初の一言に迷わないための例文チップ。
+// タップすると入力欄に差し込むだけ——そのまま自動送信はしない（定型文を確認・編集する余地を残す）。
+const ICEBREAKERS = [
+  "はじめまして！よろしくお願いします🙌",
+  "衣装や小道具の準備状況はいかがですか？",
+  "当日の集合時間や場所、相談させてください",
+  "撮影で希望のポーズなどあれば教えてください",
+];
+
 export function ChatScreen() {
   const { back, nav, selectedConversationId } = useRouter();
   const { user } = useAuth();
@@ -274,6 +283,30 @@ export function ChatScreen() {
           );
         })}
       </div>
+
+      {/* アイスブレイク例文 — まだやりとりが無い会話だけ、最初の一言のヒントを出す */}
+      {messages.length === 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, padding: "0 14px 10px" }}>
+          {ICEBREAKERS.map((text) => (
+            <button
+              key={text}
+              onClick={() => setDraft(text)}
+              style={{
+                border: `1px solid ${colors.border}`,
+                background: colors.white,
+                color: colors.textSecondary,
+                fontFamily: "inherit",
+                fontSize: 11.5,
+                padding: "7px 12px",
+                borderRadius: 999,
+                cursor: "pointer",
+              }}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* composer */}
       <div

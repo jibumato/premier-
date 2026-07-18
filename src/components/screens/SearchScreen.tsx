@@ -601,6 +601,19 @@ function PhotoResults({
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const lightbox = lightboxIndex !== null ? (photos[lightboxIndex] ?? null) : null;
+
+  // キーボード操作: Escで閉じる、矢印キーで前後の写真へ（マウス/タッチ以外の導線を確保）
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      else if (e.key === "ArrowLeft") setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+      else if (e.key === "ArrowRight") setLightboxIndex((i) => (i !== null && i < photos.length - 1 ? i + 1 : i));
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [lightboxIndex, photos.length]);
+
   const kw = keyword.trim();
   const visibleWorks = kw ? works.filter((w) => readingMatch(w.name, kw)) : works;
 

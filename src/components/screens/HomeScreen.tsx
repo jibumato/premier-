@@ -481,6 +481,16 @@ export function HomeScreen() {
         </button>
       </div>
 
+      {/* いまの活気 — 従来は下部の「にぎわい」セクションまでスクロールしないと
+          見えなかった。検索直下に置き、訪問直後に「動いているサービス」だと
+          伝わるようにする（詳しい今日の実績・最近のうごきは従来どおり下段）。 */}
+      <div style={{ padding: "10px 22px 0", display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: colors.positive, display: "inline-block" }} />
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>
+          いま{viewerCount}人が見ています
+        </span>
+      </div>
+
       {/* ログイン済み＝リピーターの「今日の用事」を最優先。検索バー直下に併せ
           フィードを出し、ファーストビューで新着募集を確認できるようにする。
           未ログインは従来どおり下段に出す（上段は集客導線を優先）。 */}
@@ -610,23 +620,9 @@ export function HomeScreen() {
         </div>
       )}
 
-      {/* にぎわい — 同時接続人数・今日の新着・最近のうごき */}
+      {/* 今日の実績・最近のうごき（同時接続人数は検索バー直下に移動済み） */}
       <div style={{ padding: "16px 22px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: colors.positive,
-                display: "inline-block",
-              }}
-            />
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>
-              いま{viewerCount}人が見ています
-            </span>
-          </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <span style={{ fontSize: 11, color: colors.textMutedAlt }}>
             今日 併せ{todayStats.newAwase}件・参加{todayStats.newRsvps}件
           </span>
