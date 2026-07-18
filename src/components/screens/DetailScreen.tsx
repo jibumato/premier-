@@ -465,6 +465,53 @@ export function DetailScreen() {
         </button>
       </div>
 
+      {/* 固定CTA — 本文が長く「応募する」までスクロールが要るため、読んでいる間
+          ずっと画面下に見えるようにする（詳細後半にある本来のボタンと同じ操作）。
+          結論の出ている状態（応募済み・終了・締切）では出さない。 */}
+      {!myAppStatus && !isClosed && !isDeadlinePassed && (
+        <div
+          style={{
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10,
+            padding: "10px 22px",
+            background: colors.white,
+            borderTop: `1px solid ${colors.borderSofter}`,
+            boxShadow: "0 -6px 16px -10px rgba(40,30,60,.25)",
+          }}
+        >
+          {isHost ? (
+            <button
+              onClick={() => nav("hostApplicants")}
+              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
+            >
+              応募者を見る{applicantTotal > 0 ? `（${applicantTotal}名）` : ""}
+            </button>
+          ) : needsVerifyToApply ? (
+            <button
+              onClick={() => nav("verify")}
+              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
+            >
+              本人確認をして応募する
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (configured && !user) {
+                  nav("login");
+                  return;
+                }
+                setApplyRoleId(null);
+                setConfirmApply(true);
+              }}
+              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
+            >
+              この併せに応募する
+            </button>
+          )}
+        </div>
+      )}
+
       {copied && (
         <div
           style={{

@@ -7,6 +7,7 @@ import { useRouter } from "../AppRouter";
 import { AppBar } from "../ui";
 import { CalendarIcon, PinIcon, RefreshIcon } from "../icons";
 import { EventCardSkeleton } from "../Skeleton";
+import { ErrorState } from "../ErrorState";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { useEvents } from "@/lib/queries/events";
@@ -20,6 +21,7 @@ export function EventsScreen() {
   const real = configured ? eventsQuery.data : undefined;
   const events = configured ? (eventsQuery.data ?? []) : mockEvents;
   const loading = configured && eventsQuery.isPending && !eventsQuery.data;
+  const hasError = configured && eventsQuery.isError && !eventsQuery.data;
 
   const [area, setArea] = useState("すべて");
 
@@ -94,9 +96,10 @@ export function EventsScreen() {
         </div>
       )}
 
+      {hasError && <ErrorState onRetry={() => eventsQuery.refetch()} />}
       <div style={{ padding: "10px 22px 30px" }} className="pt-grid">
         {loading && [0, 1, 2].map((i) => <EventCardSkeleton key={i} />)}
-        {!loading && shownEvents.length === 0 && (
+        {!loading && !hasError && shownEvents.length === 0 && (
           <div style={{ padding: "48px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
             このエリアのイベントはまだありません。
           </div>

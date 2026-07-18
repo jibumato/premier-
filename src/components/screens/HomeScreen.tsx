@@ -31,6 +31,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatRelativeTime } from "@/lib/format";
 import { announcements as mockAnnouncements } from "@/lib/data";
 import { EmptyState } from "../EmptyState";
+import { ErrorState } from "../ErrorState";
 import { WelcomeBanner } from "../WelcomeBanner";
 import { SlotBadge } from "../SlotBadge";
 import { WorkCover } from "../WorkCover";
@@ -83,6 +84,7 @@ export function HomeScreen() {
   const awaseList = configured ? (feed.data ?? []) : homeAwase;
   const feedEmpty = configured && feed.data?.length === 0;
   const feedLoading = configured && feed.isPending && !feed.data;
+  const feedError = configured && feed.isError && !feed.data;
   const announcementsQuery = useAnnouncements();
   const announcementList = configured ? (announcementsQuery.data ?? []) : mockAnnouncements;
   const latestAnnouncement = announcementList[0];
@@ -163,6 +165,7 @@ export function HomeScreen() {
       {feedLoading && (
         <div style={{ padding: "60px 22px", textAlign: "center", fontSize: 13, color: colors.textMutedAlt }}>読み込み中…</div>
       )}
+      {feedError && <ErrorState onRetry={() => feed.refetch()} />}
       {feedEmpty && (
         <EmptyState
           icon="🎬"

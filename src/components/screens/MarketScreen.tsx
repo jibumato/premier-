@@ -8,6 +8,7 @@ import { ImageSlot } from "../ImageSlot";
 import { AppBar } from "../ui";
 import { RefreshIcon } from "../icons";
 import { MarketCardSkeleton } from "../Skeleton";
+import { ErrorState } from "../ErrorState";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useWorks } from "@/lib/queries/works";
 import { useCreateMarketItem, useMarketItems } from "@/lib/queries/market";
@@ -50,6 +51,7 @@ export function MarketScreen() {
 
   const real = configured ? itemsQuery.data : undefined;
   const loading = configured && itemsQuery.isPending && !itemsQuery.data;
+  const hasError = configured && itemsQuery.isError && !itemsQuery.data;
   const items: {
     key: string;
     title: string;
@@ -306,6 +308,8 @@ export function MarketScreen() {
             <MarketCardSkeleton key={i} />
           ))}
         </div>
+      ) : hasError && !listing ? (
+        <ErrorState onRetry={() => itemsQuery.refetch()} />
       ) : real && items.length === 0 && !listing ? (
         <div style={{ padding: "40px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
           まだ出品はありません。
