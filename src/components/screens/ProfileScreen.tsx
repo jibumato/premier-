@@ -7,12 +7,12 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { SectionHeading } from "../ui";
-import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
+import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
 import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import { friendlyProfileError, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
-import { useCreatePost, useDeletePost, usePosts, useReorderPosts, useUpdatePostVisibility, useUpdatePostWork } from "@/lib/queries/posts";
+import { useCreatePost, useDeletePost, useMyPostLikes, usePosts, useReorderPosts, useTogglePostLike, useUpdatePostVisibility, useUpdatePostWork } from "@/lib/queries/posts";
 import { useAwaseHistory } from "@/lib/queries/awase";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useWorks } from "@/lib/queries/works";
@@ -162,6 +162,16 @@ export function ProfileScreen() {
     getSupabaseBrowserClient().rpc("increment_post_view", { target: post.id }).then(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configured, user, lightboxIndex]);
+
+  // いいね。数字は本人（canEdit）にだけ常時表示、他の人には5件を超えたら公開。
+  // 自分の投稿にはRLSでいいねを付けられないので、本人プロフィールではボタンを出さない。
+  const myLikes = useMyPostLikes(user?.id, (posts ?? []).map((p) => p.id));
+  const likedSet = new Set(myLikes.data ?? []);
+  const toggleLike = useTogglePostLike();
+  const handleToggleLike = (post: { id: string; author_id: string }) => {
+    if (!user || canEdit || toggleLike.isPending) return;
+    toggleLike.mutate({ postId: post.id, authorId: post.author_id, userId: user.id, liked: likedSet.has(post.id) });
+  };
   // Real users see their own (possibly empty) fields; only the prototype/mock
   // mode falls back to the demo placeholder text. This prevents a brand-new
   // account from showing another persona's sample bio/name/title.
@@ -1238,13 +1248,16 @@ export function ProfileScreen() {
                           🔒
                         </span>
                       )}
-                      {/* 閲覧数（本人にだけ表示。0022の併せ閲覧数と同じ方針で、他人には見せない） */}
+                      {/* 閲覧数・いいね数（本人にだけ表示。0022の閲覧数と同じ方針で他人には見せない） */}
                       {canEdit && (
                         <span
-                          aria-label={`閲覧数 ${p.view_count ?? 0}回（あなたにだけ表示）`}
-                          style={{ position: "absolute", right: 4, bottom: 4, fontSize: 10.5, fontWeight: 600, background: "rgba(30,20,40,.65)", color: colors.white, borderRadius: 999, padding: "3px 7px", lineHeight: 1 }}
+                          aria-label={`閲覧数 ${p.view_count ?? 0}回・いいね ${p.like_count ?? 0}件（あなたにだけ表示）`}
+                          style={{ position: "absolute", right: 4, bottom: 4, fontSize: 10, fontWeight: 600, background: "rgba(30,20,40,.65)", color: colors.white, borderRadius: 999, padding: "3px 7px", lineHeight: 1, display: "flex", alignItems: "center", gap: 5 }}
                         >
-                          👁 {p.view_count ?? 0}
+                          <span>👁 {p.view_count ?? 0}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            <HeartIcon size={10} color={colors.pink} /> {p.like_count ?? 0}
+                          </span>
                         </span>
                       )}
                     </>
@@ -1422,6 +1435,50 @@ export function ProfileScreen() {
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }}
           />
+
+          {/* いいね: 他の人はボタンで付けられる。数字は本人には常時、他の人には5件を
+              超えたら公開（0を目立たせない方針）。自分の投稿には付けられない。 */}
+          {(() => {
+            const p = posts?.[lightboxIndex];
+            if (!p) return null;
+            const liked = likedSet.has(p.id);
+            const canLike = Boolean(user) && !canEdit;
+            const showCount = canEdit || (p.like_count ?? 0) > 5;
+            if (!canLike && !showCount) return null;
+            const pill: CSSProperties = {
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: "rgba(255,255,255,.16)",
+              borderRadius: 999,
+              padding: "10px 18px",
+              color: colors.white,
+              fontSize: 14,
+              fontWeight: 700,
+            };
+            return (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{ position: "absolute", left: 0, right: 0, bottom: 24, display: "flex", justifyContent: "center" }}
+              >
+                {canLike ? (
+                  <button
+                    onClick={() => handleToggleLike(p)}
+                    disabled={toggleLike.isPending}
+                    aria-label={liked ? "いいねを取り消す" : "いいね"}
+                    style={{ ...pill, border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    <HeartIcon size={20} color={liked ? colors.pink : colors.white} />
+                    {showCount && <span>{p.like_count ?? 0}</span>}
+                  </button>
+                ) : (
+                  <span style={pill} aria-label={`いいね ${p.like_count ?? 0}件`}>
+                    <HeartIcon size={18} color={colors.pink} /> {p.like_count ?? 0}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

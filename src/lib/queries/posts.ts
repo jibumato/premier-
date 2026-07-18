@@ -118,6 +118,47 @@ export function useUpdatePostWork() {
   });
 }
 
+/** 表示中の投稿のうち、閲覧者がいいね済みの post_id 一覧（ハートの押下状態用）。
+ * RLS で post_likes は本人の行だけ読めるので、これは「自分のいいね」だけ返す。 */
+export function useMyPostLikes(viewerId: string | undefined, postIds: string[]) {
+  return useQuery({
+    queryKey: ["post_likes", viewerId, postIds],
+    enabled: isSupabaseConfigured() && Boolean(viewerId) && postIds.length > 0,
+    queryFn: async (): Promise<string[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", viewerId!)
+        .in("post_id", postIds);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.post_id as string);
+    },
+  });
+}
+
+/** 写真のいいねをトグル（付ける/外す）。付与時は DBトリガーが like_count 更新＋
+ * 投稿者への通知（初いいねのお祝い含む）を行う。自分の投稿にはRLSで付けられない。 */
+export function useTogglePostLike() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId, userId, liked }: { postId: string; authorId: string; userId: string; liked: boolean }) => {
+      const supabase = getSupabaseBrowserClient();
+      if (liked) {
+        const { error } = await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, { authorId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["post_likes", userId] });
+      qc.invalidateQueries({ queryKey: ["posts", authorId] });
+    },
+  });
+}
+
 export interface FeedPost {
   id: string;
   authorId: string;

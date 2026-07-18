@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { colors } from "@/lib/tokens";
 import { notifications as mockNotifications } from "@/lib/data";
 import { useRouter } from "../AppRouter";
-import { ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, UserIcon } from "../icons";
+import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, UserIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -24,6 +24,8 @@ function notificationVisual(kind: string | undefined): { bg: string; icon: React
       return { bg: colors.pink, icon: <HeartIcon size={18} color={colors.white} /> };
     case "badge":
       return { bg: colors.starGold, icon: <MeisterIcon size={18} color={colors.white} /> };
+    case "post":
+      return { bg: colors.pinkAlt, icon: <CameraIcon size={17} color={colors.white} /> };
     default:
       return { bg: colors.textMutedSoft, icon: <MessageIcon size={17} color={colors.white} /> };
   }
@@ -79,7 +81,7 @@ export function NotifyScreen() {
               ? () => openAwase(n.entityId!)
               : n.kind === "badge"
                 ? () => nav("profile", "mypage")
-                : n.kind === "follow" && n.entityId
+                : (n.kind === "follow" || n.kind === "post") && n.entityId
                   ? () => openProfile(n.entityId!)
                   : null;
           const visual = notificationVisual(n.kind);
