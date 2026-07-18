@@ -12,6 +12,7 @@ import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EmptyState } from "../EmptyState";
 import { ErrorState } from "../ErrorState";
+import { PullToRefresh } from "../PullToRefresh";
 
 export function QaScreen() {
   const { back, nav, openQaQuestion } = useRouter();
@@ -94,6 +95,7 @@ export function QaScreen() {
         }
       />
 
+      <PullToRefresh onRefresh={() => questionsQuery.refetch()} refreshing={questionsQuery.isFetching}>
       {asking && (
         <div style={{ padding: "12px 22px 0" }}>
           <div
@@ -290,6 +292,7 @@ export function QaScreen() {
           </button>
         ))}
       </div>
+      </PullToRefresh>
     </div>
   );
 }

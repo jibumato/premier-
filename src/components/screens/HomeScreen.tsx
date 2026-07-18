@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { colors } from "@/lib/tokens";
 import {
   AREA_ORDER,
@@ -17,7 +17,7 @@ import {
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { SectionHeading } from "../ui";
-import { BellIcon, CalendarIcon, CameraIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, PlusIcon, SearchIcon } from "../icons";
+import { BellIcon, CalendarIcon, CameraIcon, ChevronRightIcon, HeartIcon, HelpIcon, MessageIcon, PinIcon, PlusIcon, SearchIcon } from "../icons";
 import { useAwaseFeed, useBeginnerAwase } from "@/lib/queries/awase";
 import { usePostsFeed } from "@/lib/queries/posts";
 import { useEvents } from "@/lib/queries/events";
@@ -39,6 +39,7 @@ import { AwaseCover } from "../AwaseCover";
 import { StarterGuide } from "../StarterGuide";
 import { SafetySection } from "../SafetySection";
 import { HomePickup } from "../HomePickup";
+import { PullToRefresh } from "../PullToRefresh";
 import type { Screen } from "@/lib/types";
 
 // みんなの談話室（楽屋の伝言板イメージ）の付箋・アバター配色。
@@ -57,6 +58,41 @@ function loungeAvatarColor(name: string) {
   return LOUNGE_AVATAR[hashStr(name) % LOUNGE_AVATAR.length];
 }
 
+// 興味の薄いセクションを毎回スクロールで避ける負担を減らすための折りたたみ状態
+// （端末内・localStorage）。並び替えは対象外——ログイン状態で「募集中のあわせ」
+// セクション自体の表示位置が変わる箇所があり、順序の記憶までは安全に永続化
+// できないため、折りたたみ（開閉）のみ扱う。
+const HOME_COLLAPSE_KEY = "premier:home-collapsed-sections";
+function readCollapsedSections(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(HOME_COLLAPSE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+function writeCollapsedSections(v: Record<string, boolean>) {
+  try {
+    window.localStorage.setItem(HOME_COLLAPSE_KEY, JSON.stringify(v));
+  } catch {
+    // localStorage unavailable — 記憶を諦めるだけで致命的ではない
+  }
+}
+
+function SectionCollapseButton({ collapsed, onClick, label, color = colors.textMutedAlt }: { collapsed: boolean; onClick: () => void; label: string; color?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={collapsed ? `${label}を開く` : `${label}を閉じる`}
+      style={{ border: "none", background: "none", cursor: "pointer", padding: 6, margin: -6, display: "flex", alignItems: "center", flex: "0 0 auto" }}
+    >
+      <ChevronRightIcon size={14} color={color} style={{ transform: collapsed ? "rotate(0deg)" : "rotate(90deg)", transition: "transform .15s ease" }} />
+    </button>
+  );
+}
+
 const shortcuts: { key: Screen; label: string; icon: React.ReactNode }[] = [
   // フリマ（衣装売買）はローンチ時は非表示。画面・ルート・DB は残してあるので、
   // 再開時は下行のコメントを外すだけで復活する。
@@ -70,6 +106,17 @@ export function HomeScreen() {
   const { nav, openAwase, openEvent, openSearch, openPhotos } = useRouter();
   const { user, loading } = useAuth();
   const configured = isSupabaseConfigured();
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    setCollapsedSections(readCollapsedSections());
+  }, []);
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      writeCollapsedSections(next);
+      return next;
+    });
+  };
   // 接続済みだが未ログイン: コンテンツは見せつつ、登録導線を前面に出す
   const signedOut = configured && !user;
   const moderation = useModerationFilter(user?.id);
@@ -395,6 +442,10 @@ export function HomeScreen() {
         )}
       </div>
 
+      {/* プルリフレッシュ — 一番上までスクロールした状態から下に引っぱると、
+          募集フィードを更新する（他セクションは対象外。手動更新ボタンが無い
+          唯一の一覧のため、指ジェスチャーでの更新手段を用意する）。 */}
+      <PullToRefresh onRefresh={() => feed.refetch()} refreshing={feed.isFetching}>
       {/* 未ログイン向けの登録CTA — コンテンツは自由に見てもらいつつ、参加は登録から */}
       {signedOut && (
         <div style={{ padding: "12px 22px 0" }}>
@@ -672,9 +723,11 @@ export function HomeScreen() {
       {/* 急上昇の作品 — 直近7日で新規募集が多い作品 */}
       {trendingList.length > 0 && (
         <div style={{ padding: "18px 0 0" }}>
-          <div style={{ padding: "0 22px", fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
-            急上昇の作品
+          <div style={{ padding: "0 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>急上昇の作品</span>
+            <SectionCollapseButton collapsed={Boolean(collapsedSections.trending)} onClick={() => toggleSection("trending")} label="急上昇の作品" />
           </div>
+          {!collapsedSections.trending && (
           <div
             className="noscroll"
             style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 22px 0" }}
@@ -703,6 +756,7 @@ export function HomeScreen() {
               </button>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -773,9 +827,11 @@ export function HomeScreen() {
             >
               もっと見る →
             </button>
+            <SectionCollapseButton collapsed={Boolean(collapsedSections.lounge)} onClick={() => toggleSection("lounge")} label="みんなの談話室" color="#8A5A2B" />
           </div>
 
           {/* 付箋の帯。上端にピンが少しはみ出すので、行間を少しあけている。 */}
+          {!collapsedSections.lounge && (
           <div
             className="noscroll"
             style={{ display: "flex", gap: 14, overflowX: "auto", overflowY: "hidden", padding: "18px 4px 4px" }}
@@ -889,6 +945,7 @@ export function HomeScreen() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
 
@@ -902,17 +959,21 @@ export function HomeScreen() {
           <SectionHeading
             accent={colors.primary}
             right={
-              <button
-                onClick={openPhotos}
-                style={{ background: "none", border: "none", fontSize: 12, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                もっと見る →
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  onClick={openPhotos}
+                  style={{ background: "none", border: "none", fontSize: 12, color: colors.primary, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  もっと見る →
+                </button>
+                <SectionCollapseButton collapsed={Boolean(collapsedSections.posts)} onClick={() => toggleSection("posts")} label="みんなの投稿" />
+              </div>
             }
           >
             みんなの投稿
           </SectionHeading>
         </div>
+        {!collapsedSections.posts && (
         <div
           style={{
             display: "grid",
@@ -957,6 +1018,7 @@ export function HomeScreen() {
                 </div>
               ))}
         </div>
+        )}
       </div>
       )}
 
@@ -1004,9 +1066,11 @@ export function HomeScreen() {
 
       {/* popular works */}
       <div style={{ padding: "22px 0 0" }}>
-        <div style={{ padding: "0 22px", fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
-          人気の作品から探す
+        <div style={{ padding: "0 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>人気の作品から探す</span>
+          <SectionCollapseButton collapsed={Boolean(collapsedSections.popularWorks)} onClick={() => toggleSection("popularWorks")} label="人気の作品から探す" />
         </div>
+        {!collapsedSections.popularWorks && (
         <div
           className="noscroll"
           style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 22px 0" }}
@@ -1030,6 +1094,7 @@ export function HomeScreen() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* はじめてさん歓迎レーン — 初心者歓迎の併せを横並びで */}
@@ -1258,6 +1323,7 @@ export function HomeScreen() {
 
       {/* フッター — 規約・プライバシー・特商法などの法的リンク（未ログインでも閲覧可） */}
       <HomeFooter />
+      </PullToRefresh>
     </div>
   );
 }

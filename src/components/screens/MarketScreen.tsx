@@ -9,6 +9,7 @@ import { AppBar } from "../ui";
 import { RefreshIcon } from "../icons";
 import { MarketCardSkeleton } from "../Skeleton";
 import { ErrorState } from "../ErrorState";
+import { PullToRefresh } from "../PullToRefresh";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useWorks } from "@/lib/queries/works";
 import { useCreateMarketItem, useMarketItems } from "@/lib/queries/market";
@@ -185,6 +186,7 @@ export function MarketScreen() {
         }
       />
 
+      <PullToRefresh onRefresh={() => itemsQuery.refetch()} refreshing={itemsQuery.isFetching}>
       {/* note: peer-to-peer, in-app payment not yet implemented */}
       <div style={{ padding: "6px 22px 0" }}>
         <div
@@ -418,6 +420,7 @@ export function MarketScreen() {
           ))}
         </div>
       )}
+      </PullToRefresh>
     </div>
   );
 }
