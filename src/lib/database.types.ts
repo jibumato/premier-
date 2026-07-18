@@ -15,7 +15,7 @@ export type UserRole = "layer" | "photographer" | "both";
 export type AwaseStatus = "open" | "closed";
 export type AwaseRoleStatus = "confirmed" | "open";
 export type ApplicationStatus = "applied" | "accepted" | "rejected" | "done";
-export type NotificationType = "application" | "follow" | "like" | "badge" | "message";
+export type NotificationType = "application" | "follow" | "like" | "badge" | "message" | "post";
 
 export interface Database {
   public: {
@@ -315,6 +315,7 @@ export interface Database {
           visibility: "public" | "awase";
           work_id: string | null;
           view_count: number;
+          like_count: number;
           created_at: string;
         };
         Insert: {
@@ -326,9 +327,16 @@ export interface Database {
           visibility?: "public" | "awase";
           work_id?: string | null;
           view_count?: number;
+          like_count?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>;
+        Relationships: [];
+      };
+      post_likes: {
+        Row: { post_id: string; user_id: string; created_at: string };
+        Insert: { post_id: string; user_id: string; created_at?: string };
+        Update: Partial<{ post_id: string; user_id: string; created_at: string }>;
         Relationships: [];
       };
       qa_questions: {
