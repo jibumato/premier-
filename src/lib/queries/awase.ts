@@ -146,6 +146,30 @@ export function useSummitAwase(filter?: AwaseFeedFilter) {
   });
 }
 
+/** 指定イベントに紐づく open 併せ — イベント詳細の「このイベントの併せ」レーン用。
+ * event_id で正確に絞り込む（0068 で追加した構造的な紐付け）。ブロック相手・
+ * 自動非表示の募集はフィルタで除外する。 */
+export function useEventAwase(eventId: string | null, filter?: AwaseFeedFilter) {
+  return useQuery({
+    queryKey: ["awase_event", eventId, filter?.blockedUserIds ?? [], filter?.hiddenAwaseIds ?? []],
+    enabled: isSupabaseConfigured() && Boolean(eventId),
+    // event_id 列（0068）が未適用の環境でも詳細画面を巻き込まないよう抑制する。
+    retry: false,
+    queryFn: async (): Promise<AwaseCard[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("awase")
+        .select(AWASE_LIST_SELECT)
+        .eq("status", "open")
+        .eq("event_id", eventId!)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return applyFilter((data ?? []) as unknown as AwaseRow[], filter).map(toAwaseCard);
+    },
+  });
+}
+
 /** How many awase the user has applied to — home「はじめてガイド」の③判定用。 */
 export function useMyApplicationCount(userId: string | undefined) {
   return useQuery({
@@ -430,6 +454,8 @@ interface CreateAwaseInput {
   applicationDeadline?: string | null;
   /** 満員後もキャンセル待ちとして応募を受け付ける. */
   acceptWaitlist?: boolean;
+  /** 紐づけるイベント（イベント詳細の「併せを募集する」から作成した場合）。 */
+  eventId?: string | null;
   /** R2 object keys from useUploadImage, in display order. */
   imageKeys?: string[];
 }
@@ -458,6 +484,7 @@ export function useCreateAwase() {
           publish_at: input.publishAt ?? null,
           application_deadline: input.applicationDeadline ?? null,
           accept_waitlist: input.acceptWaitlist ?? false,
+          event_id: input.eventId ?? null,
         })
         .select("id")
         .single();
@@ -473,6 +500,7 @@ export function useCreateAwase() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["awase_feed"] });
       qc.invalidateQueries({ queryKey: ["awase_search"] });
+      qc.invalidateQueries({ queryKey: ["awase_event"] });
     },
   });
 }

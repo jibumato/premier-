@@ -6,7 +6,7 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { AppBar, PrimaryButton, SectionHeading } from "../ui";
-import { CheckIcon, StarIcon } from "../icons";
+import { CheckIcon, StarIcon, ChevronRightIcon } from "../icons";
 import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
@@ -20,6 +20,7 @@ import {
   useInterestEvent,
   useCancelInterest,
 } from "@/lib/queries/events";
+import { useEventAwase } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -31,7 +32,7 @@ const mockInfo = [
 ];
 
 export function EventDetailScreen() {
-  const { back, nav, openProfile, selectedEventId } = useRouter();
+  const { back, nav, openProfile, openAwase, openCreateForEvent, selectedEventId } = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
   const configured = isSupabaseConfigured();
@@ -50,6 +51,9 @@ export function EventDetailScreen() {
   const moderation = useModerationFilter(user?.id);
   const attendeesQuery = useEventAttendees(selectedEventId, user?.id, moderation.data?.blockedUserIds ?? []);
   const attendees = attendeesQuery.data ?? [];
+  // このイベントに紐づく併せ募集（0068 の event_id 紐付け）。興味→仲間探しの導線。
+  const eventAwaseQuery = useEventAwase(selectedEventId, moderation.data);
+  const eventAwase = eventAwaseQuery.data ?? [];
 
   const real = configured && selectedEventId ? eventQuery.data : undefined;
   const loading = configured && Boolean(selectedEventId) && eventQuery.isPending && !eventQuery.data;
@@ -94,6 +98,14 @@ export function EventDetailScreen() {
     } else {
       setMockGoing(false);
     }
+  };
+
+  const handleCreateAwaseForEvent = () => {
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
+    if (selectedEventId) openCreateForEvent(selectedEventId);
   };
 
   const handleToggleInterest = () => {
@@ -293,6 +305,72 @@ export function EventDetailScreen() {
           </div>
         )}
       </div>
+
+      {/* このイベントの併せ — 「行ってみたい」で終わらせず、一緒に回る仲間探し・
+          募集へつなげる導線。イベント×併せの構造的な紐付け（0068）で正確に一覧する。 */}
+      {real && (
+        <div style={{ padding: "24px 22px 0" }}>
+          <SectionHeading size={15}>このイベントの併せ</SectionHeading>
+          {eventAwase.length === 0 ? (
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
+              このイベントの併せ募集はまだありません。行ってみたいなら、あなたが最初の主催になって一緒に回る仲間を募集してみましょう。
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
+              {eventAwase.map((a) => (
+                <button
+                  key={a.key}
+                  onClick={() => openAwase(a.key)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 11,
+                    border: `1px solid ${colors.borderSoft}`,
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    background: colors.white,
+                    width: "100%",
+                    textAlign: "left",
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ flex: "0 0 44px", width: 44, height: 44, borderRadius: 11, overflow: "hidden" }}>
+                    {a.coverUrl ? <ImageSlot radius={11} src={a.coverUrl} /> : <WorkCover name={a.title} radius={11} showName={false} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {a.title}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {a.work} ・ {a.tag}
+                    </div>
+                  </div>
+                  <ChevronRightIcon />
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={handleCreateAwaseForEvent}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              border: `1px solid ${colors.primary}`,
+              background: colors.white,
+              color: colors.primary,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "12px 0",
+              borderRadius: 13,
+              cursor: "pointer",
+            }}
+          >
+            このイベントで併せを募集する
+          </button>
+        </div>
+      )}
 
       {/* going state */}
       <div style={{ padding: "24px 22px 30px" }}>

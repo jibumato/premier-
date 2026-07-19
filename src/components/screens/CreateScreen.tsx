@@ -17,6 +17,7 @@ import {
   type AwaseTemplate,
 } from "@/lib/queries/awase";
 import { useWorks } from "@/lib/queries/works";
+import { useEvent } from "@/lib/queries/events";
 import { WorkPicker } from "../WorkPicker";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -101,12 +102,14 @@ function clearDraft() {
 }
 
 export function CreateScreen() {
-  const { nav, duplicateAwaseId } = useRouter();
+  const { nav, duplicateAwaseId, createForEventId } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
 
   const worksQuery = useWorks();
   const duplicateSource = useAwase(duplicateAwaseId);
+  // イベント詳細の「このイベントで併せを募集する」から来た場合、そのイベント。
+  const eventForCreate = useEvent(createForEventId);
   const createAwase = useCreateAwase();
   const templatesQuery = useAwaseTemplates(user?.id);
   const saveTemplate = useSaveAwaseTemplate();
@@ -221,6 +224,19 @@ export function CreateScreen() {
     setBody(src.body ?? "");
   }, [duplicateAwaseId, duplicateSource.data]);
 
+  // イベント紐付け: イベント詳細から来たら、日程・地域を一度だけ差し込む
+  // （地域は作成フォームの選択肢に含まれる都市のときだけ。含まれない県名等は
+  // ユーザーに選んでもらう）。event_id は handlePublish でそのまま保存する。
+  const eventPrefilledRef = useRef(false);
+  useEffect(() => {
+    if (eventPrefilledRef.current || !createForEventId) return;
+    const ev = eventForCreate.data;
+    if (!ev) return;
+    eventPrefilledRef.current = true;
+    setEventDate((prev) => prev || ev.date);
+    if (creatableRegions.includes(ev.region)) setRegion((prev) => prev || ev.region);
+  }, [createForEventId, eventForCreate.data]);
+
   const applyTemplate = (t: AwaseTemplate) => {
     setTitle(t.title);
     setWorkId(t.workId ?? "");
@@ -305,6 +321,7 @@ export function CreateScreen() {
           publishAt: localToIso(publishAt),
           applicationDeadline: localToIso(applicationDeadline),
           acceptWaitlist,
+          eventId: createForEventId,
           imageKeys: images.map((img) => img.key),
         });
         clearDraft();
@@ -358,6 +375,14 @@ export function CreateScreen() {
         <div style={{ padding: "14px 22px 0" }}>
           <div style={{ fontSize: 12, color: colors.primary, background: colors.primaryBg1, borderRadius: 12, padding: "11px 14px", lineHeight: 1.6 }}>
             前回の募集内容をコピーしました。日程や内容を編集して、新しい募集として公開できます（画像は引き継がれません）。
+          </div>
+        </div>
+      )}
+
+      {createForEventId && (
+        <div style={{ padding: "14px 22px 0" }}>
+          <div style={{ fontSize: 12, color: colors.primary, background: colors.primaryBg1, borderRadius: 12, padding: "11px 14px", lineHeight: 1.6 }}>
+            「{eventForCreate.data?.name ?? "このイベント"}」の併せとして募集します。日程・地域を反映しました。この募集はイベント詳細の「このイベントの併せ」に表示されます。
           </div>
         </div>
       )}
