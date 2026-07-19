@@ -28,8 +28,6 @@ export interface EventDetail {
   feeText: string | null;
   body: string | null;
   going: number;
-  /** 「行ってみたい」（参加表明より軽い興味表明）の人数。 */
-  interested: number;
   imageUrl: string | null;
 }
 
@@ -81,9 +79,7 @@ export function useEvent(eventId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select(
-          "id, name, event_date, venue, region, tag, fee_text, body, image_url, event_rsvps(count), event_interests(count)",
-        )
+        .select("id, name, event_date, venue, region, tag, fee_text, body, image_url, event_rsvps(count)")
         .eq("id", eventId!)
         .maybeSingle();
       if (error) throw error;
@@ -99,7 +95,6 @@ export function useEvent(eventId: string | null) {
         body: string | null;
         image_url: string | null;
         event_rsvps: { count: number }[];
-        event_interests: { count: number }[];
       };
       return {
         id: row.id,
@@ -111,7 +106,6 @@ export function useEvent(eventId: string | null) {
         feeText: row.fee_text,
         body: row.body,
         going: row.event_rsvps?.[0]?.count ?? 0,
-        interested: row.event_interests?.[0]?.count ?? 0,
         imageUrl: row.image_url,
       };
     },
@@ -137,11 +131,37 @@ export function useIsGoing(eventId: string | null, userId: string | undefined) {
   });
 }
 
+/**
+ * 「行ってみたい」（参加表明より軽い興味表明）の人数。
+ * イベント本体の取得（useEvent）とは分離した独立クエリにしている。こうすることで、
+ * 万一 event_interests テーブルが未作成（マイグレーション未適用）でも、この count が
+ * 失敗するだけで済み、イベント詳細本体の表示は壊れない（0件として扱う）。
+ */
+export function useInterestedCount(eventId: string | null) {
+  return useQuery({
+    queryKey: ["event_interest_count", eventId],
+    enabled: isSupabaseConfigured() && Boolean(eventId),
+    // テーブル未作成でも詳細画面を巻き込まないよう、リトライは抑制する。
+    retry: false,
+    queryFn: async (): Promise<number> => {
+      const supabase = getSupabaseBrowserClient();
+      const { count, error } = await supabase
+        .from("event_interests")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
 /** 「行ってみたい」（参加表明より軽い興味表明）を既に登録済みか。 */
 export function useIsInterested(eventId: string | null, userId: string | undefined) {
   return useQuery({
     queryKey: ["event_interest", eventId, userId],
     enabled: isSupabaseConfigured() && Boolean(eventId) && Boolean(userId),
+    // テーブル未作成でも詳細画面を巻き込まないよう、リトライは抑制する。
+    retry: false,
     queryFn: async (): Promise<boolean> => {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
@@ -324,7 +344,7 @@ export function useInterestEvent() {
       if (error) throw error;
     },
     onSuccess: (_d, { eventId, userId }) => {
-      qc.invalidateQueries({ queryKey: ["event", eventId] });
+      qc.invalidateQueries({ queryKey: ["event_interest_count", eventId] });
       qc.invalidateQueries({ queryKey: ["event_interest", eventId, userId] });
     },
   });
@@ -340,7 +360,7 @@ export function useCancelInterest() {
       if (error) throw error;
     },
     onSuccess: (_d, { eventId, userId }) => {
-      qc.invalidateQueries({ queryKey: ["event", eventId] });
+      qc.invalidateQueries({ queryKey: ["event_interest_count", eventId] });
       qc.invalidateQueries({ queryKey: ["event_interest", eventId, userId] });
     },
   });
