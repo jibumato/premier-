@@ -534,13 +534,16 @@ export function HomeScreen() {
 
       {/* いまの活気 — 従来は下部の「にぎわい」セクションまでスクロールしないと
           見えなかった。検索直下に置き、訪問直後に「動いているサービス」だと
-          伝わるようにする（詳しい今日の実績・最近のうごきは従来どおり下段）。 */}
-      <div style={{ padding: "10px 22px 0", display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: colors.positive, display: "inline-block" }} />
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>
-          いま{viewerCount}人が見ています
-        </span>
-      </div>
+          伝わるようにする（詳しい今日の実績・最近のうごきは従来どおり下段）。
+          ただし2人以下の少ない人数では、かえって閑散として見えるため出さない。 */}
+      {viewerCount >= 3 && (
+        <div style={{ padding: "10px 22px 0", display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: colors.positive, display: "inline-block" }} />
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>
+            いま{viewerCount}人が見ています
+          </span>
+        </div>
+      )}
 
       {/* ログイン済み＝リピーターの「今日の用事」を最優先。検索バー直下に併せ
           フィードを出し、ファーストビューで新着募集を確認できるようにする。
