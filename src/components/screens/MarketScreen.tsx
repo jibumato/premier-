@@ -56,6 +56,8 @@ export function MarketScreen() {
   const real = configured ? itemsQuery.data : undefined;
   const loading = configured && itemsQuery.isPending && !itemsQuery.data;
   const hasError = configured && itemsQuery.isError && !itemsQuery.data;
+  // 「本人確認済みの出品者のみ」表示するかの絞り込み（安心して買える取引の可視化）。
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const items: {
     key: string;
     title: string;
@@ -65,11 +67,12 @@ export function MarketScreen() {
     condition: string;
     sold: boolean;
     imageUrl: string | null;
+    sellerVerified: boolean;
   }[] = real
     ? real.map((it) => ({ ...it }))
     : configured
       ? []
-      : mockMarketItems.map((it) => ({
+      : mockMarketItems.map((it, i) => ({
           key: it.key,
           title: it.title,
           work: it.work,
@@ -78,7 +81,10 @@ export function MarketScreen() {
           condition: it.condition,
           sold: Boolean(it.sold),
           imageUrl: null,
+          // プレビュー（モック）では一部を本人確認済みに見立ててバッジを確認できるように。
+          sellerVerified: i % 2 === 0,
         }));
+  const shownItems = verifiedOnly ? items.filter((it) => it.sellerVerified) : items;
   const works = worksQuery.data ?? [];
 
   const resetForm = () => {
@@ -359,6 +365,33 @@ export function MarketScreen() {
         </div>
       )}
 
+      {!listing && items.length > 0 && (
+        <div style={{ padding: "14px 22px 0", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => setVerifiedOnly((v) => !v)}
+            aria-pressed={verifiedOnly}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              border: `1px solid ${verifiedOnly ? colors.primary : colors.border}`,
+              background: verifiedOnly ? colors.primaryBg5 : colors.white,
+              color: verifiedOnly ? colors.primary : colors.textSecondary,
+              fontFamily: "inherit",
+              fontSize: 11.5,
+              fontWeight: 600,
+              padding: "7px 13px",
+              borderRadius: 999,
+              cursor: "pointer",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/verified-badge.png" alt="" width={13} height={13} style={{ display: "block" }} />
+            本人確認済みのみ
+          </button>
+        </div>
+      )}
+
       {loading && !listing ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "16px 22px 30px" }}>
           {[0, 1, 2, 3].map((i) => (
@@ -367,6 +400,12 @@ export function MarketScreen() {
         </div>
       ) : hasError && !listing ? (
         <ErrorState onRetry={() => itemsQuery.refetch()} />
+      ) : verifiedOnly && shownItems.length === 0 && items.length > 0 && !listing ? (
+        <div style={{ padding: "40px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
+          本人確認済みの出品者による商品はまだありません。
+          <br />
+          絞り込みを解除すると、すべての出品を表示します。
+        </div>
       ) : real && items.length === 0 && !listing ? (
         <div style={{ padding: "40px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
           まだ出品はありません。
@@ -382,7 +421,7 @@ export function MarketScreen() {
             padding: "16px 22px 30px",
           }}
         >
-          {items.map((it) => (
+          {shownItems.map((it) => (
             <button
               key={it.key}
               onClick={() => handleOpen(it.key)}
@@ -399,6 +438,28 @@ export function MarketScreen() {
             >
               <div style={{ position: "relative", height: 118 }}>
                 <ImageSlot radius={0} src={it.imageUrl} />
+                {it.sellerVerified && !it.sold && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: colors.primary,
+                      background: "rgba(255,255,255,.94)",
+                      padding: "3px 7px 3px 5px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/verified-badge.png" alt="" width={11} height={11} style={{ display: "block" }} />
+                    本人確認済
+                  </span>
+                )}
                 {it.sold && (
                   <div
                     style={{

@@ -34,6 +34,7 @@ export function MarketDetailScreen() {
   const price = real?.price ?? "¥8,500";
   const sellerName = real?.sellerName ?? "すず";
   const sellerVerified = real?.sellerVerified ?? true;
+  const sellerAvatarUrl = real?.sellerAvatarUrl ?? null;
   const sold = real?.sold ?? false;
   const spec = real
     ? [
@@ -136,14 +137,32 @@ export function MarketDetailScreen() {
             textAlign: "left",
           }}
         >
-          <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", flex: "0 0 auto" }}>
-            <ImageSlot circle />
+          <div style={{ position: "relative", width: 40, height: 40, flex: "0 0 auto" }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden" }}>
+              <ImageSlot circle src={sellerAvatarUrl ?? undefined} />
+            </div>
+            {sellerVerified && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="/verified-badge.png"
+                alt="本人確認済"
+                width={15}
+                height={15}
+                style={{ position: "absolute", right: -2, bottom: -2, display: "block" }}
+              />
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>出品・{sellerName}</div>
-            <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>
-              {sellerVerified ? "本人確認済" : "本人確認前"}
-            </div>
+            {sellerVerified ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/verified-badge.png" alt="" width={12} height={12} style={{ display: "block" }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: colors.primary }}>本人確認済の出品者</span>
+              </div>
+            ) : (
+              <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>本人確認前</div>
+            )}
           </div>
           <span style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600 }}>プロフ →</span>
         </button>

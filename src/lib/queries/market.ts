@@ -13,6 +13,8 @@ export interface MarketListItem {
   condition: string;
   sold: boolean;
   imageUrl: string | null;
+  /** 出品者が本人確認済みか（信頼シグナル。一覧で一目で分かるようにする）。 */
+  sellerVerified: boolean;
 }
 
 export interface MarketItemDetail {
@@ -20,6 +22,7 @@ export interface MarketItemDetail {
   sellerId: string;
   sellerName: string;
   sellerVerified: boolean;
+  sellerAvatarUrl: string | null;
   title: string;
   work: string;
   price: string;
@@ -49,7 +52,7 @@ export function useMarketItems(filter?: MarketFilter) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("market_items")
-        .select("id, seller_id, title, price, size, item_condition, status, image_url, works(name)")
+        .select("id, seller_id, title, price, size, item_condition, status, image_url, works(name), profiles(is_verified)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       let rows = (data ?? []) as unknown as {
@@ -62,6 +65,7 @@ export function useMarketItems(filter?: MarketFilter) {
         status: string;
         image_url: string | null;
         works: { name: string } | null;
+        profiles: { is_verified: boolean } | null;
       }[];
       if (filter) {
         const blocked = new Set(filter.blockedUserIds);
@@ -77,6 +81,7 @@ export function useMarketItems(filter?: MarketFilter) {
         condition: r.item_condition,
         sold: r.status === "sold",
         imageUrl: r.image_url,
+        sellerVerified: r.profiles?.is_verified ?? false,
       }));
     },
   });
@@ -92,7 +97,7 @@ export function useMarketItem(itemId: string | null) {
       const { data, error } = await supabase
         .from("market_items")
         .select(
-          "id, seller_id, title, price, size, item_condition, shipping, body, image_url, status, works(name), profiles(display_name, is_verified)",
+          "id, seller_id, title, price, size, item_condition, shipping, body, image_url, status, works(name), profiles(display_name, is_verified, avatar_url)",
         )
         .eq("id", itemId!)
         .maybeSingle();
@@ -110,13 +115,14 @@ export function useMarketItem(itemId: string | null) {
         image_url: string | null;
         status: string;
         works: { name: string } | null;
-        profiles: { display_name: string; is_verified: boolean } | null;
+        profiles: { display_name: string; is_verified: boolean; avatar_url: string | null } | null;
       };
       return {
         id: row.id,
         sellerId: row.seller_id,
         sellerName: row.profiles?.display_name ?? "不明",
         sellerVerified: row.profiles?.is_verified ?? false,
+        sellerAvatarUrl: row.profiles?.avatar_url ?? null,
         title: row.title,
         work: row.works?.name ?? "その他",
         price: yen(row.price),
