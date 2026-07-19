@@ -57,6 +57,8 @@ interface RouterState {
   selectedMarketItemId: string | null;
   /** awase.id whose fields prefill the `create` screen (募集の複製); null for a blank form. */
   duplicateAwaseId: string | null;
+  /** event.id the `create` screen ties the new 併せ to (イベント詳細からの募集); null otherwise. */
+  createForEventId: string | null;
   /** what the `report` screen is reporting; null when reached without a target. */
   reportTarget: ReportTarget | null;
 }
@@ -89,6 +91,8 @@ interface RouterApi extends RouterState {
   openMarketItem: (itemId: string) => void;
   /** navigate to `create` prefilled from an existing awase (募集の複製) */
   openCreateFromDuplicate: (awaseId: string) => void;
+  /** navigate to `create` tied to a specific event (イベント詳細からの併せ募集) */
+  openCreateForEvent: (eventId: string) => void;
   /** navigate to `report` for a specific real target (user/awase/market/qa) */
   openReport: (target: ReportTarget) => void;
   /** ref attached to the scroll container so nav can reset scrollTop */
@@ -118,6 +122,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     selectedEventId: null,
     selectedMarketItemId: null,
     duplicateAwaseId: null,
+    createForEventId: null,
     reportTarget: null,
   });
   const historyRef = useRef<Screen[]>([]);
@@ -181,6 +186,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
           searchInitialTab: screen === "search" ? null : s.searchInitialTab,
           // reaching the create form any other way (e.g. sidebar) means a blank form
           duplicateAwaseId: screen === "create" ? null : s.duplicateAwaseId,
+          createForEventId: screen === "create" ? null : s.createForEventId,
           reportTarget: screen === "report" ? null : s.reportTarget,
         };
       });
@@ -320,7 +326,19 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       const scrollTop = scrollRef.current?.scrollTop ?? 0;
       setState((s) => {
         pushHistory(s.screen, scrollTop);
-        return { ...s, screen: "create", duplicateAwaseId: awaseId };
+        return { ...s, screen: "create", duplicateAwaseId: awaseId, createForEventId: null };
+      });
+      resetScroll();
+    },
+    [resetScroll, pushHistory]
+  );
+
+  const openCreateForEvent = useCallback(
+    (eventId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
+      setState((s) => {
+        pushHistory(s.screen, scrollTop);
+        return { ...s, screen: "create", createForEventId: eventId, duplicateAwaseId: null };
       });
       resetScroll();
     },
@@ -355,6 +373,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openEvent,
       openMarketItem,
       openCreateFromDuplicate,
+      openCreateForEvent,
       openReport,
       scrollRef,
     }),
@@ -373,6 +392,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openEvent,
       openMarketItem,
       openCreateFromDuplicate,
+      openCreateForEvent,
       openReport,
     ]
   );

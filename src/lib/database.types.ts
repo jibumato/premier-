@@ -104,6 +104,7 @@ export interface Database {
           application_deadline: string | null;
           accept_waitlist: boolean;
           view_count: number;
+          event_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -124,6 +125,7 @@ export interface Database {
           publish_at?: string | null;
           application_deadline?: string | null;
           accept_waitlist?: boolean;
+          event_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["awase"]["Insert"]>;
