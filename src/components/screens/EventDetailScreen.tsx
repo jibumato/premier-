@@ -15,6 +15,7 @@ import {
   useRsvpEvent,
   useCancelRsvp,
   useEventAttendees,
+  useInterestedCount,
   useIsInterested,
   useInterestEvent,
   useCancelInterest,
@@ -40,6 +41,7 @@ export function EventDetailScreen() {
   const rsvp = useRsvpEvent();
   const cancelRsvp = useCancelRsvp();
   const [mockGoing, setMockGoing] = useState(false);
+  const interestedCountQuery = useInterestedCount(selectedEventId);
   const isInterestedQuery = useIsInterested(selectedEventId, user?.id);
   const interestEvent = useInterestEvent();
   const cancelInterest = useCancelInterest();
@@ -56,7 +58,7 @@ export function EventDetailScreen() {
 
   const name = real?.name ?? "ホロサマ 2025";
   const goingCount = real ? real.going.toLocaleString() : "1,240";
-  const interestedCount = real ? real.interested.toLocaleString() : "58";
+  const interestedCount = real ? (interestedCountQuery.data ?? 0).toLocaleString() : "58";
   const info = real
     ? [
         { label: "日程", value: real.date },
