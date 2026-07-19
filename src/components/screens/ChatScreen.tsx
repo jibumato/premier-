@@ -65,9 +65,14 @@ export function ChatScreen() {
   const partnerName = isGroup
     ? `${meta.data?.title ?? "併せグループ"}`
     : (realInfo?.otherName ?? "かな");
+  // 名前の下の文脈ラベル。併せ（コラボ募集）から始まった会話はその併せ名を出す。
+  // プロフィールから始めた個人DMなど併せに紐づかない会話では、実データ時は何も
+  // 出さない（null）。モックモード（プレビュー）はサンプル表示のまま。
   const partnerContext = isGroup
     ? `グループチャット（${memberNames?.size ?? 0}人）`
-    : (realInfo?.awaseTitle ?? "魔法学園 生徒会併せ");
+    : configured
+      ? (realInfo?.awaseTitle ?? null)
+      : "魔法学園 生徒会併せ";
   const messages: (ChatMessage & { senderName?: string })[] = real
     ? real.map((m) => ({
         key: m.id,
@@ -171,7 +176,7 @@ export function ChatScreen() {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{partnerName}</div>
-          <div style={{ fontSize: 10.5, color: colors.textMutedAlt }}>{partnerContext}</div>
+          {partnerContext && <div style={{ fontSize: 10.5, color: colors.textMutedAlt }}>{partnerContext}</div>}
         </div>
         {/* グループでは相手が1人に定まらないためレビュー導線は出さない */}
         {!isGroup && (
