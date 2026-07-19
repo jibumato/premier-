@@ -49,6 +49,9 @@ export function MarketScreen() {
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // 出品前の同意（自分の正当な私物である／権利侵害・禁止物でない）。責任の所在を
+  // 出品者側に明確化する。チェックしないと出品できない。
+  const [agreed, setAgreed] = useState(false);
 
   const real = configured ? itemsQuery.data : undefined;
   const loading = configured && itemsQuery.isPending && !itemsQuery.data;
@@ -88,6 +91,7 @@ export function MarketScreen() {
     setShipping("");
     setBody("");
     setImageUrl(null);
+    setAgreed(false);
   };
 
   const handleListClick = () => {
@@ -112,7 +116,7 @@ export function MarketScreen() {
   };
 
   const priceNum = Number(price.replace(/[^0-9]/g, ""));
-  const canSubmit = Boolean(title.trim()) && priceNum > 0;
+  const canSubmit = Boolean(title.trim()) && priceNum > 0 && agreed;
 
   const handleSubmit = () => {
     if (!user || !canSubmit) return;
@@ -262,6 +266,57 @@ export function MarketScreen() {
               rows={3}
               style={{ ...inputStyle, lineHeight: 1.7, resize: "none" }}
             />
+
+            {/* 出品前の同意（禁止物の注意＋自己申告チェック）。取引は当事者間の直接
+                取引で、運営は代金・配送・返金に関与しない旨をここでも明示する。 */}
+            <div
+              style={{
+                border: `1px solid ${colors.borderSoft}`,
+                borderRadius: 12,
+                padding: "11px 13px",
+                background: colors.primaryBg4,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 11, color: colors.textMutedAlt, lineHeight: 1.7 }}>
+                <strong style={{ color: colors.textSecondary }}>出品できないもの：</strong>
+                偽ブランド品・海賊版・無許諾の公式/二次創作グッズ、着用済み下着など性的な物、
+                その他法令や規約で禁止された物品。取引は出品者と購入者の直接取引です（運営は代金の
+                預かり・配送・返金に関与しません）。
+              </div>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  style={{ marginTop: 1, width: 16, height: 16, accentColor: colors.primary, flex: "0 0 auto" }}
+                />
+                <span style={{ fontSize: 11.5, lineHeight: 1.6, color: colors.textSecondary }}>
+                  これは自分が正当に処分できる私物で、権利侵害品・禁止物ではありません。
+                  <button
+                    type="button"
+                    onClick={() => nav("terms")}
+                    style={{
+                      border: "none",
+                      background: "none",
+                      padding: 0,
+                      marginLeft: 4,
+                      color: colors.primary,
+                      fontFamily: "inherit",
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    ガイドラインを見る
+                  </button>
+                </span>
+              </label>
+            </div>
+
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={resetForm}
