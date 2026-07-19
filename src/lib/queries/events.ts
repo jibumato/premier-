@@ -28,6 +28,8 @@ export interface EventDetail {
   feeText: string | null;
   body: string | null;
   going: number;
+  /** 「行ってみたい」（参加表明より軽い興味表明）の人数。 */
+  interested: number;
   imageUrl: string | null;
 }
 
@@ -79,7 +81,9 @@ export function useEvent(eventId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, venue, region, tag, fee_text, body, image_url, event_rsvps(count)")
+        .select(
+          "id, name, event_date, venue, region, tag, fee_text, body, image_url, event_rsvps(count), event_interests(count)",
+        )
         .eq("id", eventId!)
         .maybeSingle();
       if (error) throw error;
@@ -95,6 +99,7 @@ export function useEvent(eventId: string | null) {
         body: string | null;
         image_url: string | null;
         event_rsvps: { count: number }[];
+        event_interests: { count: number }[];
       };
       return {
         id: row.id,
@@ -106,6 +111,7 @@ export function useEvent(eventId: string | null) {
         feeText: row.fee_text,
         body: row.body,
         going: row.event_rsvps?.[0]?.count ?? 0,
+        interested: row.event_interests?.[0]?.count ?? 0,
         imageUrl: row.image_url,
       };
     },
@@ -121,6 +127,25 @@ export function useIsGoing(eventId: string | null, userId: string | undefined) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("event_rsvps")
+        .select("event_id")
+        .eq("event_id", eventId!)
+        .eq("user_id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+  });
+}
+
+/** 「行ってみたい」（参加表明より軽い興味表明）を既に登録済みか。 */
+export function useIsInterested(eventId: string | null, userId: string | undefined) {
+  return useQuery({
+    queryKey: ["event_interest", eventId, userId],
+    enabled: isSupabaseConfigured() && Boolean(eventId) && Boolean(userId),
+    queryFn: async (): Promise<boolean> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_interests")
         .select("event_id")
         .eq("event_id", eventId!)
         .eq("user_id", userId!)
@@ -283,6 +308,40 @@ export function useCancelRsvp() {
       qc.invalidateQueries({ queryKey: ["events"] });
       qc.invalidateQueries({ queryKey: ["my_rsvp_events", userId] });
       qc.invalidateQueries({ queryKey: ["event_attendees", eventId] });
+    },
+  });
+}
+
+/** 「行ってみたい」の登録（event_interests_insert RLS: user_id = auth.uid() のみ許可）。 */
+export function useInterestEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: string; userId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("event_interests")
+        .upsert({ event_id: eventId, user_id: userId }, { onConflict: "event_id,user_id", ignoreDuplicates: true });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+      qc.invalidateQueries({ queryKey: ["event_interest", eventId, userId] });
+    },
+  });
+}
+
+/** 「行ってみたい」の取り消し（event_interests_delete RLS: user_id = auth.uid() のみ許可）。 */
+export function useCancelInterest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: string; userId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("event_interests").delete().eq("event_id", eventId).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+      qc.invalidateQueries({ queryKey: ["event_interest", eventId, userId] });
     },
   });
 }

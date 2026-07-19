@@ -407,6 +407,12 @@ export interface Database {
         Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
         Relationships: [];
       };
+      event_interests: {
+        Row: { event_id: string; user_id: string; created_at: string };
+        Insert: { event_id: string; user_id: string; created_at?: string };
+        Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
+        Relationships: [];
+      };
       market_items: {
         Row: {
           id: string;

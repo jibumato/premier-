@@ -6,10 +6,19 @@ import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
 import { AppBar, PrimaryButton, SectionHeading } from "../ui";
-import { CheckIcon } from "../icons";
+import { CheckIcon, StarIcon } from "../icons";
 import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useEvent, useIsGoing, useRsvpEvent, useCancelRsvp, useEventAttendees } from "@/lib/queries/events";
+import {
+  useEvent,
+  useIsGoing,
+  useRsvpEvent,
+  useCancelRsvp,
+  useEventAttendees,
+  useIsInterested,
+  useInterestEvent,
+  useCancelInterest,
+} from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -31,6 +40,10 @@ export function EventDetailScreen() {
   const rsvp = useRsvpEvent();
   const cancelRsvp = useCancelRsvp();
   const [mockGoing, setMockGoing] = useState(false);
+  const isInterestedQuery = useIsInterested(selectedEventId, user?.id);
+  const interestEvent = useInterestEvent();
+  const cancelInterest = useCancelInterest();
+  const [mockInterested, setMockInterested] = useState(false);
   // 参加予定の顔ぶれ（ログイン中のみ・非公開/ブロック/停止は除外）。人数は公開。
   const moderation = useModerationFilter(user?.id);
   const attendeesQuery = useEventAttendees(selectedEventId, user?.id, moderation.data?.blockedUserIds ?? []);
@@ -39,9 +52,11 @@ export function EventDetailScreen() {
   const real = configured && selectedEventId ? eventQuery.data : undefined;
   const loading = configured && Boolean(selectedEventId) && eventQuery.isPending && !eventQuery.data;
   const going = real ? Boolean(isGoingQuery.data) : mockGoing;
+  const interested = real ? Boolean(isInterestedQuery.data) : mockInterested;
 
   const name = real?.name ?? "ホロサマ 2025";
   const goingCount = real ? real.going.toLocaleString() : "1,240";
+  const interestedCount = real ? real.interested.toLocaleString() : "58";
   const info = real
     ? [
         { label: "日程", value: real.date },
@@ -76,6 +91,29 @@ export function EventDetailScreen() {
       );
     } else {
       setMockGoing(false);
+    }
+  };
+
+  const handleToggleInterest = () => {
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
+    if (real && user && selectedEventId) {
+      if (interestEvent.isPending || cancelInterest.isPending) return;
+      if (interested) {
+        cancelInterest.mutate(
+          { eventId: selectedEventId, userId: user.id },
+          { onError: () => showToast("行ってみたいの取り消しに失敗しました。もう一度お試しください。") },
+        );
+      } else {
+        interestEvent.mutate(
+          { eventId: selectedEventId, userId: user.id },
+          { onError: () => showToast("行ってみたいの登録に失敗しました。もう一度お試しください。") },
+        );
+      }
+    } else {
+      setMockInterested((v) => !v);
     }
   };
 
@@ -121,8 +159,11 @@ export function EventDetailScreen() {
 
       <div style={{ padding: "18px 22px 0" }}>
         <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: colors.textPrimary }}>{name}</h2>
-        <div style={{ fontSize: 12.5, color: colors.primary, fontWeight: 600, marginTop: 8 }}>
-          {goingCount}人が参加予定
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+          <span style={{ fontSize: 12.5, color: colors.primary, fontWeight: 600 }}>{goingCount}人が参加予定</span>
+          <span style={{ fontSize: 12.5, color: colors.textMutedAlt, fontWeight: 600 }}>
+            {interestedCount}人が行ってみたい
+          </span>
         </div>
       </div>
 
@@ -304,7 +345,33 @@ export function EventDetailScreen() {
             </button>
           </div>
         ) : (
-          <PrimaryButton onClick={handleRsvp}>参加表明する</PrimaryButton>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={handleToggleInterest}
+              aria-pressed={interested}
+              style={{
+                flex: "0 0 auto",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                border: `1px solid ${interested ? colors.primary : colors.border}`,
+                background: interested ? colors.primaryBg5 : colors.white,
+                color: interested ? colors.primary : colors.textSecondary,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "0 16px",
+                borderRadius: 14,
+                cursor: "pointer",
+              }}
+            >
+              <StarIcon size={15} filled={interested} color={interested ? colors.primary : "#B4AEC0"} />
+              行ってみたい
+            </button>
+            <div style={{ flex: 1 }}>
+              <PrimaryButton onClick={handleRsvp}>参加表明する</PrimaryButton>
+            </div>
+          </div>
         )}
       </div>
     </div>
