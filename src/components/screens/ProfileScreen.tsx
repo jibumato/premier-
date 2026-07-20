@@ -1506,6 +1506,7 @@ export function ProfileScreen() {
           <div style={{ position: "relative", maxWidth: "100%", maxHeight: "100%" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              className="pt-lightbox-img"
               src={lightboxUrl}
               alt=""
               onClick={(e) => e.stopPropagation()}
@@ -1513,7 +1514,10 @@ export function ProfileScreen() {
                 e.stopPropagation();
                 handleLightboxDoubleClick();
               }}
-              style={{ display: "block", maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }}
+              // 高さ制約は .pt-lightbox-img（globals.css）で行う。モバイルは従来どおり
+              // （親に収まる）。PC（≥641px）はライトボックスが画面全体を覆い縦長画像が
+              // 見切れるため 82vh で全体表示＋上下に余白を確保する。
+              style={{ display: "block", maxWidth: "100%", borderRadius: 12, objectFit: "contain" }}
             />
             {heartBurst > 0 && (
               <div

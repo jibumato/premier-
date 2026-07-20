@@ -299,6 +299,22 @@ a:hover {
   }
 }
 
+/*
+ * Gallery lightbox image sizing. On mobile (≤640px) the overlay matches the
+ * phone viewport and the original behavior (image fits within its parent) is
+ * already right — leave it untouched. On desktop (≥641px) the fixed overlay
+ * covers the whole browser window, so a tall portrait image would blow past the
+ * viewport and get clipped top/bottom; cap it to 82vh so the whole image shows
+ * with a little breathing room above and below.
+ */
+@media (min-width: 641px) {
+  .pt-lightbox-img {
+    max-height: 82vh;
+    width: auto;
+    height: auto;
+  }
+}
+
 @media (max-width: 640px) {
   /*
    * Lock the page to the dynamic viewport so ONLY the inner .pt-scroll scrolls
