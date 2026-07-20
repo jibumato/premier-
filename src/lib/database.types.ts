@@ -265,6 +265,7 @@ export interface Database {
           role_id: string | null;
           message: string | null;
           status: ApplicationStatus;
+          attended: boolean | null;
           created_at: string;
         };
         Insert: {
@@ -274,6 +275,7 @@ export interface Database {
           role_id?: string | null;
           message?: string | null;
           status?: ApplicationStatus;
+          attended?: boolean | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["awase_applications"]["Insert"]>;
@@ -719,6 +721,14 @@ export interface Database {
       trending_works: {
         Args: { p_days?: number; p_limit?: number };
         Returns: { work_id: string; name: string; awase_count: number }[];
+      };
+      set_attendance: {
+        Args: { p_application: string; p_attended: boolean };
+        Returns: undefined;
+      };
+      user_attendance_stats: {
+        Args: { p_user: string };
+        Returns: { attended_count: number; marked_count: number }[];
       };
       admin_search_profiles: {
         Args: { p_query: string; p_limit?: number };
