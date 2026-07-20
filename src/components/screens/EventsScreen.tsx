@@ -14,6 +14,27 @@ import { WorkCover } from "../WorkCover";
 import { useEvents } from "@/lib/queries/events";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const localYMD = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+/** 今週（今日〜今週日曜）に開催されるイベントか。鮮度シグナル「今週開催」用。 */
+function isThisWeek(startsOn: string | null | undefined): boolean {
+  if (!startsOn) return false;
+  const now = new Date();
+  const daysToSunday = (7 - now.getDay()) % 7; // 日=0 … 土=1
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + daysToSunday);
+  return startsOn >= localYMD(now) && startsOn <= localYMD(endOfWeek);
+}
+
+/** 最近（10日以内）追加されたイベントか。鮮度シグナル「新着」用。 */
+function isNewEvent(createdAt: string | null | undefined): boolean {
+  if (!createdAt) return false;
+  const t = new Date(createdAt).getTime();
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t <= 10 * 24 * 60 * 60 * 1000;
+}
+
 export function EventsScreen() {
   const { back, nav, openEvent } = useRouter();
   const configured = isSupabaseConfigured();
@@ -133,8 +154,38 @@ export function EventsScreen() {
               )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{ev.name}</span>
+                {isThisWeek(ev.startsOn) && (
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      color: colors.white,
+                      background: colors.positive,
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    今週開催
+                  </span>
+                )}
+                {isNewEvent(ev.createdAt) && (
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      color: colors.primary,
+                      background: colors.primaryBg5,
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    新着
+                  </span>
+                )}
                 <span
                   style={{
                     fontSize: 9.5,
