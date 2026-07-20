@@ -5,6 +5,7 @@ import { colors } from "@/lib/tokens";
 import { mockStudios, type StudioItem } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { EmptyState } from "../EmptyState";
+import { CorporatePromo } from "../CorporatePromo";
 import { ChevronLeftIcon, PinIcon } from "../icons";
 import { useStudios } from "@/lib/queries/studios";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -152,6 +153,11 @@ export function StudiosScreen() {
           </div>
         ))}
       </div>
+
+      <CorporatePromo
+        label="スタジオを掲載しませんか？"
+        sub="好きな作品でつながるアクティブなコスプレイヤーへ、空き枠・作例つきでアプローチできます。"
+      />
     </div>
   );
 }
