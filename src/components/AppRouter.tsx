@@ -164,6 +164,18 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     const eventId = params.get("event");
     if (eventId) {
       setState((s) => ({ ...s, screen: "eventDetail", selectedEventId: eventId }));
+      return;
+    }
+    // プロフィール公開ページ（/u/<handle>・SEO）からの着地: ?u=<userId>。
+    const profileUserId = params.get("u");
+    if (profileUserId) {
+      setState((s) => ({ ...s, screen: "profile", selectedProfileId: profileUserId }));
+      return;
+    }
+    // サークル公開ページ（/g/<id>・SEO）からの着地: ?group=<groupId>。
+    const groupId = params.get("group");
+    if (groupId) {
+      setState((s) => ({ ...s, screen: "groupDetail", selectedGroupId: groupId }));
     }
   }, []);
 
