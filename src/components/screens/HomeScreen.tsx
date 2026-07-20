@@ -23,7 +23,7 @@ import { usePostsFeed } from "@/lib/queries/posts";
 import { useEvents } from "@/lib/queries/events";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { useAnnouncements } from "@/lib/queries/announcements";
-import { useRecentActivity, useTodayStats, useTrendingWorks } from "@/lib/queries/activity";
+import { useRecentActivity, useTodayStats, useTrendingWorks, useWeeklyDigest } from "@/lib/queries/activity";
 import { useLoungePosts } from "@/lib/queries/lounge";
 import { usePresenceCount } from "@/lib/queries/presence";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -143,6 +143,11 @@ export function HomeScreen() {
   const viewerCount = configured ? (presenceCount ?? 1) : 8;
   const todayStatsQuery = useTodayStats();
   const todayStats = configured ? (todayStatsQuery.data ?? { newAwase: 0, newRsvps: 0 }) : { newAwase: 3, newRsvps: 14 };
+  // 「今週のプルミエ」ダイジェスト（運営生存感）。凍結した競合との差＝動いている感。
+  const weeklyDigestQuery = useWeeklyDigest();
+  const weeklyDigest = configured
+    ? weeklyDigestQuery.data
+    : { awase: 12, groups: 3, reviews: 8, posts: 24, total: 47 };
   const activityQuery = useRecentActivity(6);
   const activityList = configured
     ? (activityQuery.data ?? []).map((a) => ({ key: a.id, headline: a.headline, timeLabel: formatRelativeTime(a.createdAt) }))
@@ -672,6 +677,63 @@ export function HomeScreen() {
               {formatRelativeTime(latestAnnouncement.publishedAt)}
             </span>
           </button>
+        </div>
+      )}
+
+      {/* 今週のプルミエ（運営生存感ダイジェスト）。直近7日で生まれたものを種類別に
+          見せ、「このサイトは今も動いている」を一目で伝える。凍結した競合との差。
+          総数が0のとき（データが浅い/未接続の一部）はうるさくならないよう出さない。 */}
+      {weeklyDigest && weeklyDigest.total > 0 && (
+        <div style={{ padding: "18px 22px 0" }}>
+          <div
+            style={{
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 16,
+              padding: "15px 16px",
+              background: colors.primaryBg5,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  color: colors.white,
+                  background: colors.positive,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                }}
+              >
+                今週の動き
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
+                この7日間で {weeklyDigest.total} 件の新しい動きがありました
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              {[
+                { label: "新着併せ", n: weeklyDigest.awase },
+                { label: "新規サークル", n: weeklyDigest.groups },
+                { label: "会場レビュー", n: weeklyDigest.reviews },
+                { label: "みんなの投稿", n: weeklyDigest.posts },
+              ].map((it) => (
+                <div
+                  key={it.label}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    background: colors.white,
+                    border: `1px solid ${colors.borderSoft}`,
+                    borderRadius: 12,
+                    padding: "9px 0",
+                  }}
+                >
+                  <div style={{ fontSize: 17, fontWeight: 700, color: colors.primary }}>{it.n}</div>
+                  <div style={{ fontSize: 9.5, color: colors.textMutedAlt, marginTop: 2 }}>{it.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
