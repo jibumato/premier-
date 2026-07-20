@@ -40,6 +40,7 @@ export interface Database {
           x_handle: string | null;
           searchable_by_name: boolean;
           handle_changed_at: string | null;
+          notification_prefs: Record<string, boolean>;
           created_at: string;
         };
         Insert: {
@@ -61,6 +62,7 @@ export interface Database {
           x_handle?: string | null;
           searchable_by_name?: boolean;
           handle_changed_at?: string | null;
+          notification_prefs?: Record<string, boolean>;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
