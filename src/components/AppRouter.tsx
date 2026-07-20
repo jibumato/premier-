@@ -53,6 +53,8 @@ interface RouterState {
   selectedQaQuestionId: string | null;
   /** event.id backing the current `eventDetail` screen, once a backend is connected. */
   selectedEventId: string | null;
+  /** group.id backing the current `groupDetail` screen. */
+  selectedGroupId: string | null;
   /** market_item.id backing the current `marketDetail` screen, once a backend is connected. */
   selectedMarketItemId: string | null;
   /** awase.id whose fields prefill the `create` screen (募集の複製); null for a blank form. */
@@ -87,6 +89,8 @@ interface RouterApi extends RouterState {
   openQaQuestion: (questionId: string) => void;
   /** navigate to `eventDetail` for a specific real event row */
   openEvent: (eventId: string) => void;
+  /** navigate to `groupDetail` for a specific real group row */
+  openGroup: (groupId: string) => void;
   /** navigate to `marketDetail` for a specific real listing row */
   openMarketItem: (itemId: string) => void;
   /** navigate to `create` prefilled from an existing awase (募集の複製) */
@@ -120,6 +124,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     selectedProfileId: null,
     selectedQaQuestionId: null,
     selectedEventId: null,
+    selectedGroupId: null,
     selectedMarketItemId: null,
     duplicateAwaseId: null,
     createForEventId: null,
@@ -309,6 +314,18 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     [resetScroll, pushHistory]
   );
 
+  const openGroup = useCallback(
+    (groupId: string) => {
+      const scrollTop = scrollRef.current?.scrollTop ?? 0;
+      setState((s) => {
+        pushHistory(s.screen, scrollTop);
+        return { ...s, screen: "groupDetail", selectedGroupId: groupId };
+      });
+      resetScroll();
+    },
+    [resetScroll, pushHistory]
+  );
+
   const openMarketItem = useCallback(
     (itemId: string) => {
       const scrollTop = scrollRef.current?.scrollTop ?? 0;
@@ -371,6 +388,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openProfile,
       openQaQuestion,
       openEvent,
+      openGroup,
       openMarketItem,
       openCreateFromDuplicate,
       openCreateForEvent,
@@ -390,6 +408,7 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
       openProfile,
       openQaQuestion,
       openEvent,
+      openGroup,
       openMarketItem,
       openCreateFromDuplicate,
       openCreateForEvent,

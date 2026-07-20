@@ -22,6 +22,8 @@ export type Screen =
   | "marketDetail"
   | "events"
   | "eventDetail"
+  | "groups"
+  | "groupDetail"
   | "studios"
   | "qa"
   | "qaDetail"
