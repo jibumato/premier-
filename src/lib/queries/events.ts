@@ -241,6 +241,119 @@ export function useMyUpcomingEvents(userId: string | undefined) {
   });
 }
 
+export interface AppearanceEvent {
+  id: string;
+  name: string;
+  date: string;
+  region: string;
+  startsOn: string | null;
+  note: string;
+}
+
+/**
+ * 本人が「出演します」と公開宣言した、これから開催のイベント（0076）。
+ * 参加表明（RSVP）と違い本人の意思による公開情報なので、本人・他人どちらの
+ * プロフィールでも表示する。過去のイベントは除外し、開催日の近い順。
+ * event_appearances 未適用の本番でもプロフィールを巻き込まないよう retry を抑制。
+ */
+export function useMyUpcomingAppearances(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["appearances", userId],
+    retry: false,
+    enabled: isSupabaseConfigured() && Boolean(userId),
+    queryFn: async (): Promise<AppearanceEvent[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_appearances")
+        .select("note, events(id, name, event_date, region, starts_on)")
+        .eq("user_id", userId!);
+      if (error) throw error;
+      type Row = {
+        note: string;
+        events: {
+          id: string;
+          name: string;
+          event_date: string;
+          region: string;
+          starts_on: string | null;
+        } | null;
+      };
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return ((data ?? []) as unknown as Row[])
+        .filter((r): r is Row & { events: NonNullable<Row["events"]> } => Boolean(r.events))
+        .filter((r) => !r.events.starts_on || new Date(r.events.starts_on) >= today)
+        .sort((a, b) => (a.events.starts_on ?? "9999-12-31").localeCompare(b.events.starts_on ?? "9999-12-31"))
+        .map((r) => ({
+          id: r.events.id,
+          name: r.events.name,
+          date: r.events.event_date,
+          region: r.events.region,
+          startsOn: r.events.starts_on,
+          note: r.note,
+        }));
+    },
+  });
+}
+
+/** ログイン中の本人が、そのイベントに「出演」を掲示しているか（0076）。 */
+export function useIsAppearing(eventId: string | null, userId: string | undefined) {
+  return useQuery({
+    queryKey: ["appearance", eventId, userId],
+    retry: false,
+    enabled: isSupabaseConfigured() && Boolean(eventId) && Boolean(userId),
+    queryFn: async (): Promise<boolean> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_appearances")
+        .select("user_id")
+        .eq("event_id", eventId!)
+        .eq("user_id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+  });
+}
+
+/** 出演を掲示する（RLS: user_id = auth.uid() のみ。追加時にフォロワーへ通知）。 */
+export function useAddAppearance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: string; userId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("event_appearances")
+        .upsert({ event_id: eventId, user_id: userId }, { onConflict: "event_id,user_id", ignoreDuplicates: true });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["appearance", eventId, userId] });
+      qc.invalidateQueries({ queryKey: ["appearances", userId] });
+    },
+  });
+}
+
+/** 出演掲示の取り消し（RLS: user_id = auth.uid() のみ）。 */
+export function useRemoveAppearance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: string; userId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("event_appearances")
+        .delete()
+        .eq("event_id", eventId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["appearance", eventId, userId] });
+      qc.invalidateQueries({ queryKey: ["appearances", userId] });
+    },
+  });
+}
+
 export interface EventAttendee {
   id: string;
   handle: string;

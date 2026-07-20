@@ -29,6 +29,7 @@ export function notificationCategory(type: string): NotificationPrefCategory | "
     case "follow":
     case "like":
     case "post":
+    case "event_appearance":
       return "social";
     default:
       // application / message / badge など重要通知

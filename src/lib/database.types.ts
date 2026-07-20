@@ -15,7 +15,7 @@ export type UserRole = "layer" | "photographer" | "both";
 export type AwaseStatus = "open" | "closed";
 export type AwaseRoleStatus = "confirmed" | "open";
 export type ApplicationStatus = "applied" | "accepted" | "rejected" | "done";
-export type NotificationType = "application" | "follow" | "like" | "badge" | "message" | "post";
+export type NotificationType = "application" | "follow" | "like" | "badge" | "message" | "post" | "event_appearance";
 
 export interface Database {
   public: {
@@ -451,6 +451,12 @@ export interface Database {
         Row: { event_id: string; user_id: string; created_at: string };
         Insert: { event_id: string; user_id: string; created_at?: string };
         Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
+        Relationships: [];
+      };
+      event_appearances: {
+        Row: { event_id: string; user_id: string; note: string; created_at: string };
+        Insert: { event_id: string; user_id: string; note?: string; created_at?: string };
+        Update: Partial<{ event_id: string; user_id: string; note: string; created_at: string }>;
         Relationships: [];
       };
       event_reviews: {
