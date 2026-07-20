@@ -108,6 +108,12 @@ export interface Database {
         Update: Partial<{ group_id: string; user_id: string; role: string; joined_at: string }>;
         Relationships: [];
       };
+      group_posts: {
+        Row: { id: string; group_id: string; author_id: string; body: string; created_at: string };
+        Insert: { id?: string; group_id: string; author_id: string; body: string; created_at?: string };
+        Update: Partial<{ id: string; group_id: string; author_id: string; body: string; created_at: string }>;
+        Relationships: [];
+      };
       follows: {
         Row: { follower_id: string; followee_id: string; created_at: string };
         Insert: { follower_id: string; followee_id: string; created_at?: string };

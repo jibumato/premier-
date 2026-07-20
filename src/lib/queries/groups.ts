@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { readingMatch } from "@/lib/reading";
+import { formatRelativeTime } from "@/lib/format";
 
 export interface GroupListItem {
   id: string;
@@ -265,5 +266,94 @@ export function useLeaveGroup() {
       qc.invalidateQueries({ queryKey: ["my_groups", userId] });
       qc.invalidateQueries({ queryKey: ["groups"] });
     },
+  });
+}
+
+// =============================================================================
+// グループ掲示板（0074 / グループV2）— メンバーだけが投稿できるグループ内の掲示板。
+// 荒らし対策（メンバー限定・連投クールダウン・日次上限・スパム判定）はDB側で強制。
+// =============================================================================
+
+export interface GroupPost {
+  key: string;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  body: string;
+  time: string;
+}
+
+/** グループの投稿一覧（新着順）。ブロックした相手は除外する。 */
+export function useGroupPosts(groupId: string | null, blockedUserIds: string[] = []) {
+  return useQuery({
+    queryKey: ["group_posts", groupId, blockedUserIds],
+    // group_posts（0074）未適用でもグループ詳細を巻き込まないよう retry を抑制。
+    retry: false,
+    enabled: isSupabaseConfigured() && Boolean(groupId),
+    queryFn: async (): Promise<GroupPost[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("group_posts")
+        .select("id, author_id, body, created_at")
+        .eq("group_id", groupId!)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      const blocked = new Set(blockedUserIds);
+      let rows = ((data ?? []) as { id: string; author_id: string; body: string; created_at: string }[]).filter(
+        (r) => !blocked.has(r.author_id),
+      );
+      if (rows.length === 0) return [];
+      const authorIds = Array.from(new Set(rows.map((r) => r.author_id)));
+      const { data: profs } = await supabase.from("profiles").select("id, display_name, avatar_url").in("id", authorIds);
+      const byId = new Map(
+        ((profs ?? []) as { id: string; display_name: string; avatar_url: string | null }[]).map((p) => [p.id, p]),
+      );
+      return rows.map((r) => ({
+        key: r.id,
+        authorId: r.author_id,
+        authorName: byId.get(r.author_id)?.display_name ?? "不明",
+        authorAvatarUrl: byId.get(r.author_id)?.avatar_url ?? null,
+        body: r.body,
+        time: formatRelativeTime(r.created_at),
+      }));
+    },
+  });
+}
+
+/** 投稿エラーの日本語化（談話室と同じ: 23514=NGワード等、42501=連投/上限）。 */
+export function friendlyGroupPostError(e: unknown): string {
+  const err = e as { code?: string; message?: string };
+  if (err?.code === "23514")
+    return "投稿できませんでした。リンクや過度な繰り返し文字、不適切な表現が含まれていないか確認してください。";
+  if (err?.code === "42501")
+    return "投稿できませんでした。メンバーのみ投稿できます。または連続投稿・1日の上限に達した可能性があります（少し間隔をあけてください）。";
+  return "投稿に失敗しました。時間をおいて再度お試しください。";
+}
+
+/** グループへ投稿する（RLSでメンバー限定・連投/上限を強制）。 */
+export function useCreateGroupPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, authorId, body }: { groupId: string; authorId: string; body: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("group_posts").insert({ group_id: groupId, author_id: authorId, body });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { groupId }) => qc.invalidateQueries({ queryKey: ["group_posts", groupId] }),
+  });
+}
+
+/** 投稿の削除（RLSで投稿者本人 or グループのオーナーのみ）。 */
+export function useDeleteGroupPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId }: { postId: string; groupId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.from("group_posts").delete().eq("id", postId).select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("削除できませんでした");
+    },
+    onSuccess: (_d, { groupId }) => qc.invalidateQueries({ queryKey: ["group_posts", groupId] }),
   });
 }
