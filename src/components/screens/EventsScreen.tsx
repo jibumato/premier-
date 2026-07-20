@@ -8,6 +8,7 @@ import { AppBar } from "../ui";
 import { CalendarIcon, PinIcon, RefreshIcon } from "../icons";
 import { EventCardSkeleton } from "../Skeleton";
 import { ErrorState } from "../ErrorState";
+import { CorporatePromo } from "../CorporatePromo";
 import { PullToRefresh } from "../PullToRefresh";
 import { ImageSlot } from "../ImageSlot";
 import { WorkCover } from "../WorkCover";
@@ -214,6 +215,11 @@ export function EventsScreen() {
           </button>
         ))}
       </div>
+
+      <CorporatePromo
+        label="イベントの掲載・PRをご検討の主催者様へ"
+        sub="コスプレイベントをカレンダーに掲載。参加表明・当日の併せ募集まで集約できます。"
+      />
       </PullToRefresh>
     </div>
   );
