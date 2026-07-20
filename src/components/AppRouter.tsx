@@ -154,9 +154,16 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
   // （共有URLから個別ページへ着地できるようにする。SSR では window が無いので effect で読む）
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const awaseId = new URLSearchParams(window.location.search).get("awase");
+    const params = new URLSearchParams(window.location.search);
+    const awaseId = params.get("awase");
     if (awaseId) {
       setState((s) => ({ ...s, screen: "detail", selectedAwaseId: awaseId }));
+      return;
+    }
+    // イベント公開ページ（/e/<id>・SEO）からの着地: ?event=<id> で詳細を開く。
+    const eventId = params.get("event");
+    if (eventId) {
+      setState((s) => ({ ...s, screen: "eventDetail", selectedEventId: eventId }));
     }
   }, []);
 
@@ -169,11 +176,13 @@ export function AppRouterProvider({ children }: { children: ReactNode }) {
     const next =
       state.screen === "detail" && state.selectedAwaseId
         ? `${window.location.pathname}?awase=${encodeURIComponent(state.selectedAwaseId)}${window.location.hash}`
-        : base;
+        : state.screen === "eventDetail" && state.selectedEventId
+          ? `${window.location.pathname}?event=${encodeURIComponent(state.selectedEventId)}${window.location.hash}`
+          : base;
     if (window.location.pathname + window.location.search + window.location.hash !== next) {
       window.history.replaceState(null, "", next);
     }
-  }, [state.screen, state.selectedAwaseId]);
+  }, [state.screen, state.selectedAwaseId, state.selectedEventId]);
 
   const nav = useCallback(
     (screen: Screen, tab?: Tab) => {
