@@ -30,6 +30,8 @@ function notificationVisual(kind: string | undefined): { bg: string; icon: React
       return { bg: colors.primary, icon: <CalendarIcon size={17} color={colors.white} /> };
     case "review_nudge":
       return { bg: colors.starGold, icon: <StarIcon size={16} filled color={colors.white} /> };
+    case "event_appearance":
+      return { bg: colors.pink, icon: <CalendarIcon size={17} color={colors.white} /> };
     default:
       return { bg: colors.textMutedSoft, icon: <MessageIcon size={17} color={colors.white} /> };
   }
@@ -87,7 +89,7 @@ export function NotifyScreen() {
                 ? () => nav("profile", "mypage")
                 : (n.kind === "follow" || n.kind === "post") && n.entityId
                   ? () => openProfile(n.entityId!)
-                  : (n.kind === "event_reminder" || n.kind === "review_nudge") && n.entityId
+                  : (n.kind === "event_reminder" || n.kind === "review_nudge" || n.kind === "event_appearance") && n.entityId
                     ? () => openEvent(n.entityId!)
                     : null;
           const visual = notificationVisual(n.kind);

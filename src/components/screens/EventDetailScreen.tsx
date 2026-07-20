@@ -22,6 +22,9 @@ import {
   useEventReviews,
   useMyEventReview,
   useSubmitEventReview,
+  useIsAppearing,
+  useAddAppearance,
+  useRemoveAppearance,
 } from "@/lib/queries/events";
 import { useEventAwase } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
@@ -50,6 +53,11 @@ export function EventDetailScreen() {
   const interestEvent = useInterestEvent();
   const cancelInterest = useCancelInterest();
   const [mockInterested, setMockInterested] = useState(false);
+  // 出演の掲示（0076）: プロフィールに「次に会える場所」として公開＆フォロワー通知。
+  const isAppearingQuery = useIsAppearing(selectedEventId, user?.id);
+  const addAppearance = useAddAppearance();
+  const removeAppearance = useRemoveAppearance();
+  const [mockAppearing, setMockAppearing] = useState(false);
   // 参加予定の顔ぶれ（ログイン中のみ・非公開/ブロック/停止は除外）。人数は公開。
   const moderation = useModerationFilter(user?.id);
   const attendeesQuery = useEventAttendees(selectedEventId, user?.id, moderation.data?.blockedUserIds ?? []);
@@ -79,6 +87,7 @@ export function EventDetailScreen() {
   const loading = configured && Boolean(selectedEventId) && eventQuery.isPending && !eventQuery.data;
   const going = real ? Boolean(isGoingQuery.data) : mockGoing;
   const interested = real ? Boolean(isInterestedQuery.data) : mockInterested;
+  const appearing = real ? Boolean(isAppearingQuery.data) : mockAppearing;
 
   const name = real?.name ?? "ホロサマ 2025";
   const goingCount = real ? real.going.toLocaleString() : "1,240";
@@ -117,6 +126,32 @@ export function EventDetailScreen() {
       );
     } else {
       setMockGoing(false);
+    }
+  };
+
+  const handleToggleAppearance = () => {
+    if (configured && !user) {
+      nav("login");
+      return;
+    }
+    if (real && user && selectedEventId) {
+      if (addAppearance.isPending || removeAppearance.isPending) return;
+      if (appearing) {
+        removeAppearance.mutate(
+          { eventId: selectedEventId, userId: user.id },
+          { onError: () => showToast("取り消しに失敗しました。もう一度お試しください。") },
+        );
+      } else {
+        addAppearance.mutate(
+          { eventId: selectedEventId, userId: user.id },
+          {
+            onSuccess: () => showToast("プロフィールに掲示し、フォロワーに通知しました"),
+            onError: () => showToast("掲示に失敗しました。もう一度お試しください。"),
+          },
+        );
+      }
+    } else {
+      setMockAppearing((v) => !v);
     }
   };
 
@@ -233,6 +268,53 @@ export function EventDetailScreen() {
         <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.9, color: colors.textSecondary }}>
           {bodyText}
         </p>
+      </div>
+
+      {/* 出演を掲示（0076）。本人が「ここに出演します」とプロフィールに公開し、
+          フォロワーに通知。ファンに「次どこで会えるか」を伝えるリアル導線。 */}
+      <div style={{ padding: "20px 22px 0" }}>
+        <button
+          onClick={handleToggleAppearance}
+          disabled={addAppearance.isPending || removeAppearance.isPending}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            border: appearing ? `1.5px solid ${colors.pink}` : `1px solid ${colors.border}`,
+            background: appearing ? colors.pinkBg1 : colors.white,
+            borderRadius: 14,
+            padding: "13px 15px",
+            fontFamily: "inherit",
+            textAlign: "left",
+            cursor: "pointer",
+          }}
+        >
+          <div
+            style={{
+              flex: "0 0 34px",
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: appearing ? colors.pink : colors.primaryBg5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {appearing ? <CheckIcon size={17} color={colors.white} /> : <StarIcon size={16} color={colors.pink} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: appearing ? colors.pink : colors.textPrimary }}>
+              {appearing ? "出演を掲示中" : "このイベントに出演する"}
+            </div>
+            <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2, lineHeight: 1.5 }}>
+              {appearing
+                ? "プロフィールの「次に会えるイベント」に表示中。タップで取り消し。"
+                : "プロフィールに掲示し、フォロワーに通知します。"}
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* 参加予定のユーザー — 人数は上部で公開。顔ぶれ（名前・アイコン）は

@@ -16,7 +16,7 @@ import { useCreatePost, useDeletePost, useMyPostLikes, usePosts, useReorderPosts
 import { useAwaseHistory } from "@/lib/queries/awase";
 import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useWorks } from "@/lib/queries/works";
-import { useMyUpcomingEvents } from "@/lib/queries/events";
+import { useMyUpcomingEvents, useMyUpcomingAppearances } from "@/lib/queries/events";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -141,6 +141,12 @@ export function ProfileScreen() {
   // 来るイベント」を一覧化させない＝つきまとい対策として出さない。
   const myEventsQuery = useMyUpcomingEvents(isOwnProfile ? user?.id : undefined);
   const myEvents = configured && isOwnProfile ? (myEventsQuery.data ?? []) : [];
+  // 出演イベント（0076）: 本人が公開宣言したもの。本人・他人どちらのプロフィール
+  // でも表示する（参加表明と違い、本人の意思による公開情報）。
+  const appearancesQuery = useMyUpcomingAppearances(configured ? targetId : undefined);
+  const appearances = configured
+    ? (appearancesQuery.data ?? [])
+    : [{ id: "demo1", name: "コミックマーケット", date: "12/30(土)", region: "東京", startsOn: null, note: "東A-01a" }];
   const [galleryEditing, setGalleryEditing] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const getOrCreateConversation = useGetOrCreateConversation();
@@ -1222,6 +1228,56 @@ export function ProfileScreen() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* 次の出演イベント（0076）。本人が「出演します」と公開宣言したもの。
+          本人・他人どちらのプロフィールにも出す（ファンに「次どこで会えるか」を
+          伝えるリアル導線）。未ログインで他人を見ているときは出さない。 */}
+      {!maskIdentity && appearances.length > 0 && (
+        <div style={{ padding: "26px 22px 0" }}>
+          <SectionHeading accent={colors.pink} size={15}>次に会えるイベント</SectionHeading>
+          {isOwnProfile && (
+            <p style={{ margin: "7px 0 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+              プロフィールに公開され、フォロワーにも通知されます。イベント詳細から掲示/取り消しできます。
+            </p>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 13 }}>
+            {appearances.slice(0, 6).map((ev) => (
+              <button
+                key={ev.id}
+                onClick={() => configured && openEvent(ev.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 11,
+                  border: `1px solid ${colors.pinkAlt}`,
+                  borderRadius: 14,
+                  padding: "10px 12px",
+                  background: colors.white,
+                  width: "100%",
+                  textAlign: "left",
+                  fontFamily: "inherit",
+                  cursor: configured ? "pointer" : "default",
+                }}
+              >
+                <div style={{ flex: "0 0 44px", width: 44, height: 44, borderRadius: 11, overflow: "hidden" }}>
+                  <WorkCover name={ev.name} radius={11} showName={false} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.name}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.date}
+                    {ev.region ? ` ・ ${ev.region}` : ""}
+                    {ev.note ? ` ・ ${ev.note}` : ""}
+                  </div>
+                </div>
+                <ChevronRightIcon />
+              </button>
+            ))}
           </div>
         </div>
       )}
