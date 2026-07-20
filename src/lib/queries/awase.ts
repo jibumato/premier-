@@ -609,6 +609,8 @@ export interface Applicant {
   createdAt: string;
   /** 応募者が選んだ希望キャラ（awase_roles.id）。未選択なら null。 */
   roleId: string | null;
+  /** 開催後の出欠（0077）。null=未確認 / true=出席 / false=欠席（ドタキャン）。 */
+  attended: boolean | null;
 }
 
 /** Applicants to an awase, newest first — for the host's 応募者管理 screen
@@ -623,7 +625,7 @@ export function useAwaseApplicants(awaseId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("awase_applications")
-        .select("id, applicant_id, role_id, message, status, created_at, profiles(display_name, avatar_url, is_verified)")
+        .select("id, applicant_id, role_id, message, status, attended, created_at, profiles(display_name, avatar_url, is_verified)")
         .eq("awase_id", awaseId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -633,6 +635,7 @@ export function useAwaseApplicants(awaseId: string | null) {
         role_id: string | null;
         message: string | null;
         status: ApplicationStatus;
+        attended: boolean | null;
         created_at: string;
         profiles: { display_name: string; avatar_url: string | null; is_verified: boolean } | null;
       };
@@ -646,6 +649,7 @@ export function useAwaseApplicants(awaseId: string | null) {
         status: r.status,
         createdAt: r.created_at,
         roleId: r.role_id,
+        attended: r.attended,
       }));
     },
   });
@@ -671,6 +675,60 @@ export function useAwaseApplicants(awaseId: string | null) {
   }, [awaseId, qc, channelId]);
 
   return query;
+}
+
+/** 出欠の記録（0077・ドタキャン対策）。ホスト本人のみ set_attendance RPC で
+ * 承認済み参加者の出欠を記録できる（RLSではなく SECURITY DEFINER 関数で強制）。 */
+export function useSetAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      applicationId,
+      attended,
+    }: {
+      applicationId: string;
+      awaseId: string;
+      applicantId: string;
+      /** true=出席 / false=欠席（ドタキャン） */
+      attended: boolean;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.rpc("set_attendance", { p_application: applicationId, p_attended: attended });
+      if (error) throw error;
+    },
+    onSuccess: (_d, { awaseId, applicantId }) => {
+      qc.invalidateQueries({ queryKey: ["awase_applicants", awaseId] });
+      qc.invalidateQueries({ queryKey: ["attendance_stats", applicantId] });
+    },
+  });
+}
+
+export interface AttendanceStats {
+  /** 出席回数 */
+  attended: number;
+  /** 出欠が記録された回数（分母） */
+  marked: number;
+  /** 出席率（0〜1）。marked=0 のときは 0。 */
+  rate: number;
+}
+
+/** ある参加者の出席実績（0077・集計のみ）。信頼の目安の「出席率」に使う。
+ * marked が少ないうちは信頼指標として弱いので、表示可否はUI側で判断する。 */
+export function useAttendanceStats(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["attendance_stats", userId],
+    retry: false,
+    enabled: isSupabaseConfigured() && Boolean(userId),
+    queryFn: async (): Promise<AttendanceStats> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.rpc("user_attendance_stats", { p_user: userId! });
+      if (error) throw error;
+      const row = (data as { attended_count: number; marked_count: number }[] | null)?.[0];
+      const attended = row?.attended_count ?? 0;
+      const marked = row?.marked_count ?? 0;
+      return { attended, marked, rate: marked > 0 ? attended / marked : 0 };
+    },
+  });
 }
 
 /** Total + accepted application counts for an awase (host controls / 満員判定). */

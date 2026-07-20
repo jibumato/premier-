@@ -15,6 +15,7 @@ import {
   useAwaseRoles,
   useUpdateApplicationStatus,
   useSetAwaseStatus,
+  useSetAttendance,
   type ApplicationStatus,
   type Applicant,
 } from "@/lib/queries/awase";
@@ -23,10 +24,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /** Mock applicants so the screen is meaningful in prototype/mock mode. */
 const mockApplicants: Applicant[] = [
-  { id: "m1", applicantId: "u1", displayName: "澪 / mio", avatarUrl: null, isVerified: true, message: "フリーレン役で参加したいです！経験ありますので当日よろしくお願いします。", status: "applied", createdAt: "", roleId: null },
-  { id: "m2", applicantId: "u2", displayName: "ひなた", avatarUrl: null, isVerified: false, message: "はじめまして。初心者ですが精一杯がんばります◎", status: "accepted", createdAt: "", roleId: null },
-  { id: "m3", applicantId: "u3", displayName: "さく", avatarUrl: null, isVerified: true, message: "カメラマンとして参加希望です。", status: "applied", createdAt: "", roleId: null },
-  { id: "m4", applicantId: "u4", displayName: "れい", avatarUrl: null, isVerified: false, message: "日程が合わずでした、また今度お願いします。", status: "rejected", createdAt: "", roleId: null },
+  { id: "m1", applicantId: "u1", displayName: "澪 / mio", avatarUrl: null, isVerified: true, message: "フリーレン役で参加したいです！経験ありますので当日よろしくお願いします。", status: "applied", createdAt: "", roleId: null, attended: null },
+  { id: "m2", applicantId: "u2", displayName: "ひなた", avatarUrl: null, isVerified: false, message: "はじめまして。初心者ですが精一杯がんばります◎", status: "accepted", createdAt: "", roleId: null, attended: null },
+  { id: "m3", applicantId: "u3", displayName: "さく", avatarUrl: null, isVerified: true, message: "カメラマンとして参加希望です。", status: "applied", createdAt: "", roleId: null, attended: null },
+  { id: "m4", applicantId: "u4", displayName: "れい", avatarUrl: null, isVerified: false, message: "日程が合わずでした、また今度お願いします。", status: "rejected", createdAt: "", roleId: null, attended: null },
 ];
 
 /** 安定参照（configured & 空データ時の再レンダー抑止）。 */
@@ -50,6 +51,7 @@ export function HostApplicantsScreen() {
   const countQuery = useAwaseApplicantCount(selectedAwaseId);
   const updateStatus = useUpdateApplicationStatus();
   const setAwaseStatus = useSetAwaseStatus();
+  const setAttendance = useSetAttendance();
   const getOrCreateConversation = useGetOrCreateConversation();
   const sendMessage = useSendMessage();
   const groupChat = useAwaseGroupChat();
@@ -104,6 +106,15 @@ export function HostApplicantsScreen() {
   const setStatus = (a: Applicant, status: ApplicationStatus) => {
     if (!real) return;
     updateStatus.mutate({ id: a.id, awaseId: real.id, status });
+  };
+  // 開催後の出欠記録（0077・ドタキャン対策）。同じ値をもう一度押すと取り消す。
+  const markAttendance = (a: Applicant, attended: boolean) => {
+    if (!real || setAttendance.isPending) return;
+    if (a.attended === attended) return; // 同値は無視（トグルUIとして扱わない）
+    setAttendance.mutate(
+      { applicationId: a.id, awaseId: real.id, applicantId: a.applicantId, attended },
+      { onError: () => showToast("記録に失敗しました。もう一度お試しください。") },
+    );
   };
   // 「応募中に戻す」は承認/見送りを取り消す操作。誤タップ防止のため確認を挟む。
   const revertToApplied = (a: Applicant) => {
@@ -425,6 +436,54 @@ export function HostApplicantsScreen() {
                       </button>
                     )}
                   </div>
+
+                  {/* 開催後の出欠記録（0077・ドタキャン対策）。承認済みの参加者に対して
+                      主催者が「来た/来なかった」を記録し、出席率＝信頼の目安に反映する。 */}
+                  {real && a.status === "accepted" && (
+                    <div style={{ marginTop: 10, borderTop: `1px solid ${colors.borderSofter}`, paddingTop: 10 }}>
+                      <div style={{ fontSize: 10.5, color: colors.textMutedAlt, marginBottom: 7 }}>
+                        開催後の出欠（信頼の目安に反映されます）
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={() => markAttendance(a, true)}
+                          disabled={setAttendance.isPending}
+                          style={{
+                            flex: 1,
+                            border: a.attended === true ? "none" : `1px solid ${colors.border}`,
+                            background: a.attended === true ? colors.positive : colors.white,
+                            color: a.attended === true ? colors.white : colors.textSecondary,
+                            fontFamily: "inherit",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: "9px 0",
+                            borderRadius: 10,
+                            cursor: "pointer",
+                          }}
+                        >
+                          出席
+                        </button>
+                        <button
+                          onClick={() => markAttendance(a, false)}
+                          disabled={setAttendance.isPending}
+                          style={{
+                            flex: 1,
+                            border: a.attended === false ? "none" : `1px solid ${colors.border}`,
+                            background: a.attended === false ? colors.textMutedAlt : colors.white,
+                            color: a.attended === false ? colors.white : colors.textSecondary,
+                            fontFamily: "inherit",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: "9px 0",
+                            borderRadius: 10,
+                            cursor: "pointer",
+                          }}
+                        >
+                          欠席（ドタキャン）
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

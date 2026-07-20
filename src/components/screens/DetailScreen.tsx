@@ -22,6 +22,7 @@ import {
   useSetAwaseCover,
   useSetAwaseRoles,
   useUpdateAwase,
+  useAttendanceStats,
 } from "@/lib/queries/awase";
 import { useAwaseAchievementCount, useProfile } from "@/lib/queries/profile";
 import { useReviewsReceived } from "@/lib/queries/reviews";
@@ -183,10 +184,16 @@ export function DetailScreen() {
   const hostReviews = useReviewsReceived(real?.host_id);
   const hostReviewCount = real ? (hostReviews.data?.count ?? 0) : 12;
   const hostAvgRating = real ? (hostReviews.data?.average ?? 0) : 4.8;
+  // 出席率（0077・ドタキャン対策）。晒し上げにならないよう、記録が十分（3件以上）
+  // かつ良好（80%以上）なときだけポジティブなバッジとして出す。
+  const hostAttendance = useAttendanceStats(real?.host_id);
   const trustChips: string[] = [];
   if (hostVerified) trustChips.push("本人確認済");
   if (hostAchievementCount > 0) trustChips.push(`併せ実績 ${hostAchievementCount}回`);
   if (hostReviewCount > 0) trustChips.push(`★${hostAvgRating.toFixed(1)}（${hostReviewCount}件）`);
+  if (real && hostAttendance.data && hostAttendance.data.marked >= 3 && hostAttendance.data.rate >= 0.8) {
+    trustChips.push(`出席率 ${Math.round(hostAttendance.data.rate * 100)}%`);
+  }
   const infoGrid = real
     ? [
         { label: "日程", value: real.event_date },
