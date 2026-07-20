@@ -24,6 +24,7 @@ import {
   useUpdateAwase,
 } from "@/lib/queries/awase";
 import { useAwaseAchievementCount, useProfile } from "@/lib/queries/profile";
+import { useReviewsReceived } from "@/lib/queries/reviews";
 import { useAwaseGroupChat } from "@/lib/queries/messages";
 import { useUploadImage } from "@/lib/queries/upload";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -177,6 +178,15 @@ export function DetailScreen() {
   const hostVerified = real?.profiles?.is_verified ?? true;
   const hostAchievements = useAwaseAchievementCount(real?.host_id);
   const hostAchievementCount = real ? (hostAchievements.data ?? 0) : 36;
+  // 主催者の信頼の目安（安心して参加相手を選べるように）。本人確認＋併せ実績＋
+  // 受け取ったレビュー評価。晒し上げ型ではなく、実績のある相手を可視化する。
+  const hostReviews = useReviewsReceived(real?.host_id);
+  const hostReviewCount = real ? (hostReviews.data?.count ?? 0) : 12;
+  const hostAvgRating = real ? (hostReviews.data?.average ?? 0) : 4.8;
+  const trustChips: string[] = [];
+  if (hostVerified) trustChips.push("本人確認済");
+  if (hostAchievementCount > 0) trustChips.push(`併せ実績 ${hostAchievementCount}回`);
+  if (hostReviewCount > 0) trustChips.push(`★${hostAvgRating.toFixed(1)}（${hostReviewCount}件）`);
   const infoGrid = real
     ? [
         { label: "日程", value: real.event_date },
@@ -660,13 +670,36 @@ export function DetailScreen() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>主催・{hostName}</div>
             <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>
-              {hostVerified ? "本人確認済" : "本人確認前"} · 併せ実績 {hostAchievementCount}回
+              {trustChips.length > 0 ? "この主催者の信頼の目安" : hostVerified ? "本人確認済" : "本人確認前"}
             </div>
           </div>
           <span style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap" }}>
             プロフ →
           </span>
         </button>
+
+        {/* 信頼の目安（B: 安心して参加相手を選べるように）。実績のある主催者を
+            一目で分かるようにし、初参加のミスマッチ・不安を減らす。 */}
+        {trustChips.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 9 }}>
+            {trustChips.map((c) => (
+              <span
+                key={c}
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: colors.primary,
+                  background: colors.primaryBg5,
+                  border: `1px solid ${colors.borderSoft}`,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                }}
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* info grid */}
