@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
@@ -13,6 +14,10 @@ import {
   useIsGroupMember,
   useJoinGroup,
   useLeaveGroup,
+  useGroupPosts,
+  useCreateGroupPost,
+  useDeleteGroupPost,
+  friendlyGroupPostError,
 } from "@/lib/queries/groups";
 import { useModerationFilter } from "@/lib/queries/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -41,6 +46,31 @@ export function GroupDetailScreen() {
   const memberCount = real ? real.memberCount : 42;
   const isOwner = Boolean(real && user && real.ownerId === user.id);
   const isMember = real ? Boolean(isMemberQuery.data) : false;
+  const canPost = isMember || isOwner;
+
+  // グループ掲示板（0074）。投稿・削除はメンバー本人／オーナーのみ（RLSで強制）。
+  const postsQuery = useGroupPosts(selectedGroupId, moderation.data?.blockedUserIds ?? []);
+  const posts = postsQuery.data ?? [];
+  const createPost = useCreateGroupPost();
+  const deletePost = useDeleteGroupPost();
+  const [postBody, setPostBody] = useState("");
+
+  const handlePost = () => {
+    const body = postBody.trim();
+    if (!body || !user || !selectedGroupId || createPost.isPending) return;
+    createPost.mutate(
+      { groupId: selectedGroupId, authorId: user.id, body },
+      { onSuccess: () => setPostBody(""), onError: (e) => showToast(friendlyGroupPostError(e)) },
+    );
+  };
+
+  const handleDeletePost = (postId: string) => {
+    if (!selectedGroupId) return;
+    deletePost.mutate(
+      { postId, groupId: selectedGroupId },
+      { onError: () => showToast("削除できませんでした。もう一度お試しください。") },
+    );
+  };
 
   const handleJoin = () => {
     if (configured && !user) {
@@ -214,6 +244,115 @@ export function GroupDetailScreen() {
               </button>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* 掲示板（0074・グループV2）。メンバーだけが投稿でき、削除は本人／オーナー。 */}
+      <div style={{ padding: "0 22px 40px" }}>
+        <SectionHeading size={15}>掲示板</SectionHeading>
+
+        {!configured ? (
+          <p style={{ margin: "12px 0 0", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
+            サークルに参加すると、メンバー同士で連絡や告知ができる掲示板が使えます。
+          </p>
+        ) : (
+          <>
+            {canPost ? (
+              <div style={{ marginTop: 13 }}>
+                <textarea
+                  value={postBody}
+                  onChange={(e) => setPostBody(e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                  placeholder="メンバーへの連絡や告知を書く…"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 12,
+                    padding: "11px 13px",
+                    fontSize: 13,
+                    lineHeight: 1.7,
+                    fontFamily: "inherit",
+                    color: colors.textPrimary,
+                    resize: "vertical",
+                    background: colors.white,
+                  }}
+                />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: colors.textMutedSoft }}>{postBody.length}/500</span>
+                  <button
+                    onClick={handlePost}
+                    disabled={!postBody.trim() || createPost.isPending}
+                    style={{
+                      border: "none",
+                      borderRadius: 12,
+                      padding: "9px 22px",
+                      fontFamily: "inherit",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: colors.white,
+                      background: !postBody.trim() || createPost.isPending ? colors.border : colors.primary,
+                      cursor: !postBody.trim() || createPost.isPending ? "default" : "pointer",
+                    }}
+                  >
+                    投稿する
+                  </button>
+                </div>
+              </div>
+            ) : !user ? (
+              <p style={{ margin: "12px 0 0", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
+                投稿はログイン後、サークルに参加すると行えます。
+              </p>
+            ) : (
+              <p style={{ margin: "12px 0 0", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
+                このサークルに参加すると投稿できます。
+              </p>
+            )}
+
+            <div style={{ marginTop: 18 }}>
+              {postsQuery.isPending && postsQuery.fetchStatus === "fetching" ? (
+                <p style={{ margin: 0, fontSize: 12.5, color: colors.textMutedAlt }}>読み込み中…</p>
+              ) : posts.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>まだ投稿がありません。</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {posts.map((p) => (
+                    <div key={p.key} style={{ display: "flex", gap: 11 }}>
+                      <button
+                        onClick={() => openProfile(p.authorId)}
+                        style={{ flex: "0 0 auto", width: 38, height: 38, border: "none", background: "none", padding: 0, cursor: "pointer", borderRadius: "50%", overflow: "hidden" }}
+                      >
+                        <ImageSlot circle src={p.authorAvatarUrl ?? undefined} />
+                      </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                          <button
+                            onClick={() => openProfile(p.authorId)}
+                            style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          >
+                            {p.authorName}
+                          </button>
+                          <span style={{ fontSize: 11, color: colors.textMutedSoft }}>{p.time}</span>
+                          {(p.authorId === user?.id || isOwner) && (
+                            <button
+                              onClick={() => handleDeletePost(p.key)}
+                              style={{ marginLeft: "auto", border: "none", background: "none", padding: "0 2px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, color: colors.textMutedAlt }}
+                            >
+                              削除
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.8, color: colors.textSecondary, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                          {p.body}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
