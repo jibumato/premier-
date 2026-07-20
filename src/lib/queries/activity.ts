@@ -111,6 +111,54 @@ export function useTodayStats() {
   });
 }
 
+export interface WeeklyDigest {
+  awase: number;
+  groups: number;
+  reviews: number;
+  posts: number;
+  total: number;
+}
+
+/**
+ * 「今週のプルミエ」ダイジェスト（運営生存感）。直近7日でプラットフォームに
+ * 生まれたものを種類別に数える。凍結した老舗（更新が止まった競合）との差＝
+ * 「いまも動いている」を、ファーストビューで一目で伝えるための指標。
+ *
+ * 各テーブルの count を独立に集計し、未適用マイグレーション等で一部が落ちても
+ * その種類を 0 として続行する（allSettled）。=1つの失敗でホームを壊さない。
+ */
+export function useWeeklyDigest() {
+  return useQuery({
+    queryKey: ["weekly_digest"],
+    enabled: isSupabaseConfigured(),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<WeeklyDigest> => {
+      const supabase = getSupabaseBrowserClient();
+      const since = new Date();
+      since.setDate(since.getDate() - 7);
+      const iso = since.toISOString();
+      const countSince = async (
+        table: "awase" | "groups" | "event_reviews" | "posts",
+        col = "created_at",
+      ): Promise<number> => {
+        const { count, error } = await supabase
+          .from(table)
+          .select("*", { count: "exact", head: true })
+          .gte(col, iso);
+        if (error) throw error;
+        return count ?? 0;
+      };
+      const [awase, groups, reviews, posts] = await Promise.all([
+        countSince("awase").catch(() => 0),
+        countSince("groups").catch(() => 0),
+        countSince("event_reviews").catch(() => 0),
+        countSince("posts").catch(() => 0),
+      ]);
+      return { awase, groups, reviews, posts, total: awase + groups + reviews + posts };
+    },
+  });
+}
+
 // =============================================================================
 // 運営（is_admin）向け: 「最近のうごき」の一覧・個別削除・古い行の一括整理。
 // 削除は RLS で is_admin() に限定（0047）。行の内容自体はトリガー生成のみで
