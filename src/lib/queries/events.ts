@@ -14,6 +14,8 @@ export interface EventListItem {
   tag: string;
   /** 並べ替え・近日判定用の開始日 (YYYY-MM-DD)。未設定なら null。 */
   startsOn: string | null;
+  /** 追加日時（「新着」判定用）。 */
+  createdAt: string | null;
   /** サムネイル画像URL（許諾を得た画像のみ）。無ければ生成デザインで表示。 */
   imageUrl: string | null;
 }
@@ -42,7 +44,7 @@ export function useEvents() {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, venue, region, tag, starts_on, image_url, event_rsvps(count)")
+        .select("id, name, event_date, venue, region, tag, starts_on, created_at, image_url, event_rsvps(count)")
         .order("starts_on", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -54,6 +56,7 @@ export function useEvents() {
         region: string;
         tag: string;
         starts_on: string | null;
+        created_at: string | null;
         image_url: string | null;
         event_rsvps: { count: number }[];
       }[];
@@ -66,6 +69,7 @@ export function useEvents() {
         going: r.event_rsvps?.[0]?.count ?? 0,
         tag: r.tag,
         startsOn: r.starts_on,
+        createdAt: r.created_at,
         imageUrl: r.image_url,
       }));
     },

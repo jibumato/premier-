@@ -160,6 +160,8 @@ export interface EventItem {
   tag: string;
   /** 近日判定用の開始日 (YYYY-MM-DD)。モックでは省略可。 */
   startsOn?: string | null;
+  /** 追加日時（「新着」判定用）。モックでは省略可。 */
+  createdAt?: string | null;
   /** サムネイル画像URL（主催の許諾を得た画像のみ）。無ければ生成デザインで表示。 */
   imageUrl?: string | null;
 }
