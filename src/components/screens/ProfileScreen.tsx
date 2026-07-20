@@ -10,7 +10,7 @@ import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, ChevronRightIcon, FlagIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, SettingsIcon, StarIcon, VerifiedBadgeGhost, XIcon } from "../icons";
 import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
-import { friendlyProfileError, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText } from "@/lib/queries/profile";
+import { friendlyProfileError, parseProfileLinks, PROFILE_LINK_SERVICES, sanitizeLinkUrl, useAwaseAchievementCount, useFollowerCount, useIsFollowing, useProfile, useToggleFollow, useUpdateProfileImage, useUpdateProfileText, type ProfileLink } from "@/lib/queries/profile";
 import { useGetOrCreateConversation } from "@/lib/queries/messages";
 import { useCreatePost, useDeletePost, useMyPostLikes, usePosts, useReorderPosts, useTogglePostLike, useUpdatePostVisibility, useUpdatePostWork } from "@/lib/queries/posts";
 import { useAwaseHistory } from "@/lib/queries/awase";
@@ -22,22 +22,13 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/lib/database.types";
 
-/**
- * External support links (Fantia / pixivFANBOX / Skeb). Per the handoff
- * Constraints, in-app payments are NOT implemented — only outbound links to
- * external services, shown ONLY to age-verified (18+) users (zoning).
- */
-const supportLinks = [
-  { key: "fantia", name: "Fantia", handle: "@mio_cos" },
-  { key: "fanbox", name: "pixivFANBOX", handle: "mio-fanbox" },
-  { key: "skeb", name: "Skeb", handle: "@mio" },
-];
-
-// ローンチ時は非表示（いずれも現状は非機能のため）。
-//  - supportLinks: プロフィールに紐づく実URLがまだ無く、リンクが開かない
-//  - gift: アプリ内課金（コイン）が未実装
-// 実装が入ったら true に戻すだけで復活する。
-const LAUNCH_FLAGS = { supportLinks: false, gift: false };
+// 応援・支援リンク（Fantia / pixivFANBOX / BOOTH / Skeb）は本人が登録した実URL
+// を profiles.links（0075）から表示する。アプリ内課金は無く外部送客のみで、
+// 収益化サービスへのリンクは年齢確認済みの閲覧者にだけ見せる（ゾーニング）。
+//
+// gift（アプリ内課金・コイン）は未実装のためローンチ時は非表示。実装が入ったら
+// true に戻すだけで復活する。
+const LAUNCH_FLAGS = { gift: false };
 
 /** Small translucent ←/→ button used for reordering gallery thumbnails. */
 function moveBtnStyle(disabled: boolean): CSSProperties {
@@ -83,6 +74,9 @@ const ROLE_OPTIONS: { key: UserRole; label: string }[] = [
   { key: "photographer", label: "カメラマン" },
   { key: "both", label: "両方" },
 ];
+
+/** 外部リンク（0075）のサービスキー → メタ情報の逆引き。 */
+const SERVICE_BY_KEY = new Map(PROFILE_LINK_SERVICES.map((s) => [s.key, s]));
 
 export function ProfileScreen() {
   const { back, nav, openChat, openReport, openAwase, openEvent, selectedProfileId } = useRouter();
@@ -132,6 +126,7 @@ export function ProfileScreen() {
   const [handleInput, setHandleInput] = useState("");
   const [searchableByName, setSearchableByName] = useState(false);
   const [roleInput, setRoleInput] = useState<UserRole>("layer");
+  const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
   const [editError, setEditError] = useState<string | null>(null);
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
@@ -230,6 +225,16 @@ export function ProfileScreen() {
   const xHandle = real ? (real.x_handle ?? "") : "mio_cos";
   // @ユーザーネーム。自動採番のデフォルト値（user_xxxxxxxx）は「未設定」扱いで表示しない。
   const username = real ? (isDefaultHandle(real.handle) ? "" : real.handle) : "mio_cos";
+  // 外部リンク（0075）。プロトタイプ（未接続）ではデモ用のサンプルを見せる。
+  const profileLinks: ProfileLink[] = real
+    ? parseProfileLinks(real.links)
+    : [
+        { type: "pixiv", url: "https://www.pixiv.net/users/000" },
+        { type: "instagram", url: "https://www.instagram.com/mio_cos" },
+        { type: "fantia", url: "https://fantia.jp/fanclubs/000" },
+      ];
+  const snsLinks = profileLinks.filter((l) => SERVICE_BY_KEY.get(l.type)?.category === "sns");
+  const supportProfileLinks = profileLinks.filter((l) => SERVICE_BY_KEY.get(l.type)?.category === "support");
   const stats = [
     { n: posts ? String(posts.length) : "128", l: "投稿" },
     { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
@@ -285,6 +290,9 @@ export function ProfileScreen() {
     setHandleInput(isDefaultHandle(real?.handle) ? "" : (real?.handle ?? ""));
     setSearchableByName(Boolean(real?.searchable_by_name));
     setRoleInput(real?.role ?? "layer");
+    const initLinks: Record<string, string> = {};
+    for (const l of parseProfileLinks(real?.links)) initLinks[l.type] = l.url;
+    setLinkInputs(initLinks);
     setEditError(null);
     setEditing(true);
   };
@@ -301,6 +309,18 @@ export function ProfileScreen() {
       }
       handleArg = nextHandle;
     }
+    // 外部リンク（0075）: 入力のあるサービスだけ整形して保存。無効URLは中断。
+    const nextLinks: ProfileLink[] = [];
+    for (const svc of PROFILE_LINK_SERVICES) {
+      const raw = (linkInputs[svc.key] ?? "").trim();
+      if (!raw) continue;
+      const safe = sanitizeLinkUrl(raw);
+      if (!safe) {
+        setEditError(`${svc.label} のURLが正しくありません。https:// から始まるURLを入力してください。`);
+        return;
+      }
+      nextLinks.push({ type: svc.key, url: safe });
+    }
     updateText.mutate(
       {
         userId: user.id,
@@ -310,6 +330,7 @@ export function ProfileScreen() {
         handle: handleArg,
         searchableByName,
         role: roleInput,
+        links: nextLinks,
       },
       {
         onSuccess: () => setEditing(false),
@@ -525,6 +546,36 @@ export function ProfileScreen() {
             <XIcon size={13} color={colors.textPrimary} />
             <span style={{ fontSize: 12, fontWeight: 700, color: colors.textPrimary }}>@{xHandle}</span>
           </a>
+        )}
+
+        {/* 外部リンク（SNS/サイト・0075）。未ログインで他人を見ているときは出さない。 */}
+        {!maskIdentity && snsLinks.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+            {snsLinks.map((l) => (
+              <a
+                key={l.type}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: `1px solid ${colors.borderSoft}`,
+                  background: colors.white,
+                  textDecoration: "none",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: colors.textPrimary,
+                }}
+              >
+                {SERVICE_BY_KEY.get(l.type)?.label ?? l.type}
+                <span style={{ fontSize: 10.5, color: colors.primary }}>↗</span>
+              </a>
+            ))}
+          </div>
         )}
 
         {/* stats */}
@@ -797,6 +848,53 @@ export function ProfileScreen() {
               </p>
             </div>
 
+            {/* 外部リンク（0075）。入力したものだけプロフィールに表示。応援・支援系
+                （Fantia等）は年齢確認済みの閲覧者にだけ見える（ゾーニング）。 */}
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: colors.textSecondary }}>リンク</label>
+              <p style={{ margin: "5px 2px 9px", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+                SNSや支援サービスのURLをまとめて置けます。入力したものだけ表示されます。
+                <span style={{ color: colors.pink }}>応援・支援系（Fantia等）は年齢確認済みの人にだけ表示</span>されます。
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {PROFILE_LINK_SERVICES.map((svc) => (
+                  <div key={svc.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        flex: "0 0 92px",
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        color: svc.category === "support" ? colors.pink : colors.textSecondary,
+                      }}
+                    >
+                      {svc.label}
+                    </span>
+                    <input
+                      value={linkInputs[svc.key] ?? ""}
+                      onChange={(e) => setLinkInputs((prev) => ({ ...prev, [svc.key]: e.target.value }))}
+                      maxLength={300}
+                      placeholder={svc.placeholder}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      inputMode="url"
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: 10,
+                        padding: "9px 11px",
+                        fontSize: 12.5,
+                        fontFamily: "inherit",
+                        outline: "none",
+                        background: colors.white,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* 活動タイプ（役割）。オンボーディングで選んだものを後から変更できる。
                 「両方」はレイヤー/カメラマンどちらの検索絞り込みでも見つかる。 */}
             <div>
@@ -892,8 +990,10 @@ export function ProfileScreen() {
         )}
       </div>
 
-      {/* support links (age-gated, external only) */}
-      {LAUNCH_FLAGS.supportLinks && ageVerified && (
+      {/* 応援・支援リンク（0075）。収益化サービスへの外部リンクは、閲覧者が
+          年齢確認済みのときだけ表示する（ゾーニング）。他人を未ログインで見て
+          いるとき（maskIdentity）は出さない。 */}
+      {!maskIdentity && ageVerified && supportProfileLinks.length > 0 && (
         <div style={{ padding: "26px 22px 0" }}>
           <SectionHeading accent={colors.pink} size={15}>
             応援・支援リンク
@@ -902,11 +1002,12 @@ export function ProfileScreen() {
             外部サービスへのリンクです。サイト内にアダルトコンテンツはありません。
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 12 }}>
-            {supportLinks.map((s) => (
+            {supportProfileLinks.map((l) => (
               <a
-                key={s.key}
-                href="#"
-                onClick={(e) => e.preventDefault()}
+                key={l.type}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -918,11 +1019,15 @@ export function ProfileScreen() {
                   textDecoration: "none",
                 }}
               >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>{s.name}</div>
-                  <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2 }}>{s.handle}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
+                    {SERVICE_BY_KEY.get(l.type)?.label ?? l.type}
+                  </div>
+                  <div style={{ fontSize: 11, color: colors.textMutedAlt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {l.url.replace(/^https?:\/\//, "")}
+                  </div>
                 </div>
-                <span style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, whiteSpace: "nowrap", marginLeft: 10 }}>
                   開く ↗
                 </span>
               </a>

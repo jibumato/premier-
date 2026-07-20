@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import type { Tables, UserRole } from "@/lib/database.types";
+import type { Json, Tables, UserRole } from "@/lib/database.types";
 
 export interface UserSearchResult {
   id: string;
@@ -12,6 +12,76 @@ export interface UserSearchResult {
   avatarUrl: string | null;
   isVerified: boolean;
   role: UserRole | null;
+}
+
+// =============================================================================
+// プロフィールの外部リンク集約（0075）
+//   プルミエを「活動の名刺／ホーム」にするための土台。SNS 系は誰でも、
+//   支援（収益化）系は閲覧者が年齢確認済みのときだけ表示する（ゾーニング）。
+// =============================================================================
+
+export interface ProfileLink {
+  type: string;
+  url: string;
+}
+
+export type ProfileLinkCategory = "sns" | "support";
+
+export interface ProfileLinkService {
+  key: string;
+  label: string;
+  category: ProfileLinkCategory;
+  placeholder: string;
+}
+
+/** 選べる外部サービス。support 系は「応援・支援リンク」として年齢確認済みに限定表示。 */
+export const PROFILE_LINK_SERVICES: ProfileLinkService[] = [
+  { key: "pixiv", label: "pixiv", category: "sns", placeholder: "https://www.pixiv.net/users/…" },
+  { key: "instagram", label: "Instagram", category: "sns", placeholder: "https://www.instagram.com/…" },
+  { key: "youtube", label: "YouTube", category: "sns", placeholder: "https://www.youtube.com/@…" },
+  { key: "tiktok", label: "TikTok", category: "sns", placeholder: "https://www.tiktok.com/@…" },
+  { key: "niconico", label: "ニコニコ", category: "sns", placeholder: "https://www.nicovideo.jp/user/…" },
+  { key: "website", label: "サイト / その他", category: "sns", placeholder: "https://…" },
+  { key: "fantia", label: "Fantia", category: "support", placeholder: "https://fantia.jp/fanclubs/…" },
+  { key: "fanbox", label: "pixivFANBOX", category: "support", placeholder: "https://xxx.fanbox.cc" },
+  { key: "booth", label: "BOOTH", category: "support", placeholder: "https://xxx.booth.pm" },
+  { key: "skeb", label: "Skeb", category: "support", placeholder: "https://skeb.jp/@…" },
+];
+
+const KNOWN_LINK_KEYS = new Set(PROFILE_LINK_SERVICES.map((s) => s.key));
+
+/** http(s) のみ許可し、スキーム補完・整形して返す。無効なら null。 */
+export function sanitizeLinkUrl(input: string): string | null {
+  const s = input.trim();
+  if (!s) return null;
+  const candidate = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  try {
+    const u = new URL(candidate);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    if (!u.hostname.includes(".")) return null;
+    return u.toString().slice(0, 300);
+  } catch {
+    return null;
+  }
+}
+
+/** JSONB(profiles.links) を安全に ProfileLink[] へ。未知型・重複・壊れた値は捨てる。 */
+export function parseProfileLinks(raw: unknown): ProfileLink[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ProfileLink[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const t = (item as { type?: unknown }).type;
+    const u = (item as { url?: unknown }).url;
+    if (typeof t !== "string" || typeof u !== "string") continue;
+    if (!KNOWN_LINK_KEYS.has(t) || seen.has(t)) continue;
+    const safe = sanitizeLinkUrl(u);
+    if (!safe) continue;
+    seen.add(t);
+    out.push({ type: t, url: safe });
+  }
+  return out;
 }
 
 /** ユーザータブの役割絞り込み。"" は絞り込みなし。 */
@@ -292,6 +362,7 @@ export function useUpdateProfileText() {
       handle,
       searchableByName,
       role,
+      links,
     }: {
       userId: string;
       displayName: string;
@@ -304,6 +375,8 @@ export function useUpdateProfileText() {
       searchableByName: boolean;
       /** 活動タイプ（レイヤー/カメラマン/両方）。undefined なら変更しない。 */
       role?: UserRole;
+      /** 外部リンク（0075）。undefined なら変更しない。 */
+      links?: ProfileLink[];
     }) => {
       const supabase = getSupabaseBrowserClient();
       const patch: {
@@ -313,6 +386,7 @@ export function useUpdateProfileText() {
         searchable_by_name: boolean;
         handle?: string;
         role?: UserRole;
+        links?: Json;
       } = {
         display_name: displayName,
         bio,
@@ -321,6 +395,7 @@ export function useUpdateProfileText() {
       };
       if (handle !== undefined) patch.handle = handle;
       if (role !== undefined) patch.role = role;
+      if (links !== undefined) patch.links = links as unknown as Json;
       const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
       if (error) throw error;
     },
