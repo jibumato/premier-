@@ -12,6 +12,15 @@
 --     ときだけ表示する（既存のゾーニング方針を踏襲。表示制御はクライアント）。
 -- =============================================================================
 
-alter table profiles
-  add column links jsonb not null default '[]'::jsonb
-  check (jsonb_typeof(links) = 'array' and jsonb_array_length(links) <= 12);
+-- 冪等化: 既に links カラムが存在する環境でも再実行できるようにする
+-- （add column if not exists＋check制約は名前を付けて条件付きで追加）。
+alter table profiles add column if not exists links jsonb not null default '[]'::jsonb;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'profiles_links_check') then
+    alter table profiles
+      add constraint profiles_links_check
+      check (jsonb_typeof(links) = 'array' and jsonb_array_length(links) <= 12);
+  end if;
+end $$;
