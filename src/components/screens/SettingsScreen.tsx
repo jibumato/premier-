@@ -9,7 +9,7 @@ import { ChevronRightIcon } from "../icons";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAuth } from "@/lib/auth/useAuth";
-import { useProfile, useUpdatePrivacy } from "@/lib/queries/profile";
+import { useProfile, useUpdatePrivacy, useUpdateNotificationPrefs } from "@/lib/queries/profile";
 import { useDeleteAccount } from "@/lib/queries/account";
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -100,6 +100,23 @@ export function SettingsScreen() {
       setMockPrivate(on);
     }
   };
+
+  // 通知設定（種別ごとON/OFF）。本番は profiles.notification_prefs に保存。
+  // オプトアウト方式: キーが無ければオン。false のときだけミュート。
+  const updateNotifPrefs = useUpdateNotificationPrefs();
+  const [mockNotif, setMockNotif] = useState<Record<string, boolean>>({});
+  const notifPrefs = configured
+    ? ((profile.data?.notification_prefs ?? {}) as Record<string, boolean>)
+    : mockNotif;
+  const eventNotifOn = notifPrefs.event !== false;
+  const socialNotifOn = notifPrefs.social !== false;
+  const handleNotifChange = (category: "event" | "social", on: boolean) => {
+    if (configured && user) {
+      updateNotifPrefs.mutate({ userId: user.id, current: notifPrefs, category, enabled: on });
+    } else {
+      setMockNotif((prev) => ({ ...prev, [category]: on }));
+    }
+  };
   const [showDelete, setShowDelete] = useState(false);
 
   const handleDeleteAccount = async () => {
@@ -131,8 +148,24 @@ export function SettingsScreen() {
     <div style={{ paddingBottom: 30 }}>
       <AppBar title="設定" onBack={back} />
 
-      {/* 通知設定のトグルは、プッシュ通知基盤が未実装のため撤去した。
-          （保存もされないダミーだった）実装時にここへ「通知」グループを戻す。 */}
+      <Group title="通知">
+        <ToggleRow
+          title="イベントのお知らせ"
+          desc="参加表明したイベントの開催前リマインド・開催後のレビュー催促"
+          on={eventNotifOn}
+          onChange={(on) => handleNotifChange("event", on)}
+        />
+        <ToggleRow
+          title="フォロー・いいねなど"
+          desc="フォロー・いいね・新しい投稿のお知らせ"
+          on={socialNotifOn}
+          onChange={(on) => handleNotifChange("social", on)}
+          last
+        />
+      </Group>
+      <p style={{ padding: "8px 24px 0", margin: 0, fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.7 }}>
+        ※ 併せの応募・メッセージ・本人確認など、大切なお知らせは常にお届けします。
+      </p>
 
       <Group title="プライバシー">
         <ToggleRow
@@ -144,9 +177,11 @@ export function SettingsScreen() {
         />
       </Group>
 
-      <p style={{ padding: "10px 24px 0", margin: 0, fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.7 }}>
-        ※ 通知・プライバシーの各設定の保存は現在準備中です。切り替えは一時的に反映されますが、まだ保存されません。
-      </p>
+      {!configured && (
+        <p style={{ padding: "10px 24px 0", margin: 0, fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.7 }}>
+          ※ プレビュー版では設定は保存されません（切り替えは一時的に反映されます）。
+        </p>
+      )}
 
       <Group title="安全とサポート">
         <LinkRow title="ブロックしたユーザー" onClick={() => nav("report")} />

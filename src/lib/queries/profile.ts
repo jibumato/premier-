@@ -134,6 +134,36 @@ export function useUpdatePrivacy() {
   });
 }
 
+/** 通知設定（種別ごとのON/OFF）の保存。profiles.notification_prefs（JSONB）を
+ * 部分マージで更新する。オプトアウト方式（キーが無ければ届く／false でミュート）。 */
+export function useUpdateNotificationPrefs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      current,
+      category,
+      enabled,
+    }: {
+      userId: string;
+      /** 現在の notification_prefs（マージ元）。 */
+      current: Record<string, boolean>;
+      /** 切り替えるカテゴリ（"event" / "social"）。 */
+      category: string;
+      enabled: boolean;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      const next = { ...current, [category]: enabled };
+      const { error } = await supabase.from("profiles").update({ notification_prefs: next }).eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { userId }) => {
+      qc.invalidateQueries({ queryKey: ["profile", userId] });
+      qc.invalidateQueries({ queryKey: ["notifications", userId] });
+    },
+  });
+}
+
 /** 自分（viewer）が target をフォローしているか。 */
 export function useIsFollowing(viewerId: string | undefined, targetId: string | undefined) {
   return useQuery({
