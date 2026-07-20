@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { colors } from "@/lib/tokens";
 import { notifications as mockNotifications } from "@/lib/data";
 import { useRouter } from "../AppRouter";
-import { CalendarIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, UserIcon } from "../icons";
+import { CalendarIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, StarIcon, UserIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -28,6 +28,8 @@ function notificationVisual(kind: string | undefined): { bg: string; icon: React
       return { bg: colors.pinkAlt, icon: <CameraIcon size={17} color={colors.white} /> };
     case "event_reminder":
       return { bg: colors.primary, icon: <CalendarIcon size={17} color={colors.white} /> };
+    case "review_nudge":
+      return { bg: colors.starGold, icon: <StarIcon size={16} filled color={colors.white} /> };
     default:
       return { bg: colors.textMutedSoft, icon: <MessageIcon size={17} color={colors.white} /> };
   }
@@ -85,7 +87,7 @@ export function NotifyScreen() {
                 ? () => nav("profile", "mypage")
                 : (n.kind === "follow" || n.kind === "post") && n.entityId
                   ? () => openProfile(n.entityId!)
-                  : n.kind === "event_reminder" && n.entityId
+                  : (n.kind === "event_reminder" || n.kind === "review_nudge") && n.entityId
                     ? () => openEvent(n.entityId!)
                     : null;
           const visual = notificationVisual(n.kind);
