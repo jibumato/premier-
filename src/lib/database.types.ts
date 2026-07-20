@@ -80,6 +80,34 @@ export interface Database {
         Update: Partial<{ user_id: string; work_id: string }>;
         Relationships: [];
       };
+      groups: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          description: string;
+          work_id: string | null;
+          region: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          name: string;
+          description?: string;
+          work_id?: string | null;
+          region?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["groups"]["Insert"]>;
+        Relationships: [];
+      };
+      group_members: {
+        Row: { group_id: string; user_id: string; role: string; joined_at: string };
+        Insert: { group_id: string; user_id: string; role?: string; joined_at?: string };
+        Update: Partial<{ group_id: string; user_id: string; role: string; joined_at: string }>;
+        Relationships: [];
+      };
       follows: {
         Row: { follower_id: string; followee_id: string; created_at: string };
         Insert: { follower_id: string; followee_id: string; created_at?: string };

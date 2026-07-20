@@ -140,6 +140,18 @@ export function UserIcon({ size = 23, color = "#B4AEC0", style }: IconProps) {
   );
 }
 
+/** Two-person icon for groups/circles (サークル). */
+export function UsersIcon({ size = 23, color = "#6D5DAB", style }: IconProps) {
+  return (
+    <svg {...base(size, color, style)}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6" />
+      <path d="M16 5.2a3.2 3.2 0 0 1 0 6.1" />
+      <path d="M17.5 14.6c2.6.5 4 2.3 4 5.1" />
+    </svg>
+  );
+}
+
 /** Filled heart (like badge). */
 export function HeartIcon({ size = 8, color = "#fff", style }: IconProps) {
   return (
