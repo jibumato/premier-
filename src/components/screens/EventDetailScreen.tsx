@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
@@ -19,6 +19,9 @@ import {
   useIsInterested,
   useInterestEvent,
   useCancelInterest,
+  useEventReviews,
+  useMyEventReview,
+  useSubmitEventReview,
 } from "@/lib/queries/events";
 import { useEventAwase } from "@/lib/queries/awase";
 import { useModerationFilter } from "@/lib/queries/moderation";
@@ -54,6 +57,23 @@ export function EventDetailScreen() {
   // このイベントに紐づく併せ募集（0068 の event_id 紐付け）。興味→仲間探しの導線。
   const eventAwaseQuery = useEventAwase(selectedEventId, moderation.data);
   const eventAwase = eventAwaseQuery.data ?? [];
+  // 開催後レビュー（0069）。会場の鮮度ある評判を積み上げる。
+  const reviewsQuery = useEventReviews(selectedEventId, moderation.data?.blockedUserIds ?? []);
+  const reviews = reviewsQuery.data ?? [];
+  const myReviewQuery = useMyEventReview(selectedEventId, user?.id);
+  const submitReview = useSubmitEventReview();
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const reviewPrefilled = useRef(false);
+  useEffect(() => {
+    if (reviewPrefilled.current) return;
+    const mine = myReviewQuery.data;
+    if (mine) {
+      reviewPrefilled.current = true;
+      setReviewRating(mine.rating);
+      setReviewComment(mine.comment);
+    }
+  }, [myReviewQuery.data]);
 
   const real = configured && selectedEventId ? eventQuery.data : undefined;
   const loading = configured && Boolean(selectedEventId) && eventQuery.isPending && !eventQuery.data;
@@ -106,6 +126,22 @@ export function EventDetailScreen() {
       return;
     }
     if (selectedEventId) openCreateForEvent(selectedEventId);
+  };
+
+  // 開催後レビュー: 開催日を過ぎ、かつ参加表明済みの本人だけが書ける（RLSと一致）。
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const isPastEvent = Boolean(real?.startsOn) && (real!.startsOn as string) < todayStr;
+  const canWriteReview = configured && Boolean(user) && going && isPastEvent;
+  const hasReviewed = Boolean(myReviewQuery.data);
+  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+
+  const handleSubmitReview = () => {
+    if (!user || !selectedEventId || reviewRating < 1 || submitReview.isPending) return;
+    submitReview.mutate(
+      { eventId: selectedEventId, userId: user.id, rating: reviewRating, comment: reviewComment.trim() },
+      { onError: () => showToast("レビューの投稿に失敗しました。もう一度お試しください。") },
+    );
   };
 
   const handleToggleInterest = () => {
@@ -369,6 +405,148 @@ export function EventDetailScreen() {
           >
             このイベントで併せを募集する
           </button>
+        </div>
+      )}
+
+      {/* 会場・イベントの参加後レビュー（0069）。行った人しか書けない鮮度ある評判を
+          積み上げ、初参加者が安心して行けるかを事前に判断できるようにする。 */}
+      {real && (
+        <div style={{ padding: "24px 22px 0" }}>
+          <SectionHeading
+            size={15}
+            right={
+              reviews.length ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <StarIcon size={13} filled color="#E0A93B" />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>{avgRating.toFixed(1)}</span>
+                  <span style={{ fontSize: 11, color: colors.textMutedAlt }}>（{reviews.length}件）</span>
+                </span>
+              ) : undefined
+            }
+          >
+            会場・イベントのレビュー
+          </SectionHeading>
+
+          {canWriteReview && (
+            <div
+              style={{
+                marginTop: 13,
+                border: `1px solid ${colors.borderSoft}`,
+                borderRadius: 16,
+                padding: "15px 16px",
+                background: colors.primaryBg5,
+              }}
+            >
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>
+                {hasReviewed ? "あなたのレビュー" : "参加おつかれさまでした！会場はどうでしたか？"}
+              </div>
+              <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setReviewRating(n)}
+                    aria-label={`${n}点`}
+                    style={{ border: "none", background: "none", padding: 2, cursor: "pointer", display: "flex" }}
+                  >
+                    <StarIcon size={26} filled={n <= reviewRating} color={n <= reviewRating ? "#E0A93B" : "#D8D3E2"} />
+                  </button>
+                ))}
+              </div>
+              <input
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                maxLength={140}
+                placeholder="混雑・撮影環境・アクセス・更衣室など（任意）"
+                style={{
+                  width: "100%",
+                  marginTop: 10,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 12,
+                  padding: "11px 13px",
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  outline: "none",
+                  background: colors.white,
+                }}
+              />
+              <button
+                onClick={handleSubmitReview}
+                disabled={reviewRating < 1 || submitReview.isPending}
+                style={{
+                  width: "100%",
+                  marginTop: 10,
+                  border: "none",
+                  background: colors.primary,
+                  color: colors.white,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "12px 0",
+                  borderRadius: 13,
+                  cursor: reviewRating < 1 || submitReview.isPending ? "default" : "pointer",
+                  opacity: reviewRating < 1 ? 0.5 : 1,
+                }}
+              >
+                {submitReview.isPending ? "送信中…" : hasReviewed ? "レビューを更新" : "レビューを投稿"}
+              </button>
+              {submitReview.isSuccess && (
+                <div style={{ fontSize: 11, color: colors.positive, marginTop: 8, textAlign: "center" }}>
+                  ありがとうございます！これから行く人の参考になります。
+                </div>
+              )}
+            </div>
+          )}
+
+          {reviews.length === 0 ? (
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
+              まだレビューはありません。
+              {isPastEvent
+                ? "参加した方は、これから行く人のために会場の様子を教えてあげましょう。"
+                : "開催後、参加した人のレビューがここに表示されます。"}
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
+              {reviews.map((rv) => (
+                <div key={rv.userId} style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => openProfile(rv.userId)}
+                    style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flex: "0 0 auto" }}
+                  >
+                    <div style={{ position: "relative", width: 36, height: 36 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden" }}>
+                        <ImageSlot circle src={rv.avatarUrl ?? undefined} />
+                      </div>
+                      {rv.isVerified && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src="/verified-badge.png"
+                          alt="本人確認済"
+                          width={13}
+                          height={13}
+                          style={{ position: "absolute", right: -2, bottom: -2, display: "block" }}
+                        />
+                      )}
+                    </div>
+                  </button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>{rv.displayName}</span>
+                      <span style={{ display: "flex", gap: 1 }}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <StarIcon key={n} size={11} filled={n <= rv.rating} color={n <= rv.rating ? "#E0A93B" : "#D8D3E2"} />
+                        ))}
+                      </span>
+                    </div>
+                    {rv.comment && (
+                      <p style={{ margin: "4px 0 0", fontSize: 12.5, color: colors.textSecondary, lineHeight: 1.7 }}>
+                        {rv.comment}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

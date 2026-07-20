@@ -28,6 +28,8 @@ export interface EventDetail {
   feeText: string | null;
   body: string | null;
   going: number;
+  /** 開催日 (YYYY-MM-DD)。開催後レビューの可否判定に使う。未設定なら null。 */
+  startsOn: string | null;
   imageUrl: string | null;
 }
 
@@ -79,7 +81,7 @@ export function useEvent(eventId: string | null) {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, venue, region, tag, fee_text, body, image_url, event_rsvps(count)")
+        .select("id, name, event_date, venue, region, tag, fee_text, body, starts_on, image_url, event_rsvps(count)")
         .eq("id", eventId!)
         .maybeSingle();
       if (error) throw error;
@@ -93,6 +95,7 @@ export function useEvent(eventId: string | null) {
         tag: string;
         fee_text: string | null;
         body: string | null;
+        starts_on: string | null;
         image_url: string | null;
         event_rsvps: { count: number }[];
       };
@@ -106,6 +109,7 @@ export function useEvent(eventId: string | null) {
         feeText: row.fee_text,
         body: row.body,
         going: row.event_rsvps?.[0]?.count ?? 0,
+        startsOn: row.starts_on,
         imageUrl: row.image_url,
       };
     },
@@ -362,6 +366,121 @@ export function useCancelInterest() {
     onSuccess: (_d, { eventId, userId }) => {
       qc.invalidateQueries({ queryKey: ["event_interest_count", eventId] });
       qc.invalidateQueries({ queryKey: ["event_interest", eventId, userId] });
+    },
+  });
+}
+
+// =============================================================================
+// 開催後レビュー（event_reviews / 0069）— 参加者が会場・イベントを一言評価する。
+// 「行った人しか書けない」信頼と、凍結DBが持てない鮮度を自動で積み上げる。
+// =============================================================================
+
+export interface EventReview {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+/** イベントの参加後レビュー一覧（新しい順）。ブロック相手・停止中は除外。
+ * event_reviews 未作成（マイグレーション未適用）でも詳細画面を巻き込まないよう
+ * retry を抑制する。 */
+export function useEventReviews(
+  eventId: string | null,
+  blockedUserIds: string[] = [],
+) {
+  return useQuery({
+    queryKey: ["event_reviews", eventId, blockedUserIds],
+    enabled: isSupabaseConfigured() && Boolean(eventId),
+    retry: false,
+    queryFn: async (): Promise<EventReview[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_reviews")
+        .select(
+          "user_id, rating, comment, created_at, profiles!event_reviews_user_id_fkey(id, display_name, avatar_url, is_verified, is_suspended)",
+        )
+        .eq("event_id", eventId!)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      type Row = {
+        user_id: string;
+        rating: number;
+        comment: string;
+        created_at: string;
+        profiles: {
+          id: string;
+          display_name: string;
+          avatar_url: string | null;
+          is_verified: boolean;
+          is_suspended: boolean;
+        } | null;
+      };
+      const blocked = new Set(blockedUserIds);
+      return ((data ?? []) as unknown as Row[])
+        .filter((r) => r.profiles && !r.profiles.is_suspended && !blocked.has(r.profiles.id))
+        .map((r) => ({
+          userId: r.user_id,
+          displayName: r.profiles!.display_name,
+          avatarUrl: r.profiles!.avatar_url,
+          isVerified: r.profiles!.is_verified,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.created_at,
+        }));
+    },
+  });
+}
+
+/** 自分がこのイベントに残したレビュー（編集・重複投稿の判定用）。 */
+export function useMyEventReview(eventId: string | null, userId: string | undefined) {
+  return useQuery({
+    queryKey: ["my_event_review", eventId, userId],
+    enabled: isSupabaseConfigured() && Boolean(eventId) && Boolean(userId),
+    retry: false,
+    queryFn: async (): Promise<{ rating: number; comment: string } | null> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("event_reviews")
+        .select("rating, comment")
+        .eq("event_id", eventId!)
+        .eq("user_id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
+  });
+}
+
+/** 参加後レビューの投稿／編集（upsert）。RLSにより参加表明済みの本人のみ許可。 */
+export function useSubmitEventReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      eventId,
+      userId,
+      rating,
+      comment,
+    }: {
+      eventId: string;
+      userId: string;
+      rating: number;
+      comment: string;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("event_reviews").upsert(
+        { event_id: eventId, user_id: userId, rating, comment, updated_at: new Date().toISOString() },
+        { onConflict: "event_id,user_id" },
+      );
+      if (error) throw error;
+    },
+    onSuccess: (_d, { eventId, userId }) => {
+      qc.invalidateQueries({ queryKey: ["event_reviews", eventId] });
+      qc.invalidateQueries({ queryKey: ["my_event_review", eventId, userId] });
     },
   });
 }
