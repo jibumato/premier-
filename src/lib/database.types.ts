@@ -415,6 +415,26 @@ export interface Database {
         Update: Partial<{ event_id: string; user_id: string; created_at: string }>;
         Relationships: [];
       };
+      event_reviews: {
+        Row: {
+          event_id: string;
+          user_id: string;
+          rating: number;
+          comment: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          event_id: string;
+          user_id: string;
+          rating: number;
+          comment?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_reviews"]["Insert"]>;
+        Relationships: [];
+      };
       market_items: {
         Row: {
           id: string;

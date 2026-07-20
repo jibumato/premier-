@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { colors } from "@/lib/tokens";
 import { notifications as mockNotifications } from "@/lib/data";
 import { useRouter } from "../AppRouter";
-import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, UserIcon } from "../icons";
+import { CalendarIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, HeartIcon, MeisterIcon, MessageIcon, PlusIcon, UserIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMarkNotificationsRead, useNotifications } from "@/lib/queries/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -26,13 +26,15 @@ function notificationVisual(kind: string | undefined): { bg: string; icon: React
       return { bg: colors.starGold, icon: <MeisterIcon size={18} color={colors.white} /> };
     case "post":
       return { bg: colors.pinkAlt, icon: <CameraIcon size={17} color={colors.white} /> };
+    case "event_reminder":
+      return { bg: colors.primary, icon: <CalendarIcon size={17} color={colors.white} /> };
     default:
       return { bg: colors.textMutedSoft, icon: <MessageIcon size={17} color={colors.white} /> };
   }
 }
 
 export function NotifyScreen() {
-  const { back, nav, openAwase, openProfile } = useRouter();
+  const { back, nav, openAwase, openProfile, openEvent } = useRouter();
   const { user } = useAuth();
   const configured = isSupabaseConfigured();
   const notifsQuery = useNotifications(user?.id);
@@ -83,7 +85,9 @@ export function NotifyScreen() {
                 ? () => nav("profile", "mypage")
                 : (n.kind === "follow" || n.kind === "post") && n.entityId
                   ? () => openProfile(n.entityId!)
-                  : null;
+                  : n.kind === "event_reminder" && n.entityId
+                    ? () => openEvent(n.entityId!)
+                    : null;
           const visual = notificationVisual(n.kind);
           const inner = (
             <>
