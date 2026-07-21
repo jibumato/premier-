@@ -42,11 +42,18 @@ export function EventsScreen() {
 
   const eventsQuery = useEvents();
   const real = configured ? eventsQuery.data : undefined;
-  const events = configured ? (eventsQuery.data ?? []) : mockEvents;
+  const allEvents = configured ? (eventsQuery.data ?? []) : mockEvents;
   const loading = configured && eventsQuery.isPending && !eventsQuery.data;
   const hasError = configured && eventsQuery.isError && !eventsQuery.data;
 
   const [area, setArea] = useState("すべて");
+
+  // 開催が終わったイベントは一覧から外す。開催日当日は表示し、日付を過ぎた
+  // 翌0時（今日の0時 > 開催日）で消える。開催日が未設定（starts_on が無い）の
+  // ものは判定できないため残す。
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const events = allEvents.filter((ev) => !ev.startsOn || new Date(ev.startsOn) >= todayStart);
 
   // 実際にイベントが存在するエリアだけを、既定の並び順でチップに出す
   // （該当のないエリアは表示しない）。先頭は常に「すべて」。軽い計算なので毎回算出。
@@ -125,7 +132,7 @@ export function EventsScreen() {
         {loading && [0, 1, 2].map((i) => <EventCardSkeleton key={i} />)}
         {!loading && !hasError && shownEvents.length === 0 && (
           <div style={{ padding: "48px 22px", textAlign: "center", fontSize: 12.5, color: colors.textMutedAlt, lineHeight: 1.8 }}>
-            このエリアのイベントはまだありません。
+            {area === "すべて" ? "近日開催のイベントはまだありません。" : "このエリアの近日開催イベントはまだありません。"}
           </div>
         )}
         {shownEvents.map((ev) => (
