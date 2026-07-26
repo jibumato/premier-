@@ -4,6 +4,7 @@ import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
+import { RedactionEditor } from "../RedactionEditor";
 import { AppBar, PrimaryButton } from "../ui";
 import { CheckIcon, ShieldIcon } from "../icons";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -30,6 +31,8 @@ export function VerifyScreen() {
 
   const [docUrl, setDocUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // アップロード前のモザイク編集対象。選択直後は必ずここに入り、編集画面を挟む。
+  const [editFile, setEditFile] = useState<File | null>(null);
 
   const real = configured ? profileQuery.data : undefined;
   const alreadyVerified = Boolean(real?.is_verified);
@@ -37,13 +40,21 @@ export function VerifyScreen() {
   const status = configured ? verification.data?.status ?? "none" : "none";
   const isPending = status === "pending";
 
-  const handlePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 画像を選んだら、まずモザイク編集を挟む（アップロードはしない）。
+  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    setDocUrl(null);
+    setEditFile(file);
+  };
+
+  // 編集を確定 → その画像（モザイク済み）をアップロードする。
+  const handleEditConfirm = async (edited: File) => {
+    setEditFile(null);
     setUploading(true);
     try {
-      const result = await uploadImage.mutateAsync({ file, kind: "kyc" });
+      const result = await uploadImage.mutateAsync({ file: edited, kind: "kyc" });
       if (result.url) setDocUrl(result.url);
     } finally {
       setUploading(false);
@@ -170,42 +181,53 @@ export function VerifyScreen() {
             </div>
           )}
 
-          {/* uploader */}
+          {/* uploader / モザイク編集 */}
           <div style={{ padding: "20px 22px 0" }}>
-            <label
-              style={{
-                height: 150,
-                borderRadius: 14,
-                border: `1.5px dashed ${colors.border}`,
-                background: colors.primaryBg5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: configured ? "pointer" : "not-allowed",
-                overflow: "hidden",
-                position: "relative",
-              }}
-            >
-              {docUrl ? (
-                <ImageSlot radius={14} src={docUrl} />
-              ) : (
-                <span style={{ fontSize: 12.5, color: colors.textMutedAlt }}>
-                  {uploading ? "アップロード中…" : "＋ 身分証の画像を選ぶ"}
-                </span>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePick}
-                disabled={!configured}
-                style={{ display: "none" }}
-              />
-            </label>
-            <p style={{ margin: "8px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
-              運転免許証・パスポート・マイナンバーカード（表面のみ）などの顔写真付き身分証。マイナンバーの番号は隠して撮影してください。
-              <br />
-              学生証をお持ちの方は、学生証と健康保険証を並べて1枚の写真に収めてご提出ください（生年月日の確認のため）。
-            </p>
+            {editFile ? (
+              <RedactionEditor file={editFile} onCancel={() => setEditFile(null)} onConfirm={handleEditConfirm} />
+            ) : (
+              <>
+                <label
+                  style={{
+                    height: 150,
+                    borderRadius: 14,
+                    border: `1.5px dashed ${colors.border}`,
+                    background: colors.primaryBg5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: configured ? "pointer" : "not-allowed",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  {docUrl ? (
+                    <ImageSlot radius={14} src={docUrl} />
+                  ) : (
+                    <span style={{ fontSize: 12.5, color: colors.textMutedAlt }}>
+                      {uploading ? "アップロード中…" : "＋ 身分証の画像を選ぶ"}
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePick}
+                    disabled={!configured}
+                    style={{ display: "none" }}
+                  />
+                </label>
+                {docUrl && (
+                  <p style={{ margin: "8px 2px 0", fontSize: 11, color: colors.primary, fontWeight: 600 }}>
+                    ✓ モザイク処理を適用しました。隠し漏れがないか確認してください。
+                  </p>
+                )}
+                <p style={{ margin: "8px 2px 0", fontSize: 10.5, color: colors.textMutedSoft, lineHeight: 1.6 }}>
+                  運転免許証・パスポート・マイナンバーカード（表面のみ）などの顔写真付き身分証。画像を選んだあと、住所やマイナンバー等の不要な情報を指でなぞってモザイクで隠せます。
+                  <br />
+                  学生証をお持ちの方は、学生証と健康保険証を並べて1枚の写真に収めてご提出ください（生年月日の確認のため）。
+                </p>
+              </>
+            )}
           </div>
 
           <div style={{ padding: "22px 22px 0" }}>
