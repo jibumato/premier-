@@ -458,49 +458,25 @@ export function HomeScreen() {
           <div
             className="pt-float"
             style={{
-              position: "relative",
               borderRadius: 18,
               overflow: "hidden",
-              background: "#2D2048",
-              color: colors.white,
+              background: colors.white,
             }}
           >
-            {/* ヒーロー画像 — 見出しは下のHTML側で載せるため、画像はイラスト
-                部分だけを切り出したものを使う（文字の二重表示を避ける）。
-                顔が入るよう上寄りで表示。WebP優先・JPEGフォールバック。 */}
+            {/* ヒーローバナー — ロゴ・見出し・説明まで含んだ完成デザインなので、
+                切り取らず全体をそのまま表示する（文字の重複を避けるため、下には
+                ボタンと補足だけを置く）。WebP優先・JPEGフォールバック。 */}
             <picture>
               <source srcSet="/hero.webp" type="image/webp" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/hero.jpg"
-                alt="イベント会場で笑い合うコスプレイヤーたち"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center 30%",
-                }}
+                alt="プルミエ！ 好きでつながる。撮影仲間・イベント仲間・作品づくりの仲間が見つかるコスプレイヤーのためのコミュニティ"
+                style={{ display: "block", width: "100%", height: "auto" }}
               />
             </picture>
-            {/* 文字を読みやすくするための下方向スクリム */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(to top, rgba(38,26,64,.94) 0%, rgba(38,26,64,.72) 34%, rgba(38,26,64,.12) 68%, rgba(38,26,64,0) 100%)",
-              }}
-            />
-            <div style={{ position: "relative", padding: "150px 18px 16px" }}>
-            <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.5, letterSpacing: ".01em" }}>
-              好きで、つながる。
-            </div>
-            <p style={{ margin: "6px 0 0", fontSize: 11.5, lineHeight: 1.7, color: "rgba(255,255,255,.9)" }}>
-              撮影仲間・イベント仲間・作品づくりの仲間が見つかるコスプレイヤーのためのコミュニティ。
-              <br />
+            <div style={{ padding: "14px 18px 16px", background: colors.primaryBg5 }}>
+            <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.7, color: colors.textSecondary }}>
               閲覧は登録なしでOK。応募・投稿・メッセージは無料登録から（1分で完了）。
             </p>
             <div style={{ display: "flex", gap: 9, marginTop: 13 }}>
@@ -509,8 +485,8 @@ export function HomeScreen() {
                 style={{
                   flex: 1,
                   border: "none",
-                  background: colors.white,
-                  color: colors.primary,
+                  background: colors.primary,
+                  color: colors.white,
                   fontFamily: "inherit",
                   fontSize: 13,
                   fontWeight: 700,
@@ -525,9 +501,9 @@ export function HomeScreen() {
                 onClick={() => nav("login")}
                 style={{
                   flex: "0 0 auto",
-                  border: "1px solid rgba(255,255,255,.6)",
-                  background: "none",
-                  color: colors.white,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.white,
+                  color: colors.textSecondary,
                   fontFamily: "inherit",
                   fontSize: 13,
                   fontWeight: 700,
