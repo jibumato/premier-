@@ -13,10 +13,11 @@
 --   ・出席率は集計値のみ返す（個別イベントの出欠は返さない）。
 -- =============================================================================
 
-alter table awase_applications add column attended boolean;  -- null=未確認, true=出席, false=欠席
+-- 冪等化: 途中まで適用された環境でも安全に再実行できるようにする（0075の教訓）。
+alter table awase_applications add column if not exists attended boolean;  -- null=未確認, true=出席, false=欠席
 
 -- ホスト本人だけが、自分の併せの承認済み参加者の出欠を記録できる。
-create function set_attendance(p_application uuid, p_attended boolean)
+create or replace function set_attendance(p_application uuid, p_attended boolean)
 returns void
 language plpgsql
 security definer set search_path = public
@@ -37,7 +38,7 @@ grant execute on function set_attendance(uuid, boolean) to authenticated;
 
 -- ある参加者の出席実績（集計のみ）。attended=true の数と、記録済み（null以外）の数。
 -- 出席率＝attended / marked はクライアント側で算出し、表示可否も判断する。
-create function user_attendance_stats(p_user uuid)
+create or replace function user_attendance_stats(p_user uuid)
 returns table (attended_count integer, marked_count integer)
 language sql
 stable
