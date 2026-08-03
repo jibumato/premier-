@@ -452,9 +452,9 @@ export function HomeScreen() {
           募集フィードを更新する（他セクションは対象外。手動更新ボタンが無い
           唯一の一覧のため、指ジェスチャーでの更新手段を用意する）。 */}
       <PullToRefresh onRefresh={() => feed.refetch()} refreshing={feed.isFetching}>
-      {/* 未ログイン向けの登録CTA — コンテンツは自由に見てもらいつつ、参加は登録から */}
-      {signedOut && (
-        <div style={{ padding: "12px 22px 0" }}>
+      {/* ヒーロー — バナーはログイン状態にかかわらず常に表示する。
+          登録CTA（補足文＋ボタン）は未ログインのときだけ下に添える。 */}
+      <div style={{ padding: "12px 22px 0" }}>
           <div
             className="pt-float"
             style={{
@@ -475,6 +475,7 @@ export function HomeScreen() {
                 style={{ display: "block", width: "100%", height: "auto" }}
               />
             </picture>
+            {signedOut && (
             <div style={{ padding: "14px 18px 16px", background: colors.primaryBg5 }}>
             <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.7, color: colors.textSecondary }}>
               閲覧は登録なしでOK。応募・投稿・メッセージは無料登録から（1分で完了）。
@@ -516,9 +517,9 @@ export function HomeScreen() {
               </button>
             </div>
             </div>
+            )}
           </div>
-        </div>
-      )}
+      </div>
 
       {/* welcome banner — first-visit greeting, dismissible */}
       <WelcomeBanner />
