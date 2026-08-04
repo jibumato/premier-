@@ -551,7 +551,7 @@ export function HomeScreen() {
 
       {/* いまの活気 — 従来は下部の「にぎわい」セクションまでスクロールしないと
           見えなかった。検索直下に置き、訪問直後に「動いているサービス」だと
-          伝わるようにする（詳しい今日の実績・最近のうごきは従来どおり下段）。
+          伝わるようにする（詳しい7日間の内訳・最近のうごきは従来どおり下段）。
           ただし2人以下の少ない人数では、かえって閑散として見えるため出さない。 */}
       {viewerCount >= 3 && (
         <div style={{ padding: "10px 22px 0", display: "flex", alignItems: "center", gap: 6 }}>
@@ -691,10 +691,13 @@ export function HomeScreen() {
         </div>
       )}
 
-      {/* 今週のプルミエ（運営生存感ダイジェスト）。直近7日で生まれたものを種類別に
-          見せ、「このサイトは今も動いている」を一目で伝える。凍結した競合との差。
-          総数が0のとき（データが浅い/未接続の一部）はうるさくならないよう出さない。 */}
-      {weeklyDigest && weeklyDigest.total > 0 && (
+      {/* 運営生存感ダイジェスト（1枚に統合）。かつては「今週のプルミエ」（7日間の
+          種類別カウント）と「今日の実績・最近のうごき」（今日の件数＋直近の見出し）
+          の2枚に分かれていたが、どちらも「このサイトは今も動いている」を伝える
+          目的が同じで、内容も一部重複していた（新着併せの件数など）。1枚のカードに
+          まとめ、7日間の内訳 → 今日の件数 → 直近の見出し、と粒度が細かくなる順に
+          並べる。凍結した競合との差＝動いている感を、縦の占有を増やさず伝える。 */}
+      {((weeklyDigest && weeklyDigest.total > 0) || activityList.length > 0) && (
         <div style={{ padding: "18px 22px 0" }}>
           <div
             style={{
@@ -704,98 +707,97 @@ export function HomeScreen() {
               background: colors.primaryBg5,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  color: colors.white,
-                  background: colors.positive,
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                }}
-              >
-                今週の動き
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
-                この7日間で {weeklyDigest.total} 件の新しい動きがありました
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              {[
-                { label: "新着併せ", n: weeklyDigest.awase },
-                { label: "新規サークル", n: weeklyDigest.groups },
-                { label: "会場レビュー", n: weeklyDigest.reviews },
-                { label: "みんなの投稿", n: weeklyDigest.posts },
-              ].map((it) => (
-                <div
-                  key={it.label}
-                  style={{
-                    flex: 1,
-                    textAlign: "center",
-                    background: colors.white,
-                    border: `1px solid ${colors.borderSoft}`,
-                    borderRadius: 12,
-                    padding: "9px 0",
-                  }}
-                >
-                  <div style={{ fontSize: 17, fontWeight: 700, color: colors.primary }}>{it.n}</div>
-                  <div style={{ fontSize: 9.5, color: colors.textMutedAlt, marginTop: 2 }}>{it.label}</div>
+            {weeklyDigest && weeklyDigest.total > 0 && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      color: colors.white,
+                      background: colors.positive,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    今週の動き
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>
+                    この7日間で {weeklyDigest.total} 件の新しい動きがありました
+                  </span>
                 </div>
-              ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  {[
+                    { label: "新着併せ", n: weeklyDigest.awase },
+                    { label: "新規サークル", n: weeklyDigest.groups },
+                    { label: "会場レビュー", n: weeklyDigest.reviews },
+                    { label: "みんなの投稿", n: weeklyDigest.posts },
+                  ].map((it) => (
+                    <div
+                      key={it.label}
+                      style={{
+                        flex: 1,
+                        textAlign: "center",
+                        background: colors.white,
+                        border: `1px solid ${colors.borderSoft}`,
+                        borderRadius: 12,
+                        padding: "9px 0",
+                      }}
+                    >
+                      <div style={{ fontSize: 17, fontWeight: 700, color: colors.primary }}>{it.n}</div>
+                      <div style={{ fontSize: 9.5, color: colors.textMutedAlt, marginTop: 2 }}>{it.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: weeklyDigest && weeklyDigest.total > 0 ? 12 : 0,
+              }}
+            >
+              <span style={{ fontSize: 11, color: colors.textMutedAlt }}>
+                今日 併せ{todayStats.newAwase}件・参加{todayStats.newRsvps}件
+              </span>
             </div>
+
+            {activityList.length > 0 && (
+              <div style={{ marginTop: 6 }}>
+                {activityList.slice(0, 4).map((a) => (
+                  <div
+                    key={a.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 0",
+                      borderTop: `1px solid ${colors.borderSofter}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {a.headline}
+                    </span>
+                    <span style={{ flex: "0 0 auto", fontSize: 10, color: colors.textMutedAlt }}>{a.timeLabel}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* 今日の実績・最近のうごき（同時接続人数は検索バー直下に移動済み） */}
-      <div style={{ padding: "16px 22px 0" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <span style={{ fontSize: 11, color: colors.textMutedAlt }}>
-            今日 併せ{todayStats.newAwase}件・参加{todayStats.newRsvps}件
-          </span>
-        </div>
-
-        {activityList.length > 0 && (
-          <div
-            style={{
-              marginTop: 10,
-              border: `1px solid ${colors.borderSoft}`,
-              borderRadius: 14,
-              padding: "4px 13px",
-              background: colors.primaryBg5,
-            }}
-          >
-            {activityList.slice(0, 4).map((a) => (
-              <div
-                key={a.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 0",
-                  borderTop: `1px solid ${colors.borderSofter}`,
-                }}
-              >
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {a.headline}
-                </span>
-                <span style={{ flex: "0 0 auto", fontSize: 10, color: colors.textMutedAlt }}>{a.timeLabel}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* 急上昇の作品 — 直近7日で新規募集が多い作品 */}
       {trendingList.length > 0 && (
