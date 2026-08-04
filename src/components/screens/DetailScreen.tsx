@@ -5,7 +5,7 @@ import { colors } from "@/lib/tokens";
 import { detailRoles, regions } from "@/lib/data";
 import { useRouter } from "../AppRouter";
 import { ImageSlot } from "../ImageSlot";
-import { SectionHeading, PrimaryButton } from "../ui";
+import { SectionHeading } from "../ui";
 import { ChevronLeftIcon, FlagIcon, PlusIcon, ShareIcon } from "../icons";
 import { useToast } from "../Toast";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -482,53 +482,6 @@ export function DetailScreen() {
         </button>
       </div>
 
-      {/* 固定CTA — 本文が長く「応募する」までスクロールが要るため、読んでいる間
-          ずっと画面下に見えるようにする（詳細後半にある本来のボタンと同じ操作）。
-          結論の出ている状態（応募済み・終了・締切）では出さない。 */}
-      {!myAppStatus && !isClosed && !isDeadlinePassed && (
-        <div
-          style={{
-            position: "sticky",
-            bottom: 0,
-            zIndex: 10,
-            padding: "10px 22px",
-            background: colors.white,
-            borderTop: `1px solid ${colors.borderSofter}`,
-            boxShadow: "0 -6px 16px -10px rgba(40,30,60,.25)",
-          }}
-        >
-          {isHost ? (
-            <button
-              onClick={() => nav("hostApplicants")}
-              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
-            >
-              応募者を見る{applicantTotal > 0 ? `（${applicantTotal}名）` : ""}
-            </button>
-          ) : needsVerifyToApply ? (
-            <button
-              onClick={() => nav("verify")}
-              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
-            >
-              本人確認をして応募する
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if (configured && !user) {
-                  nav("login");
-                  return;
-                }
-                setApplyRoleId(null);
-                setConfirmApply(true);
-              }}
-              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
-            >
-              この併せに応募する
-            </button>
-          )}
-        </div>
-      )}
-
       {copied && (
         <div
           style={{
@@ -960,35 +913,19 @@ export function DetailScreen() {
                 応募は締め切りました
               </div>
             ) : needsVerifyToApply ? (
-              <div style={{ marginTop: 22 }}>
-                <div
-                  style={{
-                    textAlign: "center",
-                    fontSize: 11.5,
-                    color: colors.pinkText,
-                    lineHeight: 1.7,
-                    marginBottom: 10,
-                  }}
-                >
-                  女性限定の募集です。応募には本人確認が必要です。
-                </div>
-                <PrimaryButton onClick={() => nav("verify")}>本人確認をして応募する</PrimaryButton>
-              </div>
-            ) : (
-              <PrimaryButton
-                onClick={() => {
-                  if (configured && !user) {
-                    nav("login");
-                    return;
-                  }
-                  setApplyRoleId(null);
-                  setConfirmApply(true);
+              // 応募ボタン自体は画面下の固定CTAが担うので、ここでは理由の説明だけ。
+              <div
+                style={{
+                  marginTop: 22,
+                  textAlign: "center",
+                  fontSize: 11.5,
+                  color: colors.pinkText,
+                  lineHeight: 1.7,
                 }}
-                style={{ marginTop: 22 }}
               >
-                この併せに応募する
-              </PrimaryButton>
-            )}
+                女性限定の募集です。応募には本人確認が必要です。
+              </div>
+            ) : null}
             <button
               onClick={() =>
                 real
@@ -1018,7 +955,11 @@ export function DetailScreen() {
         )}
       </div>
 
-      {/* X（旧Twitter）へワンボタン告知／募集終了投稿 */}
+      {/* X（旧Twitter）へワンボタン告知／募集終了投稿 — 告知は主催者の仕事なので
+          主催者にだけ出す。閲覧者にとっては応募判断のノイズになるうえ、他人の
+          募集を「告知する」導線は意味が通らない（閲覧者はアプリバーの共有ボタン
+          からリンクをコピーできる）。 */}
+      {isHost && (
       <div style={{ padding: "0 22px 30px" }}>
         <button
           onClick={shareToX}
@@ -1068,6 +1009,56 @@ export function DetailScreen() {
             : "概要つきの告知文を投稿し、保存した画像を添付すると目に留まりやすくなります。"}
         </p>
       </div>
+      )}
+
+      {/* 固定CTA — 本文が長く読み進めるあいだ、主要アクションを画面下に出したままにする。
+          `position: sticky; bottom: 0` は「本来の位置が画面下端より下にあるとき」だけ
+          張り付くので、このブロックは必ずスクロール内容の最後に置くこと（先頭に置くと
+          張り付かず、ただのボタンとして上に表示されてスクロールで流れてしまう）。
+          結論の出ている状態（応募済み・終了・締切）では出さない。 */}
+      {!myAppStatus && !isClosed && !isDeadlinePassed && (
+        <div
+          style={{
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10,
+            padding: "10px 22px",
+            background: colors.white,
+            borderTop: `1px solid ${colors.borderSofter}`,
+            boxShadow: "0 -6px 16px -10px rgba(40,30,60,.25)",
+          }}
+        >
+          {isHost ? (
+            <button
+              onClick={() => nav("hostApplicants")}
+              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
+            >
+              応募者を見る{applicantTotal > 0 ? `（${applicantTotal}名）` : ""}
+            </button>
+          ) : needsVerifyToApply ? (
+            <button
+              onClick={() => nav("verify")}
+              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
+            >
+              本人確認をして応募する
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (configured && !user) {
+                  nav("login");
+                  return;
+                }
+                setApplyRoleId(null);
+                setConfirmApply(true);
+              }}
+              style={{ width: "100%", border: "none", background: colors.primary, color: colors.white, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "13px 0", borderRadius: 13, cursor: "pointer" }}
+            >
+              この併せに応募する
+            </button>
+          )}
+        </div>
+      )}
 
       {/* apply confirmation — 希望キャラ選択つき（キャラ登録済みの併せのみ） */}
       {confirmApply && (
