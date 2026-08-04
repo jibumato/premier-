@@ -1101,45 +1101,6 @@ export function HomeScreen() {
       </div>
       )}
 
-      {/* feature shortcuts */}
-      <div style={{ display: "flex", gap: 10, padding: "16px 22px 0" }}>
-        {shortcuts.map((s) => (
-          <button
-            key={s.key}
-            onClick={() => nav(s.key)}
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 7,
-              border: `1px solid ${colors.borderSoft}`,
-              borderRadius: 16,
-              padding: "14px 0",
-              background: colors.primaryBg5,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            <span
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: colors.white,
-                border: `1px solid ${colors.borderSoft}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {s.icon}
-            </span>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>{s.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* プルミエ！ピックアップ — 運営キュレーションのレイヤー写真ショーケース */}
       <HomePickup />
 
@@ -1254,6 +1215,47 @@ export function HomeScreen() {
       {/* 併せ募集 — 未ログインは中盤（従来位置）。ログイン済みは検索バー直下に
           出すため、ここでは描画しない（feedSection を上部で描画済み）。 */}
       {!user && feedSection}
+
+      {/* feature shortcuts — 併せを探す・応募するというメイン動線の邪魔にならない
+          よう、フィードの後ろに置く（以前はフィードより上にあり、未ログイン
+          訪問者の視線をメイン動線からそらしていた）。 */}
+      <div style={{ display: "flex", gap: 10, padding: "22px 22px 0" }}>
+        {shortcuts.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => nav(s.key)}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 7,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 16,
+              padding: "14px 0",
+              background: colors.primaryBg5,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: colors.white,
+                border: `1px solid ${colors.borderSoft}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {s.icon}
+            </span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: colors.textSecondary }}>{s.label}</span>
+          </button>
+        ))}
+      </div>
 
       {/* upcoming events — a few from the curated calendar */}
       {upcomingEvents.length > 0 && (
