@@ -1053,28 +1053,32 @@ export function HomeScreen() {
           </SectionHeading>
         </div>
         {!collapsedSections.posts && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 6,
-            padding: "14px 22px 0",
-          }}
-        >
+        // プルミエ！ピックアップと同じ pt-pickup-grid（2列/4列）＋3:4の縦長タイルに
+        // 揃え、見た目の大きさを一致させる（以前は3列固定・高さ104px固定の
+        // 横長寄りタイルで、ピックアップと並んだときに比率がちぐはぐだった）。
+        <div className="pt-pickup-grid" style={{ padding: "14px 22px 0" }}>
           {configured
             ? postsFeed.slice(0, 6).map((p) => (
                 <button
                   key={p.id}
                   onClick={openPhotos}
                   aria-label="みんなの投稿をもっと見る"
-                  style={{ height: 104, padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer" }}
+                  style={{
+                    position: "relative",
+                    aspectRatio: "3 / 4",
+                    padding: 0,
+                    border: "none",
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    cursor: "pointer",
+                  }}
                 >
-                  <ImageSlot radius={12} src={p.imageUrl} />
+                  <ImageSlot radius={14} src={p.imageUrl} />
                 </button>
               ))
             : homePosts.map((p) => (
-                <div key={p.key} style={{ position: "relative", height: 104 }}>
-                  <ImageSlot radius={12} />
+                <div key={p.key} style={{ position: "relative", aspectRatio: "3 / 4" }}>
+                  <ImageSlot radius={14} />
                   <span
                     style={{
                       position: "absolute",
