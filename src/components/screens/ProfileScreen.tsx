@@ -30,6 +30,13 @@ import type { UserRole } from "@/lib/database.types";
 // true に戻すだけで復活する。
 const LAUNCH_FLAGS = { gift: false };
 
+/**
+ * 公開プロフィール（/u/<handle>）の正規URL。名刺として X のプロフィール欄に
+ * 貼ってもらう用途なので、window.location.origin ではなく常に本番ドメインを使う
+ * （プレビュー環境やローカルのURLを配られると意味がないため）。
+ */
+const PUBLIC_SITE = "https://premiercos.com";
+
 /** Small translucent ←/→ button used for reordering gallery thumbnails. */
 function moveBtnStyle(disabled: boolean): CSSProperties {
   return {
@@ -246,6 +253,53 @@ export function ProfileScreen() {
     { n: real ? String(followerCount.data ?? 0) : "4.2k", l: "フォロワー" },
     { n: real ? String(achievementCount.data ?? 0) : "36", l: "併せ実績" },
   ];
+
+  // ---- 名刺カード（本人のみ）------------------------------------------------
+  // プルミエ！は「活動リンクを1枚にまとめた名刺」として使ってもらう想定だが、
+  // これまで本人が自分の公開URLを取り出す手段が無かった（公開ページ /u/<handle>
+  // と OGP は実装済みなのに、渡せない状態だった）。ここで URL のコピーと X への
+  // 投稿を用意し、あわせて「名刺としての完成度」を出す。
+  //
+  // 併せデビュー用の「はじめてガイド」とは別軸。あちらは"参加"の準備、こちらは
+  // "見せる"側の準備で、埋まっていないと他人から見て空のプロフィールに見える。
+  const cardItems = [
+    { key: "avatar", label: "アイコン", cta: "アイコンを設定", done: real ? Boolean(real.avatar_url) : true, go: () => handlePickImage("avatar_url") },
+    { key: "bio", label: "自己紹介", cta: "自己紹介を書く", done: bio.trim().length > 0, go: () => openEdit() },
+    { key: "handle", label: "ユーザーID", cta: "ユーザーIDを決める", done: username.length > 0, go: () => openEdit() },
+    { key: "links", label: "活動リンク", cta: "活動リンクを追加", done: profileLinks.length > 0, go: () => openEdit() },
+    { key: "verify", label: "本人確認", cta: "本人確認をする", done: isVerified, go: () => nav("verify") },
+  ];
+  const cardDone = cardItems.filter((it) => it.done).length;
+  // ユーザーIDが未設定（user_xxxxxxxx のまま）だと公開URLは配れない。sitemap から
+  // 除外しているのと同じ判定で、未設定のときは URL ではなく設定への導線を出す。
+  const profileUrl = username ? `${PUBLIC_SITE}/u/${username}` : null;
+  const [urlCopied, setUrlCopied] = useState(false);
+
+  const copyProfileUrl = async () => {
+    if (!profileUrl || typeof window === "undefined") return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${displayName}｜プルミエ！`, url: profileUrl });
+        return;
+      }
+      if (!navigator.clipboard) {
+        showToast("この環境ではコピーできません。URLを長押しして選択してください。");
+        return;
+      }
+      await navigator.clipboard.writeText(profileUrl);
+      setUrlCopied(true);
+      window.setTimeout(() => setUrlCopied(false), 1800);
+    } catch {
+      // 共有シートを閉じただけのときは何もしない
+    }
+  };
+
+  const shareProfileToX = () => {
+    if (!profileUrl || typeof window === "undefined") return;
+    const text = "コスプレの活動リンクをプルミエ！にまとめています。併せのお声がけ歓迎です🙌\n#プルミエ #コスプレ #コスプレイヤーさんと繋がりたい";
+    const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(profileUrl)}`;
+    window.open(intent, "_blank", "noopener,noreferrer");
+  };
 
   const handlePickImage = (field: "avatar_url" | "cover_url") => {
     if (!canEdit || !user) return;
@@ -713,6 +767,192 @@ export function ProfileScreen() {
             >
               併せに誘う
             </button>
+          </div>
+        )}
+
+        {/* 名刺カード（本人のみ）— 公開URLの受け渡しと、名刺としての完成度。
+            未ログインで自分のページ相当を見ているときは出さない。 */}
+        {isOwnProfile && !signedOut && (
+          <div
+            style={{
+              marginTop: 14,
+              border: `1px solid ${colors.borderSoft}`,
+              borderRadius: 16,
+              padding: "15px 16px",
+              background: colors.primaryBg5,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>名刺として渡す</span>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: cardDone === cardItems.length ? colors.positive : colors.textMutedAlt,
+                }}
+              >
+                {cardDone}/{cardItems.length} 完了
+              </span>
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: 11.5, lineHeight: 1.7, color: colors.textMutedAlt }}>
+              あなたのページのURLをXのプロフィール欄に貼ると、活動リンクをまとめた1枚として渡せます。
+            </p>
+
+            {/* 完成度バー */}
+            <div
+              aria-hidden
+              style={{
+                height: 5,
+                borderRadius: 999,
+                background: colors.white,
+                border: `1px solid ${colors.borderSoft}`,
+                overflow: "hidden",
+                marginTop: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: `${(cardDone / cardItems.length) * 100}%`,
+                  height: "100%",
+                  background: cardDone === cardItems.length ? colors.positive : colors.primary,
+                  transition: "width .25s ease",
+                }}
+              />
+            </div>
+
+            {/* 未完了の項目はタップでそこへ飛べるようにする */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {cardItems.map((it) =>
+                it.done ? (
+                  <span
+                    key={it.key}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: colors.positive,
+                      background: colors.white,
+                      border: `1px solid ${colors.borderSoft}`,
+                      padding: "4px 9px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    ✓ {it.label}
+                  </span>
+                ) : (
+                  <button
+                    key={it.key}
+                    onClick={it.go}
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: colors.primary,
+                      background: colors.white,
+                      border: `1px dashed ${colors.border}`,
+                      padding: "4px 9px",
+                      borderRadius: 999,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {it.cta} →
+                  </button>
+                ),
+              )}
+            </div>
+
+            {profileUrl ? (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginTop: 13,
+                    background: colors.white,
+                    border: `1px solid ${colors.borderSoft}`,
+                    borderRadius: 12,
+                    padding: "9px 11px",
+                  }}
+                >
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      fontSize: 11.5,
+                      color: colors.textSecondary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {profileUrl.replace(/^https:\/\//, "")}
+                  </span>
+                  <button
+                    onClick={copyProfileUrl}
+                    style={{
+                      flex: "0 0 auto",
+                      border: "none",
+                      background: urlCopied ? colors.positive : colors.primary,
+                      color: colors.white,
+                      fontFamily: "inherit",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "7px 13px",
+                      borderRadius: 999,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {urlCopied ? "コピーしました" : "コピー"}
+                  </button>
+                </div>
+                <button
+                  onClick={shareProfileToX}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 7,
+                    marginTop: 9,
+                    border: "none",
+                    background: "#000",
+                    color: "#fff",
+                    fontFamily: "inherit",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    padding: "11px 0",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  <XIcon size={13} color="#fff" />
+                  Xで自己紹介を投稿する
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={openEdit}
+                style={{
+                  width: "100%",
+                  marginTop: 13,
+                  border: `1px solid ${colors.primary}`,
+                  background: colors.white,
+                  color: colors.primary,
+                  fontFamily: "inherit",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  padding: "11px 0",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                }}
+              >
+                ユーザーIDを決めるとURLが使えます →
+              </button>
+            )}
           </div>
         )}
 
